@@ -61,26 +61,36 @@ function buildMockOzonMetrics(date = dayjs()) {
   };
 }
 
-async function fetchFromCustomEndpoint() {
+function resolveDateParam(date) {
+  if (!date) {
+    return null;
+  }
+
+  return dayjs(date).format("YYYY-MM-DD");
+}
+
+async function fetchFromCustomEndpoint({ date } = {}) {
   const endpoint = process.env.OZON_METRICS_URL;
   if (!endpoint) {
     return null;
   }
 
+  const dateParam = resolveDateParam(date);
   const response = await axios.get(endpoint, {
     timeout: 9000,
     headers: {
       "Client-Id": process.env.OZON_CLIENT_ID || "",
       "Api-Key": process.env.OZON_API_KEY || "",
     },
+    params: dateParam ? { date: dateParam } : undefined,
   });
 
   return response.data;
 }
 
-async function getOzonMetrics() {
+async function getOzonMetrics({ date } = {}) {
   try {
-    const custom = await fetchFromCustomEndpoint();
+    const custom = await fetchFromCustomEndpoint({ date });
     if (custom) {
       return { source: "api", channel: "ozon", ...custom };
     }
@@ -88,7 +98,7 @@ async function getOzonMetrics() {
     // Silent fallback to mock keeps the bot available.
   }
 
-  return buildMockOzonMetrics();
+  return buildMockOzonMetrics(date ? dayjs(date) : undefined);
 }
 
 module.exports = {

@@ -31,6 +31,21 @@ function resolveDisplayName(ctx) {
   return `${firstName} ${lastName}`.trim() || username || `User ${ctx.from?.id}`;
 }
 
+function resolveWebAppUrl() {
+  if (process.env.WEBAPP_URL) {
+    return process.env.WEBAPP_URL;
+  }
+
+  const port = process.env.PORT || process.env.WEBAPP_PORT || 3000;
+  return `http://localhost:${port}`;
+}
+
+function createWebAppKeyboard() {
+  return Markup.inlineKeyboard([
+    [Markup.button.webApp("✈️ Открыть WebApp", resolveWebAppUrl())],
+  ]);
+}
+
 function getOrCreateUser(ctx, db) {
   const telegramId = String(ctx.from.id);
   const existing = db.getUserByTelegramId(telegramId);
@@ -83,6 +98,7 @@ function createMainKeyboard() {
   return Markup.keyboard([
     ["/stats", "/month", "/stocks"],
     ["/settings", "/users"],
+    ["/app"],
   ])
     .resize()
     .persistent();
@@ -111,6 +127,7 @@ function formatHelp() {
     "💬 <b>Команды</b>",
     "",
     "/stats — дашборд за сегодня",
+    "/app — открыть WebApp-интерфейс",
     "/month — отчёт за месяц (manager+)",
     "/stocks — остатки на складах (manager+)",
     "/settings — текущие KPI (owner)",
@@ -133,6 +150,17 @@ function registerCommands(bot, db) {
       disable_web_page_preview: true,
       ...createMainKeyboard(),
     });
+
+    await ctx.reply("Откройте визуальный дашборд WebApp:", createWebAppKeyboard());
+  });
+
+  bot.command("app", async (ctx) => {
+    const user = await requireKnownUser(ctx, db);
+    if (!user) {
+      return;
+    }
+
+    await ctx.reply("Откройте визуальный дашборд WebApp:", createWebAppKeyboard());
   });
 
   bot.command("help", async (ctx) => {

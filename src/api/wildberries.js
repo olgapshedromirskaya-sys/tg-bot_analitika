@@ -61,25 +61,35 @@ function buildMockWildberriesMetrics(date = dayjs()) {
   };
 }
 
-async function fetchFromCustomEndpoint() {
+function resolveDateParam(date) {
+  if (!date) {
+    return null;
+  }
+
+  return dayjs(date).format("YYYY-MM-DD");
+}
+
+async function fetchFromCustomEndpoint({ date } = {}) {
   const endpoint = process.env.WB_METRICS_URL;
   if (!endpoint) {
     return null;
   }
 
+  const dateParam = resolveDateParam(date);
   const response = await axios.get(endpoint, {
     timeout: 9000,
     headers: {
       Authorization: process.env.WB_API_TOKEN || "",
     },
+    params: dateParam ? { date: dateParam } : undefined,
   });
 
   return response.data;
 }
 
-async function getWildberriesMetrics() {
+async function getWildberriesMetrics({ date } = {}) {
   try {
-    const custom = await fetchFromCustomEndpoint();
+    const custom = await fetchFromCustomEndpoint({ date });
     if (custom) {
       return { source: "api", channel: "wildberries", ...custom };
     }
@@ -87,7 +97,7 @@ async function getWildberriesMetrics() {
     // Silent fallback to mock keeps the bot available.
   }
 
-  return buildMockWildberriesMetrics();
+  return buildMockWildberriesMetrics(date ? dayjs(date) : undefined);
 }
 
 module.exports = {
