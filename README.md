@@ -21,9 +21,17 @@ src/
 │   └── roles.js
 ├── db/
 │   └── database.js
+├── webapp/
+│   └── server.js
 └── scheduler/
     ├── alerts.js
     └── index.js
+
+webapp/
+├── index.html
+└── assets/
+    ├── styles.css
+    └── app.js
 ```
 
 ---
@@ -47,6 +55,12 @@ cp .env.example .env
 - `BOT_TOKEN`
 - `OWNER_TELEGRAM_ID`
 
+Для WebApp:
+
+- `PORT` — порт встроенного HTTP-сервера (по умолчанию `3000`)
+- `WEBAPP_URL` — публичный URL, который будет открываться кнопкой в Telegram (`/app`)
+- `CTA_TELEGRAM_URL` — ссылка кнопки «Написать в Telegram» внизу WebApp
+
 ### 3) Запуск
 
 ```bash
@@ -67,6 +81,7 @@ npm run dev
 |---|---|---|
 | `/start` | все добавленные | Приветствие и интерфейс в стиле лендинга |
 | `/stats` | все добавленные | Дашборд за сегодня |
+| `/app` | все добавленные | Открыть WebApp-интерфейс |
 | `/month` | manager+ | Отчёт за месяц |
 | `/stocks` | manager+ | Остатки по товарам |
 | `/settings` | owner | Текущие KPI |
@@ -116,3 +131,7 @@ npm run dev
 - База данных: SQLite (`DB_PATH`, по умолчанию `./data/bot.db`)
 - Таймзона cron: `TIMEZONE` (по умолчанию `Europe/Moscow`)
 - Публичная регистрация: `ALLOW_PUBLIC_REGISTRATION=true` (опционально)
+- Встроенный WebApp/API:
+  - `GET /` — визуальный интерфейс WebApp (в стиле скринов)
+  - `GET /api/webapp/dashboard` — JSON-модель дашборда (живые данные + KPI)
+  - `GET /api/webapp/health` — healthcheck

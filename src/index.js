@@ -4,6 +4,7 @@ const { Telegraf } = require("telegraf");
 const { registerCommands } = require("./bot/commands");
 const { initDatabase } = require("./db/database");
 const { startScheduler } = require("./scheduler");
+const { startWebAppServer } = require("./webapp/server");
 
 function getRequiredEnv(name) {
   const value = process.env[name];
@@ -20,6 +21,7 @@ async function bootstrap() {
 
   const bot = new Telegraf(botToken);
   registerCommands(bot, db);
+  const webAppServer = startWebAppServer({ db });
 
   const schedulerEnabled =
     String(process.env.DISABLE_SCHEDULER || "false").toLowerCase() !== "true";
@@ -31,6 +33,7 @@ async function bootstrap() {
   const stop = (signal) => {
     console.log(`Received ${signal}, stopping bot...`);
     scheduler?.stop();
+    webAppServer.stop();
     bot.stop(signal);
     db.close();
   };

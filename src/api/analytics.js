@@ -32,10 +32,10 @@ function weightedAverage(values) {
   return numerator / denominator;
 }
 
-async function getAnalyticsSnapshot() {
+async function getAnalyticsSnapshot({ date } = {}) {
   const [ozon, wildberries] = await Promise.all([
-    getOzonMetrics(),
-    getWildberriesMetrics(),
+    getOzonMetrics({ date }),
+    getWildberriesMetrics({ date }),
   ]);
 
   const channels = [ozon, wildberries];
