@@ -163,4 +163,4 @@ async function refreshDashboard() {
 }
 
 refreshDashboard();
-setInterval(refreshDashboard, 60_000);
+setInterval(refreshDashboard, 15 * 60 * 1000);
