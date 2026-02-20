@@ -30,7 +30,8 @@ function startWebAppServer({ db }) {
         process.env.OZON_API_KEY = apiKey;
         process.env.OZON_CLIENT_ID = clientId || "";
       } else if (platform === "wb") {
-        process.env.WB_API_KEY = apiKey;
+        process.env.WB_API_KEY   = apiKey;
+        process.env.WB_API_TOKEN = apiKey; // wb.js использует WB_API_TOKEN
       }
 
       res.json({ ok: true });
@@ -42,8 +43,7 @@ function startWebAppServer({ db }) {
   // ── Получить KPI ─────────────────────────────────────────────────
   app.get("/api/kpi", (req, res) => {
     try {
-      const kpi = db.getKpiSettings();
-      res.json(kpi);
+      res.json(db.getKpiSettings());
     } catch (e) {
       res.status(500).json({ error: e.message });
     }
@@ -67,30 +67,23 @@ function startWebAppServer({ db }) {
   app.get("/api/data/ozon", async (req, res) => {
     try {
       const creds = db.getApiCredentials("ozon");
-      if (!creds) {
-        return res.status(400).json({
-          error: "Ключи Ozon не настроены. Перейдите в Настройки.",
-        });
+
+      // Подставляем ключи из БД в окружение
+      if (creds) {
+        process.env.OZON_API_KEY   = creds.api_key;
+        process.env.OZON_CLIENT_ID = creds.client_id || "";
       }
 
-      process.env.OZON_API_KEY = creds.api_key;
-      process.env.OZON_CLIENT_ID = creds.client_id || "";
+      const { getOzonMetrics } = require("../api/ozon");
+      const metrics = await getOzonMetrics();
+      const kpi     = db.getKpiSettings();
 
-      delete require.cache[require.resolve("../api/ozon")];
-      const ozonApi = require("../api/ozon");
-
-      const [todayResult, monthResult] = await Promise.allSettled([
-        ozonApi.getTodaySummary(),
-        ozonApi.getMonthlySummary(),
-      ]);
-
-      const kpi = db.getKpiSettings();
-
+      // Приводим к единому формату { today, month, kpi }
       res.json({
-        today: todayResult.status === "fulfilled" ? todayResult.value : null,
-        month: monthResult.status === "fulfilled" ? monthResult.value : null,
+        today: metrics.today || null,
+        month: metrics.month || null,
         kpi,
-        error: todayResult.status === "rejected" ? todayResult.reason?.message : null,
+        source: metrics.source || "unknown",
       });
     } catch (e) {
       res.status(500).json({ error: e.message });
@@ -101,36 +94,31 @@ function startWebAppServer({ db }) {
   app.get("/api/data/wb", async (req, res) => {
     try {
       const creds = db.getApiCredentials("wb");
-      if (!creds) {
-        return res.status(400).json({
-          error: "Ключ WB не настроен. Перейдите в Настройки.",
-        });
+
+      // Подставляем ключи из БД в окружение
+      if (creds) {
+        process.env.WB_API_KEY   = creds.api_key;
+        process.env.WB_API_TOKEN = creds.api_key; // wb.js читает WB_API_TOKEN
+        process.env.WB_METRICS_URL = creds.client_id || ""; // client_id используем как endpoint URL если нужен
       }
 
-      process.env.WB_API_KEY = creds.api_key;
+      const { getWildberriesMetrics } = require("../api/wildberries");
+      const metrics = await getWildberriesMetrics();
+      const kpi     = db.getKpiSettings();
 
-      delete require.cache[require.resolve("../api/wildberries")];
-      const wbApi = require("../api/wildberries");
-
-      const [todayResult, monthResult] = await Promise.allSettled([
-        wbApi.getTodaySummary(),
-        wbApi.getMonthlySummary(),
-      ]);
-
-      const kpi = db.getKpiSettings();
-
+      // Приводим к единому формату { today, month, kpi }
       res.json({
-        today: todayResult.status === "fulfilled" ? todayResult.value : null,
-        month: monthResult.status === "fulfilled" ? monthResult.value : null,
+        today:  metrics.today  || null,
+        month:  metrics.month  || null,
         kpi,
-        error: todayResult.status === "rejected" ? todayResult.reason?.message : null,
+        source: metrics.source || "unknown",
       });
     } catch (e) {
       res.status(500).json({ error: e.message });
     }
   });
 
-  // ── Главная страница → webapp/index.html ─────────────────────────
+  // ── Главная страница ─────────────────────────────────────────────
   app.get("*", (req, res) => {
     res.sendFile(path.join(__dirname, "../../webapp/index.html"));
   });
