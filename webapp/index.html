@@ -4,9 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Аналитика маркетплейсов</title>
-<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="assets/styles.css">
 <style>
-  /* ── Дополнительные стили для вкладок и форм ── */
   .tabs {
     display: flex;
     background: var(--bg-card);
@@ -24,12 +23,12 @@
     font-size: 13px;
     color: var(--text-soft);
     border-bottom: 2px solid transparent;
-    transition: all 0.2s;
-    background: none;
     border-top: none;
     border-left: none;
     border-right: none;
+    background: none;
     font-family: inherit;
+    transition: all 0.2s;
   }
   .tab-btn.active {
     color: var(--cyan);
@@ -40,7 +39,6 @@
   .tab-panel { display: none; padding: 16px; }
   .tab-panel.active { display: block; }
 
-  /* KPI карточки */
   .kpi-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -53,27 +51,12 @@
     border-radius: 14px;
     padding: 14px;
   }
-  .kpi-label {
-    font-size: 11px;
-    color: var(--text-soft);
-    margin-bottom: 6px;
-  }
-  .kpi-value {
-    font-size: 22px;
-    font-weight: 800;
-    line-height: 1;
-    margin-bottom: 4px;
-    color: var(--text-main);
-  }
-  .kpi-delta {
-    font-size: 11px;
-    font-weight: 600;
-  }
+  .kpi-label { font-size: 11px; color: var(--text-soft); margin-bottom: 6px; }
+  .kpi-value { font-size: 22px; font-weight: 800; line-height: 1; margin-bottom: 4px; color: var(--text-main); }
+  .kpi-delta { font-size: 11px; font-weight: 600; }
   .delta-up   { color: var(--green); }
   .delta-down { color: var(--orange); }
-  .delta-warn { color: var(--yellow); }
 
-  /* Прогресс-бары */
   .bar-card {
     background: var(--bg-card-strong);
     border: 1px solid var(--line);
@@ -89,12 +72,7 @@
     margin-bottom: 8px;
   }
   .bar-header strong { color: var(--text-main); }
-  .bar-track {
-    height: 6px;
-    background: var(--line);
-    border-radius: 6px;
-    overflow: hidden;
-  }
+  .bar-track { height: 6px; background: var(--line); border-radius: 6px; overflow: hidden; }
   .bar-fill {
     height: 100%;
     border-radius: 6px;
@@ -103,7 +81,6 @@
   }
   .bar-fill.warn { background: linear-gradient(90deg, var(--yellow), var(--orange)); }
 
-  /* Алерты */
   .alert-card {
     background: rgba(255,139,87,0.1);
     border: 1px solid rgba(255,139,87,0.3);
@@ -113,9 +90,8 @@
     font-size: 13px;
     line-height: 1.5;
   }
-  .alert-card .alert-title { color: var(--orange); font-weight: 700; margin-bottom: 4px; }
+  .alert-title { color: var(--orange); font-weight: 700; margin-bottom: 4px; }
 
-  /* Секции */
   .section-title {
     font-size: 11px;
     font-weight: 700;
@@ -132,11 +108,8 @@
     margin-bottom: 14px;
   }
 
-  /* Формы настроек */
   .form-label {
-    display: flex;
-    align-items: center;
-    gap: 8px;
+    display: block;
     font-size: 12px;
     color: var(--text-soft);
     margin-bottom: 6px;
@@ -154,6 +127,7 @@
     margin-bottom: 10px;
     transition: border-color 0.2s;
     -webkit-appearance: none;
+    box-sizing: border-box;
   }
   .form-input:focus { border-color: var(--cyan); }
   .form-input::placeholder { color: var(--text-soft); opacity: 0.6; }
@@ -171,6 +145,7 @@
     font-family: inherit;
     transition: opacity 0.2s;
     margin-top: 2px;
+    box-sizing: border-box;
   }
   .save-btn:active { opacity: 0.8; }
   .save-btn:disabled { opacity: 0.5; cursor: default; }
@@ -184,7 +159,6 @@
     line-height: 1.6;
     margin-bottom: 14px;
   }
-  .hint-box a { color: var(--cyan); text-decoration: none; }
 
   .badge-ok {
     display: inline-block;
@@ -207,17 +181,15 @@
 
   .divider { border: none; border-top: 1px solid var(--line); margin: 18px 0; }
 
-  /* Состояния загрузки */
   .state-box {
     text-align: center;
     padding: 48px 20px;
     color: var(--text-soft);
   }
-  .state-box .icon { font-size: 40px; margin-bottom: 12px; }
+  .state-box .state-icon { font-size: 40px; margin-bottom: 12px; }
   .state-box p { font-size: 14px; line-height: 1.5; }
   .state-box small { font-size: 12px; opacity: 0.7; }
 
-  /* Платформа-шапка */
   .platform-header {
     display: flex;
     align-items: center;
@@ -226,10 +198,7 @@
     padding-bottom: 12px;
     border-bottom: 1px solid var(--line);
   }
-  .platform-dot {
-    width: 10px; height: 10px;
-    border-radius: 50%;
-  }
+  .platform-dot { width: 10px; height: 10px; border-radius: 50%; }
   .platform-dot.ozon { background: #5b9fff; }
   .platform-dot.wb   { background: #cb11ab; }
   .platform-name { font-weight: 700; font-size: 15px; }
@@ -244,49 +213,45 @@
     padding: 5px 12px;
     cursor: pointer;
     font-family: inherit;
-    transition: border-color 0.2s;
   }
-  .refresh-btn:hover { border-color: var(--cyan); color: var(--cyan); }
 </style>
 </head>
 <body>
 
-<!-- ВКЛАДКИ -->
 <div class="tabs">
   <button class="tab-btn active" onclick="switchTab('ozon')">🔵 Ozon</button>
   <button class="tab-btn" onclick="switchTab('wb')">🟣 WB</button>
   <button class="tab-btn" onclick="switchTab('settings')">⚙️ Настройки</button>
 </div>
 
-<!-- ══════════ ВКЛАДКА OZON ══════════ -->
+<!-- OZON -->
 <div id="panel-ozon" class="tab-panel active">
   <div id="ozon-content">
     <div class="state-box">
-      <div class="icon">⏳</div>
+      <div class="state-icon">⏳</div>
       <p>Загружаю данные Ozon...</p>
     </div>
   </div>
 </div>
 
-<!-- ══════════ ВКЛАДКА WB ══════════ -->
+<!-- WB -->
 <div id="panel-wb" class="tab-panel">
   <div id="wb-content">
     <div class="state-box">
-      <div class="icon">⏳</div>
+      <div class="state-icon">⏳</div>
       <p>Загружаю данные Wildberries...</p>
     </div>
   </div>
 </div>
 
-<!-- ══════════ ВКЛАДКА НАСТРОЙКИ ══════════ -->
+<!-- НАСТРОЙКИ -->
 <div id="panel-settings" class="tab-panel">
 
-  <!-- API Ozon -->
   <div class="section-card">
     <div class="section-title">🔑 API-ключи Ozon <span id="ozon-status-badge"></span></div>
     <div class="hint-box">
-      Где взять: <strong>seller.ozon.ru</strong> → Настройки (⚙️) → API ключи → Создать ключ → тип <strong>Admin</strong><br>
-      Скопируй <strong>Client-ID</strong> и <strong>API-key</strong>
+      <strong>Где взять:</strong> seller.ozon.ru → Настройки ⚙️ → API ключи → Создать ключ → тип <strong>Admin</strong><br>
+      Скопируй <strong>Client-ID</strong> (число) и <strong>API-ключ</strong> (длинная строка)
     </div>
     <label class="form-label">Client-ID</label>
     <input id="ozon-client-id" class="form-input" type="text" placeholder="Например: 123456" inputmode="numeric">
@@ -295,12 +260,11 @@
     <button class="save-btn" onclick="saveCredentials('ozon')">Сохранить ключи Ozon</button>
   </div>
 
-  <!-- API WB -->
   <div class="section-card">
     <div class="section-title">🔑 API-ключ Wildberries <span id="wb-status-badge"></span></div>
     <div class="hint-box">
-      Где взять: <strong>seller.wildberries.ru</strong> → Профиль (имя справа вверху) → Настройки → Доступ к API → Создать токен<br>
-      Поставь галочки: ✅ Статистика &nbsp;✅ Реклама &nbsp;✅ Контент
+      <strong>Где взять:</strong> seller.wildberries.ru → Профиль (имя справа вверху) → Настройки → Доступ к API → Создать токен<br>
+      Галочки: ✅ Статистика &nbsp;✅ Реклама &nbsp;✅ Аналитика
     </div>
     <label class="form-label">API-токен</label>
     <input id="wb-api-key" class="form-input" type="password" placeholder="Вставьте токен WB">
@@ -309,33 +273,27 @@
 
   <hr class="divider">
 
-  <!-- KPI планы -->
   <div class="section-card">
     <div class="section-title">🎯 Планы KPI на месяц</div>
     <div class="hint-box">
-      Укажи цели. Бот будет сравнивать реальные данные с планами и присылать алерты при отклонениях.
+      Укажи свои цели. Бот сравнивает реальные данные с планами и присылает алерты при отклонениях.
     </div>
-
-    <label class="form-label">💰 Выручка, ₽</label>
+    <label class="form-label">💰 Выручка за месяц, ₽</label>
     <input id="kpi-revenue" class="form-input" type="number" placeholder="Например: 5000000" inputmode="numeric">
-
-    <label class="form-label">📦 Заказы в день, штук</label>
+    <label class="form-label">📦 Заказов в день, штук</label>
     <input id="kpi-daily_orders" class="form-input" type="number" placeholder="Например: 100" inputmode="numeric">
-
-    <label class="form-label">📢 Рекламный бюджет, ₽</label>
+    <label class="form-label">📢 Рекламный бюджет в месяц, ₽</label>
     <input id="kpi-ad_budget" class="form-input" type="number" placeholder="Например: 100000" inputmode="numeric">
-
     <label class="form-label">🔄 Целевая конверсия, %</label>
     <input id="kpi-conversion" class="form-input" type="number" step="0.1" placeholder="Например: 3.5" inputmode="decimal">
-
     <button class="save-btn" onclick="saveAllKpi()">Сохранить планы</button>
   </div>
 
-</div><!-- /panel-settings -->
+</div>
 
 <script>
-// ── Инициализация Telegram WebApp ──────────────────────────────
-(function bootstrapTelegramWebApp() {
+// Инициализация Telegram WebApp
+(function() {
   const tg = window.Telegram && window.Telegram.WebApp;
   if (!tg) return;
   try {
@@ -343,30 +301,25 @@
     tg.expand();
     tg.setBackgroundColor("#05060e");
     tg.setHeaderColor("#05060e");
-  } catch (error) {
-    // Некоторые клиенты Telegram игнорируют эти методы
-  }
+  } catch(e) {}
 })();
 
-// ── Кэш данных (чтобы не перегружать API при переключении) ────
 const dataCache = {};
-let currentTab  = 'ozon';
 
-// ── Переключение вкладок ───────────────────────────────────────
+// Переключение вкладок
 function switchTab(name) {
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
   document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
   document.querySelector(`.tab-btn[onclick="switchTab('${name}')"]`).classList.add('active');
   document.getElementById(`panel-${name}`).classList.add('active');
-  currentTab = name;
 
   if (name === 'ozon')     loadPlatformData('ozon');
   if (name === 'wb')       loadPlatformData('wb');
   if (name === 'settings') loadSettingsPage();
 }
 
-// ── Загрузка данных платформы ──────────────────────────────────
-async function loadPlatformData(platform, forceRefresh = false) {
+// Загрузка данных платформы
+async function loadPlatformData(platform, forceRefresh) {
   const el = document.getElementById(`${platform}-content`);
 
   if (dataCache[platform] && !forceRefresh) {
@@ -374,11 +327,8 @@ async function loadPlatformData(platform, forceRefresh = false) {
     return;
   }
 
-  el.innerHTML = `
-    <div class="state-box">
-      <div class="icon">⏳</div>
-      <p>Загружаю данные ${platform === 'ozon' ? 'Ozon' : 'Wildberries'}...</p>
-    </div>`;
+  const platformName = platform === 'ozon' ? 'Ozon' : 'Wildberries';
+  el.innerHTML = `<div class="state-box"><div class="state-icon">⏳</div><p>Загружаю данные ${platformName}...</p></div>`;
 
   try {
     const res  = await fetch(`/api/data/${platform}`);
@@ -387,7 +337,7 @@ async function loadPlatformData(platform, forceRefresh = false) {
     if (!res.ok || data.error) {
       el.innerHTML = `
         <div class="state-box">
-          <div class="icon">🔑</div>
+          <div class="state-icon">🔑</div>
           <p>${data.error || 'Ошибка загрузки'}</p>
           <small>Перейдите в ⚙️ Настройки и введите API-ключи</small>
         </div>`;
@@ -397,87 +347,62 @@ async function loadPlatformData(platform, forceRefresh = false) {
     const html = buildDashboard(data, platform);
     dataCache[platform] = html;
     el.innerHTML = html;
-  } catch (e) {
-    el.innerHTML = `
-      <div class="state-box">
-        <div class="icon">❌</div>
-        <p>Нет связи с сервером</p>
-        <small>${e.message}</small>
-      </div>`;
+  } catch(e) {
+    el.innerHTML = `<div class="state-box"><div class="state-icon">❌</div><p>Нет связи с сервером</p><small>${e.message}</small></div>`;
   }
 }
 
-// ── Построение дашборда ────────────────────────────────────────
+// Построение дашборда
 function buildDashboard({ today, month, kpi, error }, platform) {
   const t = today || {};
   const m = month || {};
   const k = kpi   || {};
-
+  const now = new Date().toLocaleTimeString('ru', { hour: '2-digit', minute: '2-digit' });
   const isOzon = platform === 'ozon';
-  const name   = isOzon ? 'Ozon' : 'Wildberries';
-  const now    = new Date().toLocaleTimeString('ru', { hour: '2-digit', minute: '2-digit' });
 
-  // Дневные цели (месячный план / 30)
-  const dayRevTarget  = k.revenue    ? k.revenue    / 30 : 0;
-  const dayOrdTarget  = k.daily_orders || 0;
-  const adBudget      = k.ad_budget  || 0;
-  const convTarget    = k.conversion || 0;
+  const dayRevTarget = k.revenue      ? k.revenue / 30  : 0;
+  const dayOrdTarget = k.daily_orders ? k.daily_orders   : 0;
+  const adBudget     = k.ad_budget    ? k.ad_budget      : 0;
+  const convTarget   = k.conversion   ? k.conversion     : 0;
 
   function fmtMoney(n) {
     n = n || 0;
-    if (n >= 1000000) return (n/1000000).toFixed(1) + 'М ₽';
-    if (n >= 1000)    return Math.round(n/1000) + 'К ₽';
+    if (n >= 1000000) return (n / 1000000).toFixed(1) + 'М ₽';
+    if (n >= 1000)    return Math.round(n / 1000) + 'К ₽';
     return n.toLocaleString('ru') + ' ₽';
   }
-
   function fmtNum(n) { return (n || 0).toLocaleString('ru'); }
   function pct(val, max) { return max ? Math.min((val / max) * 100, 100).toFixed(0) : 0; }
 
-  function deltaHtml(val, plan, higherIsBetter = true) {
+  function deltaHtml(val, plan, higher) {
+    if (higher === undefined) higher = true;
     if (!plan || !val) return '<span style="color:var(--text-soft);font-size:11px">— нет плана</span>';
-    const d   = ((val / plan - 1) * 100).toFixed(1);
-    const ok  = higherIsBetter ? val >= plan : val <= plan;
-    const cls = ok ? 'delta-up' : 'delta-down';
-    const arrow = ok ? '▲' : '▼';
-    return `<div class="kpi-delta ${cls}">${arrow} ${Math.abs(d)}% к плану</div>`;
+    const d  = ((val / plan - 1) * 100).toFixed(1);
+    const ok = higher ? val >= plan : val <= plan;
+    return `<div class="kpi-delta ${ok ? 'delta-up' : 'delta-down'}">${ok ? '▲' : '▼'} ${Math.abs(d)}% к плану</div>`;
   }
 
-  function barHtml(val, max, isWarn = false) {
+  function barHtml(val, max, warn) {
     const p = pct(val, max);
-    return `
-      <div class="bar-track">
-        <div class="bar-fill ${isWarn ? 'warn' : ''}" style="width:${p}%"></div>
-      </div>`;
+    return `<div class="bar-track"><div class="bar-fill ${warn ? 'warn' : ''}" style="width:${p}%"></div></div>`;
   }
 
   // Алерты
   let alerts = '';
   if (adBudget && t.adSpend > adBudget * 0.85) {
-    alerts += `
-      <div class="alert-card">
-        <div class="alert-title">💸 Рекламный бюджет на исходе</div>
-        Потрачено ${fmtMoney(t.adSpend)} из ${fmtMoney(adBudget)} (${pct(t.adSpend, adBudget)}%)
-      </div>`;
+    alerts += `<div class="alert-card"><div class="alert-title">💸 Рекламный бюджет на исходе</div>Потрачено ${fmtMoney(t.adSpend)} из ${fmtMoney(adBudget)} (${pct(t.adSpend, adBudget)}%)</div>`;
   }
   if (convTarget && t.conversion && t.conversion < convTarget * 0.7) {
-    alerts += `
-      <div class="alert-card">
-        <div class="alert-title">📉 Низкая конверсия</div>
-        Сейчас ${t.conversion}% при цели ${convTarget}%. Проверьте карточки товаров.
-      </div>`;
+    alerts += `<div class="alert-card"><div class="alert-title">📉 Низкая конверсия</div>Сейчас ${t.conversion}% при цели ${convTarget}%. Проверьте карточки товаров.</div>`;
   }
   if (error) {
-    alerts += `
-      <div class="alert-card">
-        <div class="alert-title">⚠️ Частичная ошибка API</div>
-        ${error}
-      </div>`;
+    alerts += `<div class="alert-card"><div class="alert-title">⚠️ Ошибка API</div>${error}</div>`;
   }
 
   return `
     <div class="platform-header">
       <div class="platform-dot ${platform}"></div>
-      <div class="platform-name">${name}</div>
+      <div class="platform-name">${isOzon ? 'Ozon' : 'Wildberries'}</div>
       <div class="platform-updated">обновлено в ${now}</div>
       <button class="refresh-btn" onclick="refreshData('${platform}')">🔄</button>
     </div>
@@ -511,45 +436,31 @@ function buildDashboard({ today, month, kpi, error }, platform) {
     </div>
 
     <div class="section-title">За месяц</div>
-
     <div class="bar-card">
-      <div class="bar-header">
-        <span>Выручка</span>
-        <strong>${fmtMoney(m.revenue)} / ${fmtMoney(k.revenue)}</strong>
-      </div>
+      <div class="bar-header"><span>Выручка</span><strong>${fmtMoney(m.revenue)} / ${fmtMoney(k.revenue)}</strong></div>
       ${barHtml(m.revenue, k.revenue)}
     </div>
-
     <div class="bar-card">
-      <div class="bar-header">
-        <span>Заказы</span>
-        <strong>${fmtNum(m.orders)} / ${fmtNum(k.daily_orders * 30)}</strong>
-      </div>
+      <div class="bar-header"><span>Заказы</span><strong>${fmtNum(m.orders)} / ${fmtNum(k.daily_orders * 30)}</strong></div>
       ${barHtml(m.orders, k.daily_orders * 30)}
     </div>
-
     <div class="bar-card">
-      <div class="bar-header">
-        <span>Рекламный бюджет</span>
-        <strong>${fmtMoney(t.adSpend)} / ${fmtMoney(k.ad_budget)}</strong>
-      </div>
+      <div class="bar-header"><span>Рекламный бюджет</span><strong>${fmtMoney(t.adSpend)} / ${fmtMoney(k.ad_budget)}</strong></div>
       ${barHtml(t.adSpend, k.ad_budget, t.adSpend > k.ad_budget * 0.7)}
     </div>
   `;
 }
 
-// ── Обновить данные (сбросить кэш) ────────────────────────────
+// Обновить (сбросить кэш)
 function refreshData(platform) {
   delete dataCache[platform];
   loadPlatformData(platform, true);
 }
 
-// ── Сохранить API-ключи ────────────────────────────────────────
+// Сохранить API-ключи
 async function saveCredentials(platform) {
   const apiKey   = document.getElementById(`${platform}-api-key`).value.trim();
-  const clientId = platform === 'ozon'
-    ? (document.getElementById('ozon-client-id').value.trim())
-    : '';
+  const clientId = platform === 'ozon' ? document.getElementById('ozon-client-id').value.trim() : '';
 
   if (!apiKey) { alert('Введите API-ключ'); return; }
   if (platform === 'ozon' && !clientId) { alert('Введите Client-ID для Ozon'); return; }
@@ -571,11 +482,11 @@ async function saveCredentials(platform) {
       if (platform === 'ozon') document.getElementById('ozon-client-id').value = '';
       delete dataCache[platform];
       loadStatusBadges();
-      alert(`✅ Ключи ${platform === 'ozon' ? 'Ozon' : 'WB'} сохранены!\n\nТеперь перейдите на вкладку ${platform === 'ozon' ? '🔵 Ozon' : '🟣 WB'} для просмотра данных.`);
+      alert(`✅ Ключи ${platform === 'ozon' ? 'Ozon' : 'WB'} сохранены!\n\nПерейдите на вкладку ${platform === 'ozon' ? '🔵 Ozon' : '🟣 WB'} для просмотра данных.`);
     } else {
       alert('❌ ' + (data.error || 'Ошибка сохранения'));
     }
-  } catch (e) {
+  } catch(e) {
     alert('❌ Ошибка: ' + e.message);
   } finally {
     btn.disabled = false;
@@ -583,7 +494,7 @@ async function saveCredentials(platform) {
   }
 }
 
-// ── Сохранить все KPI ──────────────────────────────────────────
+// Сохранить все KPI
 async function saveAllKpi() {
   const fields = [
     { key: 'revenue',      id: 'kpi-revenue' },
@@ -595,7 +506,7 @@ async function saveAllKpi() {
   let saved = 0;
   for (const f of fields) {
     const val = document.getElementById(f.id).value.trim();
-    if (val === '') continue;
+    if (!val) continue;
     await fetch('/api/kpi', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -604,21 +515,17 @@ async function saveAllKpi() {
     saved++;
   }
 
-  // Сбрасываем кэш данных — планы изменились
   dataCache['ozon'] = null;
   dataCache['wb']   = null;
-
   alert(saved ? `✅ Сохранено планов: ${saved}` : 'Заполни хотя бы одно поле');
 }
 
-// ── Загрузить страницу настроек ────────────────────────────────
+// Загрузить страницу настроек
 async function loadSettingsPage() {
   loadStatusBadges();
-
   try {
     const res = await fetch('/api/kpi');
     const kpi = await res.json();
-
     const map = {
       revenue:      'kpi-revenue',
       daily_orders: 'kpi-daily_orders',
@@ -626,31 +533,29 @@ async function loadSettingsPage() {
       conversion:   'kpi-conversion',
     };
     for (const [key, id] of Object.entries(map)) {
-      if (kpi[key] !== undefined) {
-        document.getElementById(id).value = kpi[key];
-      }
+      if (kpi[key] !== undefined) document.getElementById(id).value = kpi[key];
     }
   } catch(e) {}
 }
 
-// ── Бейджи статуса ключей ──────────────────────────────────────
+// Бейджи статуса ключей
 async function loadStatusBadges() {
   try {
     const res  = await fetch('/api/credentials/status');
     const data = await res.json();
-
     document.getElementById('ozon-status-badge').innerHTML = data.ozon
       ? '<span class="badge-ok">✓ подключён</span>'
       : '<span class="badge-no">не настроен</span>';
-
     document.getElementById('wb-status-badge').innerHTML = data.wb
       ? '<span class="badge-ok">✓ подключён</span>'
       : '<span class="badge-no">не настроен</span>';
   } catch(e) {}
 }
 
-// ── Старт: загружаем данные первой вкладки ─────────────────────
+// Старт
 loadPlatformData('ozon');
 </script>
+
+<script src="assets/app.js"></script>
 </body>
 </html>

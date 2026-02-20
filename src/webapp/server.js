@@ -5,9 +5,11 @@ function startWebAppServer({ db }) {
   const app = express();
 
   app.use(express.json());
-  app.use(express.static(path.join(__dirname, "../../webapp/assets")));
 
-  // ── Статус API-ключей (не возвращаем сами ключи) ────────────────
+  // Статические файлы из webapp/assets (app.js, styles.css)
+  app.use("/assets", express.static(path.join(__dirname, "../../webapp/assets")));
+
+  // ── Статус API-ключей ────────────────────────────────────────────
   app.get("/api/credentials/status", (req, res) => {
     res.json({
       ozon: db.hasCredentials("ozon"),
@@ -15,7 +17,7 @@ function startWebAppServer({ db }) {
     });
   });
 
-  // ── Сохранить API-ключи ─────────────────────────────────────────
+  // ── Сохранить API-ключи ──────────────────────────────────────────
   app.post("/api/credentials", (req, res) => {
     try {
       const { platform, apiKey, clientId } = req.body;
@@ -24,7 +26,6 @@ function startWebAppServer({ db }) {
       }
       db.saveApiCredentials({ platform, apiKey, clientId: clientId || "" });
 
-      // Применяем сразу в окружение чтобы следующий запрос уже видел ключи
       if (platform === "ozon") {
         process.env.OZON_API_KEY = apiKey;
         process.env.OZON_CLIENT_ID = clientId || "";
@@ -38,7 +39,7 @@ function startWebAppServer({ db }) {
     }
   });
 
-  // ── Получить KPI ────────────────────────────────────────────────
+  // ── Получить KPI ─────────────────────────────────────────────────
   app.get("/api/kpi", (req, res) => {
     try {
       const kpi = db.getKpiSettings();
@@ -48,7 +49,7 @@ function startWebAppServer({ db }) {
     }
   });
 
-  // ── Сохранить KPI ───────────────────────────────────────────────
+  // ── Сохранить KPI ────────────────────────────────────────────────
   app.post("/api/kpi", (req, res) => {
     try {
       const { key, value } = req.body;
@@ -62,7 +63,7 @@ function startWebAppServer({ db }) {
     }
   });
 
-  // ── Данные Ozon ─────────────────────────────────────────────────
+  // ── Данные Ozon ──────────────────────────────────────────────────
   app.get("/api/data/ozon", async (req, res) => {
     try {
       const creds = db.getApiCredentials("ozon");
@@ -72,11 +73,9 @@ function startWebAppServer({ db }) {
         });
       }
 
-      // Подставляем ключи из БД в окружение
       process.env.OZON_API_KEY = creds.api_key;
       process.env.OZON_CLIENT_ID = creds.client_id || "";
 
-      // Загружаем модуль свежо (чтобы он взял новые env)
       delete require.cache[require.resolve("../api/ozon")];
       const ozonApi = require("../api/ozon");
 
@@ -91,17 +90,14 @@ function startWebAppServer({ db }) {
         today: todayResult.status === "fulfilled" ? todayResult.value : null,
         month: monthResult.status === "fulfilled" ? monthResult.value : null,
         kpi,
-        error:
-          todayResult.status === "rejected"
-            ? todayResult.reason?.message
-            : null,
+        error: todayResult.status === "rejected" ? todayResult.reason?.message : null,
       });
     } catch (e) {
       res.status(500).json({ error: e.message });
     }
   });
 
-  // ── Данные Wildberries ──────────────────────────────────────────
+  // ── Данные Wildberries ───────────────────────────────────────────
   app.get("/api/data/wb", async (req, res) => {
     try {
       const creds = db.getApiCredentials("wb");
@@ -127,19 +123,16 @@ function startWebAppServer({ db }) {
         today: todayResult.status === "fulfilled" ? todayResult.value : null,
         month: monthResult.status === "fulfilled" ? monthResult.value : null,
         kpi,
-        error:
-          todayResult.status === "rejected"
-            ? todayResult.reason?.message
-            : null,
+        error: todayResult.status === "rejected" ? todayResult.reason?.message : null,
       });
     } catch (e) {
       res.status(500).json({ error: e.message });
     }
   });
 
-  // ── Все остальные пути → index.html (SPA) ──────────────────────
+  // ── Главная страница → webapp/index.html ─────────────────────────
   app.get("*", (req, res) => {
-    res.sendFile(path.join(__dirname, "../../webapp/assets/index.html"));
+    res.sendFile(path.join(__dirname, "../../webapp/index.html"));
   });
 
   const port = process.env.PORT || 3000;
