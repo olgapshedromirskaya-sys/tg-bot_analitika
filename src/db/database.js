@@ -13,7 +13,6 @@ function resolveDbPath(inputPath) {
   if (path.isAbsolute(inputPath)) {
     return inputPath;
   }
-
   return path.join(process.cwd(), inputPath);
 }
 
@@ -52,6 +51,16 @@ function initDatabase() {
     );
   `);
 
+  // Таблица для хранения API-ключей маркетплейсов
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS api_credentials (
+      platform   TEXT PRIMARY KEY,
+      api_key    TEXT NOT NULL,
+      client_id  TEXT DEFAULT '',
+      updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+  `);
+
   const seedKpiStmt = db.prepare(`
     INSERT INTO kpi_settings(key, value, updated_at)
     VALUES (@key, @value, datetime('now'))
@@ -74,7 +83,7 @@ function initDatabase() {
   const getUserStmt = db.prepare(`
     SELECT telegram_id, role, name, added_by, created_at
     FROM users
-    WHERE telegram_id = ?;
+    WHERE telegram_id = ?
   `);
 
   const removeUserStmt = db.prepare(`
@@ -92,7 +101,7 @@ function initDatabase() {
         WHEN 'marketer' THEN 2
         ELSE 1
       END DESC,
-      datetime(created_at) ASC;
+      datetime(created_at) ASC
   `);
 
   const getKpiStmt = db.prepare(`
@@ -105,12 +114,27 @@ function initDatabase() {
     VALUES (@key, @value, datetime('now'))
     ON CONFLICT(key) DO UPDATE SET
       value = excluded.value,
-      updated_at = datetime('now');
+      updated_at = excluded.updated_at;
   `);
 
   const saveAlertStmt = db.prepare(`
     INSERT INTO alert_history(telegram_id, code, message)
     VALUES (@telegram_id, @code, @message);
+  `);
+
+  const getCredentialsStmt = db.prepare(`
+    SELECT platform, api_key, client_id, updated_at
+    FROM api_credentials
+    WHERE platform = ?
+  `);
+
+  const saveCredentialsStmt = db.prepare(`
+    INSERT INTO api_credentials (platform, api_key, client_id)
+    VALUES (@platform, @apiKey, @clientId)
+    ON CONFLICT(platform) DO UPDATE SET
+      api_key    = excluded.api_key,
+      client_id  = excluded.client_id,
+      updated_at = datetime('now')
   `);
 
   return {
@@ -119,15 +143,10 @@ function initDatabase() {
     },
 
     ensureOwner(telegramId) {
-      if (!telegramId) {
-        return;
-      }
-
       const existing = getUserStmt.get(String(telegramId));
       if (existing && existing.role === "owner") {
         return;
       }
-
       upsertUserStmt.run({
         telegram_id: String(telegramId),
         role: "owner",
@@ -160,17 +179,14 @@ function initDatabase() {
     getKpiSettings() {
       const rows = getKpiStmt.all();
       const result = {};
-
       for (const row of rows) {
         result[row.key] = Number(row.value);
       }
-
       for (const [key, value] of Object.entries(DEFAULT_KPI)) {
         if (typeof result[key] !== "number") {
           result[key] = value;
         }
       }
-
       return result;
     },
 
@@ -184,6 +200,22 @@ function initDatabase() {
         code,
         message,
       });
+    },
+
+    // Получить API-ключи платформы
+    getApiCredentials(platform) {
+      return getCredentialsStmt.get(platform);
+    },
+
+    // Сохранить API-ключи платформы
+    saveApiCredentials({ platform, apiKey, clientId = "" }) {
+      saveCredentialsStmt.run({ platform, apiKey, clientId });
+    },
+
+    // Проверить — настроены ли ключи для платформы
+    hasCredentials(platform) {
+      const creds = getCredentialsStmt.get(platform);
+      return !!(creds && creds.api_key);
     },
   };
 }
