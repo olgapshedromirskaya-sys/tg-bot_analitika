@@ -98,14 +98,16 @@ function startWebAppServer({ db }) {
       const kpi     = db.getKpiSettings();
 
       const result = {
-        today:  metrics.today  || null,
-        month:  metrics.month  || null,
+        today:          metrics.today          || null,
+        month:          metrics.month          || null,
+        stocks:         metrics.stocks         || [],
+        warehouses:     metrics.warehouses     || [],
+        atRiskProducts: metrics.atRiskProducts || [],
         kpi,
-        source: metrics.source || "unknown",
+        source:   metrics.source || "unknown",
         cachedAt: new Date().toISOString(),
       };
 
-      // Сохраняем в кэш только если данные реальные (не ошибка)
       if (metrics.source !== "error") {
         cache.wb = { data: result, updatedAt: now };
       }
@@ -141,10 +143,13 @@ function startWebAppServer({ db }) {
       const kpi     = db.getKpiSettings();
 
       const result = {
-        today:  metrics.today  || null,
-        month:  metrics.month  || null,
+        today:          metrics.today          || null,
+        month:          metrics.month          || null,
+        stocks:         metrics.stocks         || [],
+        warehouses:     metrics.warehouses     || [],
+        atRiskProducts: metrics.atRiskProducts || [],
         kpi,
-        source: metrics.source || "unknown",
+        source:   metrics.source || "unknown",
         cachedAt: new Date().toISOString(),
       };
 
