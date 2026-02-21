@@ -217,6 +217,11 @@ function initDatabase() {
       const creds = getCredentialsStmt.get(platform);
       return !!(creds && creds.api_key);
     },
+
+    // Удалить API-ключи платформы
+    deleteApiCredentials(platform) {
+      db.prepare('DELETE FROM api_credentials WHERE platform = ?').run(platform);
+    },
   };
 }
 
