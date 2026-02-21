@@ -6,150 +6,192 @@
 <title>Аналитика маркетплейсов</title>
 <link rel="stylesheet" href="assets/styles.css">
 <style>
+  /* ── Вкладки ── */
   .tabs {
     display: flex;
-    background: var(--bg-card);
-    border-bottom: 1px solid var(--line);
     position: sticky;
     top: 0;
-    z-index: 100;
+    z-index: 200;
+    background: var(--bg-card);
+    border-bottom: 1px solid var(--line);
   }
   .tab-btn {
     flex: 1;
-    padding: 14px 8px;
-    text-align: center;
-    cursor: pointer;
+    padding: 13px 4px;
+    font-size: 12px;
     font-weight: 700;
-    font-size: 13px;
-    color: var(--text-soft);
-    border-bottom: 2px solid transparent;
-    border-top: none;
-    border-left: none;
-    border-right: none;
-    background: none;
     font-family: inherit;
+    color: var(--text-soft);
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    cursor: pointer;
     transition: all 0.2s;
   }
   .tab-btn.active {
     color: var(--cyan);
     border-bottom-color: var(--cyan);
-    background: rgba(89,156,255,0.06);
+    background: rgba(89,156,255,0.05);
   }
-
-  .tab-panel { display: none; padding: 16px; }
+  .tab-panel { display: none; padding: 14px; }
   .tab-panel.active { display: block; }
 
+  /* ── Карточки метрик ── */
   .kpi-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 10px;
-    margin-bottom: 14px;
+    gap: 8px;
+    margin-bottom: 12px;
   }
   .kpi-card {
-    background: var(--bg-card-strong);
+    background: var(--bg-card-strong, #151929);
     border: 1px solid var(--line);
     border-radius: 14px;
-    padding: 14px;
+    padding: 12px;
   }
-  .kpi-label { font-size: 11px; color: var(--text-soft); margin-bottom: 6px; }
-  .kpi-value { font-size: 22px; font-weight: 800; line-height: 1; margin-bottom: 4px; color: var(--text-main); }
+  .kpi-label { font-size: 11px; color: var(--text-soft); margin-bottom: 5px; }
+  .kpi-value { font-size: 20px; font-weight: 800; line-height: 1; margin-bottom: 4px; }
   .kpi-delta { font-size: 11px; font-weight: 600; }
-  .delta-up   { color: var(--green); }
-  .delta-down { color: var(--orange); }
+  .delta-up   { color: var(--green, #4caf50); }
+  .delta-down { color: var(--orange, #ff8b57); }
 
+  /* ── Прогресс-бары ── */
   .bar-card {
-    background: var(--bg-card-strong);
+    background: var(--bg-card-strong, #151929);
     border: 1px solid var(--line);
     border-radius: 12px;
-    padding: 12px 14px;
-    margin-bottom: 8px;
+    padding: 11px 13px;
+    margin-bottom: 7px;
   }
   .bar-header {
     display: flex;
     justify-content: space-between;
-    font-size: 12px;
+    font-size: 11px;
     color: var(--text-soft);
-    margin-bottom: 8px;
+    margin-bottom: 7px;
   }
   .bar-header strong { color: var(--text-main); }
-  .bar-track { height: 6px; background: var(--line); border-radius: 6px; overflow: hidden; }
+  .bar-track { height: 5px; background: var(--line); border-radius: 5px; overflow: hidden; }
   .bar-fill {
     height: 100%;
-    border-radius: 6px;
-    background: linear-gradient(90deg, var(--cyan), var(--mint));
+    border-radius: 5px;
+    background: linear-gradient(90deg, var(--cyan, #599cff), var(--mint, #66cec3));
     transition: width 0.8s ease;
   }
-  .bar-fill.warn { background: linear-gradient(90deg, var(--yellow), var(--orange)); }
+  .bar-fill.warn { background: linear-gradient(90deg, #f5c518, #ff8b57); }
 
-  .alert-card {
-    background: rgba(255,139,87,0.1);
-    border: 1px solid rgba(255,139,87,0.3);
-    border-radius: 12px;
-    padding: 12px 14px;
-    margin-bottom: 10px;
-    font-size: 13px;
-    line-height: 1.5;
-  }
-  .alert-title { color: var(--orange); font-weight: 700; margin-bottom: 4px; }
-
+  /* ── Секции ── */
   .section-title {
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--text-soft);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin: 16px 0 8px;
+  }
+
+  /* ── Товары в зоне риска ── */
+  .risk-item {
+    background: rgba(255,87,87,0.08);
+    border: 1px solid rgba(255,87,87,0.25);
+    border-radius: 12px;
+    padding: 11px 13px;
+    margin-bottom: 7px;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  .risk-icon { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
+  .risk-name { font-size: 13px; font-weight: 700; color: #ff6b6b; margin-bottom: 3px; }
+  .risk-reason { font-size: 12px; color: var(--text-soft); line-height: 1.4; }
+  .risk-sku { font-size: 10px; color: var(--text-soft); opacity: 0.6; margin-top: 2px; }
+
+  /* ── Товары с ростом ── */
+  .growth-item {
+    background: rgba(76,175,80,0.08);
+    border: 1px solid rgba(76,175,80,0.25);
+    border-radius: 12px;
+    padding: 11px 13px;
+    margin-bottom: 7px;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  .growth-icon { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
+  .growth-name { font-size: 13px; font-weight: 700; color: #4caf50; margin-bottom: 3px; }
+  .growth-reason { font-size: 12px; color: var(--text-soft); line-height: 1.4; }
+
+  /* ── Остатки ── */
+  .stock-item {
+    background: var(--bg-card-strong, #151929);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 11px 13px;
+    margin-bottom: 7px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .stock-indicator {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .stock-indicator.critical { background: #ff4444; box-shadow: 0 0 6px #ff4444; }
+  .stock-indicator.warning  { background: #f5c518; box-shadow: 0 0 6px #f5c518; }
+  .stock-indicator.ok       { background: #4caf50; box-shadow: 0 0 6px #4caf50; }
+  .stock-info { flex: 1; min-width: 0; }
+  .stock-name { font-size: 13px; font-weight: 700; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .stock-meta { font-size: 11px; color: var(--text-soft); }
+  .stock-qty  { font-size: 16px; font-weight: 800; color: var(--text-main); flex-shrink: 0; }
+
+  /* ── Круговая диаграмма ── */
+  .pie-wrap {
+    background: var(--bg-card-strong, #151929);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 16px;
+    margin-bottom: 12px;
+  }
+  .pie-container {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  .pie-svg-wrap { flex-shrink: 0; }
+  .pie-legend { flex: 1; }
+  .pie-legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+    font-size: 12px;
+  }
+  .pie-legend-dot {
+    width: 10px; height: 10px;
+    border-radius: 3px;
+    flex-shrink: 0;
+  }
+  .pie-legend-name { color: var(--text-main); flex: 1; }
+  .pie-legend-pct  { color: var(--text-soft); font-weight: 700; }
+  .pie-legend-qty  { color: var(--text-soft); font-size: 11px; }
+
+  /* ── Настройки ── */
+  .section-card {
+    background: var(--bg-card);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 14px;
+    margin-bottom: 12px;
+  }
+  .section-heading {
     font-size: 11px;
     font-weight: 700;
     color: var(--text-soft);
     letter-spacing: 0.1em;
     text-transform: uppercase;
-    margin: 20px 0 10px;
-  }
-  .section-card {
-    background: var(--bg-card);
-    border: 1px solid var(--line);
-    border-radius: 16px;
-    padding: 16px;
-    margin-bottom: 14px;
-  }
-
-  .form-label {
-    display: block;
-    font-size: 12px;
-    color: var(--text-soft);
-    margin-bottom: 6px;
-  }
-  .form-input {
-    width: 100%;
-    background: var(--bg-card-strong);
-    border: 1px solid var(--line);
-    border-radius: 10px;
-    padding: 12px 14px;
-    color: var(--text-main);
-    font-size: 14px;
-    font-family: inherit;
-    outline: none;
     margin-bottom: 10px;
-    transition: border-color 0.2s;
-    -webkit-appearance: none;
-    box-sizing: border-box;
   }
-  .form-input:focus { border-color: var(--cyan); }
-  .form-input::placeholder { color: var(--text-soft); opacity: 0.6; }
-
-  .save-btn {
-    width: 100%;
-    padding: 13px;
-    background: linear-gradient(135deg, var(--cyan), var(--mint));
-    border: none;
-    border-radius: 12px;
-    color: #0a1628;
-    font-weight: 800;
-    font-size: 14px;
-    cursor: pointer;
-    font-family: inherit;
-    transition: opacity 0.2s;
-    margin-top: 2px;
-    box-sizing: border-box;
-  }
-  .save-btn:active { opacity: 0.8; }
-  .save-btn:disabled { opacity: 0.5; cursor: default; }
-
   .hint-box {
     background: rgba(89,156,255,0.08);
     border-radius: 10px;
@@ -157,63 +199,105 @@
     font-size: 12px;
     color: var(--text-soft);
     line-height: 1.6;
-    margin-bottom: 14px;
+    margin-bottom: 12px;
   }
-
+  .form-label { display: block; font-size: 12px; color: var(--text-soft); margin-bottom: 5px; }
+  .form-input {
+    width: 100%;
+    background: var(--bg-card-strong, #151929);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 11px 13px;
+    color: var(--text-main);
+    font-size: 14px;
+    font-family: inherit;
+    outline: none;
+    margin-bottom: 9px;
+    box-sizing: border-box;
+    -webkit-appearance: none;
+    transition: border-color 0.2s;
+  }
+  .form-input:focus { border-color: var(--cyan, #599cff); }
+  .form-input::placeholder { color: var(--text-soft); opacity: 0.55; }
+  .save-btn {
+    width: 100%;
+    padding: 12px;
+    background: linear-gradient(135deg, var(--cyan, #599cff), var(--mint, #66cec3));
+    border: none;
+    border-radius: 12px;
+    color: #07111f;
+    font-weight: 800;
+    font-size: 14px;
+    font-family: inherit;
+    cursor: pointer;
+    box-sizing: border-box;
+    transition: opacity 0.2s;
+  }
+  .save-btn:active { opacity: 0.8; }
+  .save-btn:disabled { opacity: 0.5; cursor: default; }
   .badge-ok {
     display: inline-block;
     background: rgba(102,206,195,0.2);
-    color: var(--mint);
+    color: var(--mint, #66cec3);
     border-radius: 20px;
     padding: 1px 8px;
     font-size: 11px;
     font-weight: 700;
+    margin-left: 6px;
   }
   .badge-no {
     display: inline-block;
     background: rgba(255,139,87,0.15);
-    color: var(--orange);
+    color: var(--orange, #ff8b57);
     border-radius: 20px;
     padding: 1px 8px;
     font-size: 11px;
     font-weight: 700;
+    margin-left: 6px;
   }
+  .s-divider { border: none; border-top: 1px solid var(--line); margin: 14px 0; }
 
-  .divider { border: none; border-top: 1px solid var(--line); margin: 18px 0; }
-
-  .state-box {
-    text-align: center;
-    padding: 48px 20px;
-    color: var(--text-soft);
-  }
-  .state-box .state-icon { font-size: 40px; margin-bottom: 12px; }
-  .state-box p { font-size: 14px; line-height: 1.5; }
-  .state-box small { font-size: 12px; opacity: 0.7; }
+  /* ── Состояния ── */
+  .state-box { text-align: center; padding: 40px 16px; color: var(--text-soft); }
+  .state-icon { font-size: 36px; margin-bottom: 10px; }
+  .state-box p { font-size: 14px; line-height: 1.5; margin: 0 0 6px; }
+  .state-box small { font-size: 12px; opacity: 0.65; }
 
   .platform-header {
     display: flex;
     align-items: center;
-    gap: 10px;
-    margin-bottom: 16px;
-    padding-bottom: 12px;
+    gap: 8px;
+    margin-bottom: 14px;
+    padding-bottom: 10px;
     border-bottom: 1px solid var(--line);
   }
-  .platform-dot { width: 10px; height: 10px; border-radius: 50%; }
+  .platform-dot { width: 9px; height: 9px; border-radius: 50%; }
   .platform-dot.ozon { background: #5b9fff; }
   .platform-dot.wb   { background: #cb11ab; }
-  .platform-name { font-weight: 700; font-size: 15px; }
+  .platform-name { font-weight: 700; font-size: 14px; }
   .platform-updated { font-size: 11px; color: var(--text-soft); margin-left: auto; }
-
   .refresh-btn {
     background: none;
     border: 1px solid var(--line);
     border-radius: 8px;
     color: var(--text-soft);
     font-size: 12px;
-    padding: 5px 12px;
+    padding: 4px 10px;
     cursor: pointer;
     font-family: inherit;
   }
+
+  /* ── Источник данных ── */
+  .source-badge {
+    display: inline-block;
+    font-size: 10px;
+    padding: 2px 8px;
+    border-radius: 20px;
+    margin-left: 6px;
+    font-weight: 600;
+  }
+  .source-api  { background: rgba(76,175,80,0.15); color: #4caf50; }
+  .source-mock { background: rgba(245,197,24,0.15); color: #f5c518; }
 </style>
 </head>
 <body>
@@ -227,31 +311,24 @@
 <!-- OZON -->
 <div id="panel-ozon" class="tab-panel active">
   <div id="ozon-content">
-    <div class="state-box">
-      <div class="state-icon">⏳</div>
-      <p>Загружаю данные Ozon...</p>
-    </div>
+    <div class="state-box"><div class="state-icon">⏳</div><p>Загружаю данные Ozon...</p></div>
   </div>
 </div>
 
 <!-- WB -->
 <div id="panel-wb" class="tab-panel">
   <div id="wb-content">
-    <div class="state-box">
-      <div class="state-icon">⏳</div>
-      <p>Загружаю данные Wildberries...</p>
-    </div>
+    <div class="state-box"><div class="state-icon">⏳</div><p>Загружаю данные Wildberries...</p></div>
   </div>
 </div>
 
 <!-- НАСТРОЙКИ -->
 <div id="panel-settings" class="tab-panel">
-
   <div class="section-card">
-    <div class="section-title">🔑 API-ключи Ozon <span id="ozon-status-badge"></span></div>
+    <div class="section-heading">🔑 API-ключи Ozon <span id="ozon-status-badge"></span></div>
     <div class="hint-box">
-      <strong>Где взять:</strong> seller.ozon.ru → Настройки ⚙️ → API ключи → Создать ключ → тип <strong>Admin</strong><br>
-      Скопируй <strong>Client-ID</strong> (число) и <strong>API-ключ</strong> (длинная строка)
+      seller.ozon.ru → Настройки ⚙️ → API ключи → Создать ключ → тип <strong>Admin</strong><br>
+      Нужны: <strong>Client-ID</strong> и <strong>API-ключ</strong>
     </div>
     <label class="form-label">Client-ID</label>
     <input id="ozon-client-id" class="form-input" type="text" placeholder="Например: 123456" inputmode="numeric">
@@ -261,9 +338,9 @@
   </div>
 
   <div class="section-card">
-    <div class="section-title">🔑 API-ключ Wildberries <span id="wb-status-badge"></span></div>
+    <div class="section-heading">🔑 API-ключ Wildberries <span id="wb-status-badge"></span></div>
     <div class="hint-box">
-      <strong>Где взять:</strong> seller.wildberries.ru → Профиль (имя справа вверху) → Настройки → Доступ к API → Создать токен<br>
+      seller.wildberries.ru → Профиль → Настройки → Доступ к API → Создать токен<br>
       Галочки: ✅ Статистика &nbsp;✅ Реклама &nbsp;✅ Аналитика
     </div>
     <label class="form-label">API-токен</label>
@@ -271,76 +348,63 @@
     <button class="save-btn" onclick="saveCredentials('wb')">Сохранить ключ WB</button>
   </div>
 
-  <hr class="divider">
+  <hr class="s-divider">
 
   <div class="section-card">
-    <div class="section-title">🎯 Планы KPI на месяц</div>
-    <div class="hint-box">
-      Укажи свои цели. Бот сравнивает реальные данные с планами и присылает алерты при отклонениях.
-    </div>
+    <div class="section-heading">🎯 Планы KPI на месяц</div>
+    <div class="hint-box">Укажи цели — бот сравнивает с реальными данными и присылает алерты.</div>
     <label class="form-label">💰 Выручка за месяц, ₽</label>
-    <input id="kpi-revenue" class="form-input" type="number" placeholder="Например: 5000000" inputmode="numeric">
+    <input id="kpi-revenue" class="form-input" type="number" placeholder="5000000" inputmode="numeric">
     <label class="form-label">📦 Заказов в день, штук</label>
-    <input id="kpi-daily_orders" class="form-input" type="number" placeholder="Например: 100" inputmode="numeric">
+    <input id="kpi-daily_orders" class="form-input" type="number" placeholder="100" inputmode="numeric">
     <label class="form-label">📢 Рекламный бюджет в месяц, ₽</label>
-    <input id="kpi-ad_budget" class="form-input" type="number" placeholder="Например: 100000" inputmode="numeric">
+    <input id="kpi-ad_budget" class="form-input" type="number" placeholder="100000" inputmode="numeric">
     <label class="form-label">🔄 Целевая конверсия, %</label>
-    <input id="kpi-conversion" class="form-input" type="number" step="0.1" placeholder="Например: 3.5" inputmode="decimal">
+    <input id="kpi-conversion" class="form-input" type="number" step="0.1" placeholder="3.5" inputmode="decimal">
     <button class="save-btn" onclick="saveAllKpi()">Сохранить планы</button>
   </div>
-
 </div>
 
 <script>
-// Инициализация Telegram WebApp
+// ── Telegram WebApp ─────────────────────────────────────────────
 (function() {
   const tg = window.Telegram && window.Telegram.WebApp;
   if (!tg) return;
-  try {
-    tg.ready();
-    tg.expand();
-    tg.setBackgroundColor("#05060e");
-    tg.setHeaderColor("#05060e");
-  } catch(e) {}
+  try { tg.ready(); tg.expand(); tg.setBackgroundColor("#05060e"); tg.setHeaderColor("#05060e"); } catch(e) {}
 })();
 
 const dataCache = {};
 
-// Переключение вкладок
+// ── Цвета для круговой диаграммы ───────────────────────────────
+const PIE_COLORS = [
+  '#599cff','#66cec3','#f5c518','#ff8b57','#a78bfa',
+  '#34d399','#f472b6','#60a5fa','#fbbf24','#4ade80'
+];
+
+// ── Переключение вкладок ────────────────────────────────────────
 function switchTab(name) {
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
   document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
   document.querySelector(`.tab-btn[onclick="switchTab('${name}')"]`).classList.add('active');
   document.getElementById(`panel-${name}`).classList.add('active');
-
   if (name === 'ozon')     loadPlatformData('ozon');
   if (name === 'wb')       loadPlatformData('wb');
   if (name === 'settings') loadSettingsPage();
 }
 
-// Загрузка данных платформы
+// ── Загрузка данных ─────────────────────────────────────────────
 async function loadPlatformData(platform, forceRefresh) {
   const el = document.getElementById(`${platform}-content`);
+  if (dataCache[platform] && !forceRefresh) { el.innerHTML = dataCache[platform]; return; }
 
-  if (dataCache[platform] && !forceRefresh) {
-    el.innerHTML = dataCache[platform];
-    return;
-  }
-
-  const platformName = platform === 'ozon' ? 'Ozon' : 'Wildberries';
-  el.innerHTML = `<div class="state-box"><div class="state-icon">⏳</div><p>Загружаю данные ${platformName}...</p></div>`;
+  el.innerHTML = `<div class="state-box"><div class="state-icon">⏳</div><p>Загружаю данные ${platform === 'ozon' ? 'Ozon' : 'Wildberries'}...</p></div>`;
 
   try {
     const res  = await fetch(`/api/data/${platform}`);
     const data = await res.json();
 
     if (!res.ok || data.error) {
-      el.innerHTML = `
-        <div class="state-box">
-          <div class="state-icon">🔑</div>
-          <p>${data.error || 'Ошибка загрузки'}</p>
-          <small>Перейдите в ⚙️ Настройки и введите API-ключи</small>
-        </div>`;
+      el.innerHTML = `<div class="state-box"><div class="state-icon">🔑</div><p>${data.error || 'Ошибка загрузки'}</p><small>Перейдите в ⚙️ Настройки и введите API-ключи</small></div>`;
       return;
     }
 
@@ -352,68 +416,161 @@ async function loadPlatformData(platform, forceRefresh) {
   }
 }
 
-// Построение дашборда
-function buildDashboard({ today, month, kpi, error }, platform) {
+function refreshData(platform) { delete dataCache[platform]; loadPlatformData(platform, true); }
+
+// ── Построение дашборда ─────────────────────────────────────────
+function buildDashboard({ today, month, kpi, source, warehouses, stocks, atRiskProducts }, platform) {
   const t = today || {};
   const m = month || {};
   const k = kpi   || {};
   const now = new Date().toLocaleTimeString('ru', { hour: '2-digit', minute: '2-digit' });
   const isOzon = platform === 'ozon';
 
-  const dayRevTarget = k.revenue      ? k.revenue / 30  : 0;
-  const dayOrdTarget = k.daily_orders ? k.daily_orders   : 0;
-  const adBudget     = k.ad_budget    ? k.ad_budget      : 0;
-  const convTarget   = k.conversion   ? k.conversion     : 0;
+  const dayRevTarget = k.revenue      ? k.revenue / 30 : 0;
+  const dayOrdTarget = k.daily_orders || 0;
+  const adBudget     = k.ad_budget    || 0;
+  const convTarget   = k.conversion   || 0;
 
   function fmtMoney(n) {
     n = n || 0;
-    if (n >= 1000000) return (n / 1000000).toFixed(1) + 'М ₽';
-    if (n >= 1000)    return Math.round(n / 1000) + 'К ₽';
+    if (n >= 1000000) return (n/1000000).toFixed(1) + 'М ₽';
+    if (n >= 1000)    return Math.round(n/1000) + 'К ₽';
     return n.toLocaleString('ru') + ' ₽';
   }
   function fmtNum(n) { return (n || 0).toLocaleString('ru'); }
-  function pct(val, max) { return max ? Math.min((val / max) * 100, 100).toFixed(0) : 0; }
-
-  function deltaHtml(val, plan, higher) {
-    if (higher === undefined) higher = true;
+  function pct(val, max) { return max ? Math.min((val/max)*100, 100).toFixed(0) : 0; }
+  function deltaHtml(val, plan, higher = true) {
     if (!plan || !val) return '<span style="color:var(--text-soft);font-size:11px">— нет плана</span>';
-    const d  = ((val / plan - 1) * 100).toFixed(1);
+    const d = ((val/plan-1)*100).toFixed(1);
     const ok = higher ? val >= plan : val <= plan;
-    return `<div class="kpi-delta ${ok ? 'delta-up' : 'delta-down'}">${ok ? '▲' : '▼'} ${Math.abs(d)}% к плану</div>`;
+    return `<div class="kpi-delta ${ok?'delta-up':'delta-down'}">${ok?'▲':'▼'} ${Math.abs(d)}% к плану</div>`;
   }
-
   function barHtml(val, max, warn) {
-    const p = pct(val, max);
-    return `<div class="bar-track"><div class="bar-fill ${warn ? 'warn' : ''}" style="width:${p}%"></div></div>`;
+    return `<div class="bar-track"><div class="bar-fill ${warn?'warn':''}" style="width:${pct(val,max)}%"></div></div>`;
   }
 
-  // Алерты
-  let alerts = '';
-  if (adBudget && t.adSpend > adBudget * 0.85) {
-    alerts += `<div class="alert-card"><div class="alert-title">💸 Рекламный бюджет на исходе</div>Потрачено ${fmtMoney(t.adSpend)} из ${fmtMoney(adBudget)} (${pct(t.adSpend, adBudget)}%)</div>`;
+  const sourceBadge = source === 'api'
+    ? '<span class="source-badge source-api">● реальные данные</span>'
+    : '<span class="source-badge source-mock">● демо</span>';
+
+  // ── Товары в зоне риска ──
+  const riskItems = (atRiskProducts || []);
+  let riskHtml = '';
+  if (riskItems.length > 0) {
+    riskHtml = `<div class="section-title">🚨 Товары в зоне риска</div>`;
+    for (const p of riskItems) {
+      riskHtml += `
+        <div class="risk-item">
+          <div class="risk-icon">🚨</div>
+          <div>
+            <div class="risk-name">${p.name}</div>
+            <div class="risk-reason">${p.reason}</div>
+            ${p.sku ? `<div class="risk-sku">${p.sku}</div>` : ''}
+          </div>
+        </div>`;
+    }
   }
-  if (convTarget && t.conversion && t.conversion < convTarget * 0.7) {
-    alerts += `<div class="alert-card"><div class="alert-title">📉 Низкая конверсия</div>Сейчас ${t.conversion}% при цели ${convTarget}%. Проверьте карточки товаров.</div>`;
+
+  // ── Товары с ростом (из stocks у кого daysCover > 20) ──
+  const growthItems = (stocks || []).filter(s => s.daysCover > 20).slice(0, 3);
+  let growthHtml = '';
+  if (growthItems.length > 0) {
+    growthHtml = `<div class="section-title">📈 Стабильные товары</div>`;
+    for (const p of growthItems) {
+      growthHtml += `
+        <div class="growth-item">
+          <div class="growth-icon">📈</div>
+          <div>
+            <div class="growth-name">${p.name}</div>
+            <div class="growth-reason">Остаток: ${fmtNum(p.qty)} шт · Покрытие: ${p.daysCover} дн</div>
+          </div>
+        </div>`;
+    }
   }
-  if (error) {
-    alerts += `<div class="alert-card"><div class="alert-title">⚠️ Ошибка API</div>${error}</div>`;
+
+  // ── Остатки на складах ──
+  let stocksHtml = '';
+  if (stocks && stocks.length > 0) {
+    stocksHtml = `<div class="section-title">📦 Остатки на складах</div>`;
+    for (const s of stocks.slice(0, 10)) {
+      const level = s.daysCover < 7 ? 'critical' : s.daysCover < 14 ? 'warning' : 'ok';
+      const label = s.daysCover < 7 ? '🔴 критично' : s.daysCover < 14 ? '🟡 контроль' : '🟢 стабильно';
+      stocksHtml += `
+        <div class="stock-item">
+          <div class="stock-indicator ${level}"></div>
+          <div class="stock-info">
+            <div class="stock-name">${s.name}</div>
+            <div class="stock-meta">${s.sku} · ${s.warehouseName || ''} · ${s.daysCover} дн · ${label}</div>
+          </div>
+          <div class="stock-qty">${fmtNum(s.qty)}</div>
+        </div>`;
+    }
+  }
+
+  // ── Круговая диаграмма складов ──
+  let pieHtml = '';
+  if (warehouses && warehouses.length > 0) {
+    const total = warehouses.reduce((s, w) => s + w.qty, 0);
+    const top   = warehouses.slice(0, 8);
+
+    // SVG пирог
+    const SIZE = 120, CX = 60, CY = 60, R = 50;
+    let svgPaths = '';
+    let startAngle = -Math.PI / 2;
+    for (let i = 0; i < top.length; i++) {
+      const slice = (top[i].qty / total) * 2 * Math.PI;
+      const endAngle = startAngle + slice;
+      const x1 = CX + R * Math.cos(startAngle);
+      const y1 = CY + R * Math.sin(startAngle);
+      const x2 = CX + R * Math.cos(endAngle);
+      const y2 = CY + R * Math.sin(endAngle);
+      const large = slice > Math.PI ? 1 : 0;
+      const color = PIE_COLORS[i % PIE_COLORS.length];
+      svgPaths += `<path d="M${CX},${CY} L${x1.toFixed(1)},${y1.toFixed(1)} A${R},${R} 0 ${large},1 ${x2.toFixed(1)},${y2.toFixed(1)} Z" fill="${color}" stroke="#0a0f1e" stroke-width="2"/>`;
+      startAngle = endAngle;
+    }
+
+    // Легенда
+    let legendHtml = '';
+    for (let i = 0; i < top.length; i++) {
+      const p = ((top[i].qty / total) * 100).toFixed(0);
+      legendHtml += `
+        <div class="pie-legend-item">
+          <div class="pie-legend-dot" style="background:${PIE_COLORS[i % PIE_COLORS.length]}"></div>
+          <div class="pie-legend-name">${top[i].name}</div>
+          <div class="pie-legend-pct">${p}%</div>
+        </div>
+        <div style="font-size:11px;color:var(--text-soft);margin:-4px 0 6px 18px">${fmtNum(top[i].qty)} шт</div>`;
+    }
+
+    pieHtml = `
+      <div class="section-title">🗺️ Распределение по складам</div>
+      <div class="pie-wrap">
+        <div class="pie-container">
+          <div class="pie-svg-wrap">
+            <svg width="${SIZE}" height="${SIZE}" viewBox="0 0 ${SIZE} ${SIZE}">${svgPaths}</svg>
+          </div>
+          <div class="pie-legend">${legendHtml}</div>
+        </div>
+        <div style="font-size:11px;color:var(--text-soft);margin-top:10px;text-align:center">
+          Всего на складах: <strong style="color:var(--text-main)">${fmtNum(total)} шт</strong>
+        </div>
+      </div>`;
   }
 
   return `
     <div class="platform-header">
       <div class="platform-dot ${platform}"></div>
-      <div class="platform-name">${isOzon ? 'Ozon' : 'Wildberries'}</div>
-      <div class="platform-updated">обновлено в ${now}</div>
+      <div class="platform-name">${isOzon ? 'Ozon' : 'Wildberries'}${sourceBadge}</div>
+      <div class="platform-updated">${now}</div>
       <button class="refresh-btn" onclick="refreshData('${platform}')">🔄</button>
     </div>
-
-    ${alerts}
 
     <div class="section-title">Сегодня</div>
     <div class="kpi-grid">
       <div class="kpi-card">
         <div class="kpi-label">💰 Выручка</div>
-        <div class="kpi-value" style="color:var(--mint)">${fmtMoney(t.revenue)}</div>
+        <div class="kpi-value" style="color:var(--mint,#66cec3)">${fmtMoney(t.revenue)}</div>
         ${deltaHtml(t.revenue, dayRevTarget)}
       </div>
       <div class="kpi-card">
@@ -423,14 +580,14 @@ function buildDashboard({ today, month, kpi, error }, platform) {
       </div>
       <div class="kpi-card">
         <div class="kpi-label">📢 Реклама</div>
-        <div class="kpi-value" style="color:${t.adSpend > adBudget * 0.85 ? 'var(--orange)' : 'var(--yellow)'}">
+        <div class="kpi-value" style="color:${t.adSpend > adBudget*0.85 ? 'var(--orange,#ff8b57)' : 'var(--yellow,#f5c518)'}">
           ${fmtMoney(t.adSpend)}
         </div>
         ${deltaHtml(t.adSpend, adBudget, false)}
       </div>
       <div class="kpi-card">
         <div class="kpi-label">🔄 Конверсия</div>
-        <div class="kpi-value">${(t.conversion || 0).toFixed(1)}%</div>
+        <div class="kpi-value">${(t.conversion||0).toFixed(1)}%</div>
         ${deltaHtml(t.conversion, convTarget)}
       </div>
     </div>
@@ -441,120 +598,85 @@ function buildDashboard({ today, month, kpi, error }, platform) {
       ${barHtml(m.revenue, k.revenue)}
     </div>
     <div class="bar-card">
-      <div class="bar-header"><span>Заказы</span><strong>${fmtNum(m.orders)} / ${fmtNum(k.daily_orders * 30)}</strong></div>
-      ${barHtml(m.orders, k.daily_orders * 30)}
+      <div class="bar-header"><span>Заказы</span><strong>${fmtNum(m.orders)} / ${fmtNum(k.daily_orders*30)}</strong></div>
+      ${barHtml(m.orders, k.daily_orders*30)}
     </div>
     <div class="bar-card">
       <div class="bar-header"><span>Рекламный бюджет</span><strong>${fmtMoney(t.adSpend)} / ${fmtMoney(k.ad_budget)}</strong></div>
-      ${barHtml(t.adSpend, k.ad_budget, t.adSpend > k.ad_budget * 0.7)}
+      ${barHtml(t.adSpend, k.ad_budget, t.adSpend > k.ad_budget*0.7)}
     </div>
+
+    ${riskHtml}
+    ${growthHtml}
+    ${stocksHtml}
+    ${pieHtml}
   `;
 }
 
-// Обновить (сбросить кэш)
-function refreshData(platform) {
-  delete dataCache[platform];
-  loadPlatformData(platform, true);
-}
-
-// Сохранить API-ключи
+// ── Сохранить API-ключи ─────────────────────────────────────────
 async function saveCredentials(platform) {
   const apiKey   = document.getElementById(`${platform}-api-key`).value.trim();
   const clientId = platform === 'ozon' ? document.getElementById('ozon-client-id').value.trim() : '';
-
   if (!apiKey) { alert('Введите API-ключ'); return; }
   if (platform === 'ozon' && !clientId) { alert('Введите Client-ID для Ozon'); return; }
-
   const btn = event.currentTarget;
-  btn.disabled = true;
-  btn.textContent = 'Сохраняю...';
-
+  btn.disabled = true; btn.textContent = 'Сохраняю...';
   try {
-    const res  = await fetch('/api/credentials', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ platform, apiKey, clientId }),
-    });
+    const res  = await fetch('/api/credentials', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({platform, apiKey, clientId}) });
     const data = await res.json();
-
     if (data.ok) {
       document.getElementById(`${platform}-api-key`).value = '';
       if (platform === 'ozon') document.getElementById('ozon-client-id').value = '';
       delete dataCache[platform];
       loadStatusBadges();
-      alert(`✅ Ключи ${platform === 'ozon' ? 'Ozon' : 'WB'} сохранены!\n\nПерейдите на вкладку ${platform === 'ozon' ? '🔵 Ozon' : '🟣 WB'} для просмотра данных.`);
-    } else {
-      alert('❌ ' + (data.error || 'Ошибка сохранения'));
-    }
-  } catch(e) {
-    alert('❌ Ошибка: ' + e.message);
-  } finally {
-    btn.disabled = false;
-    btn.textContent = `Сохранить ключи ${platform === 'ozon' ? 'Ozon' : 'WB'}`;
-  }
+      alert(`✅ Ключи сохранены! Данные обновятся при следующем открытии вкладки.`);
+    } else { alert('❌ ' + (data.error || 'Ошибка')); }
+  } catch(e) { alert('❌ ' + e.message); }
+  finally { btn.disabled = false; btn.textContent = platform === 'ozon' ? 'Сохранить ключи Ozon' : 'Сохранить ключ WB'; }
 }
 
-// Сохранить все KPI
+// ── Сохранить KPI ───────────────────────────────────────────────
 async function saveAllKpi() {
   const fields = [
-    { key: 'revenue',      id: 'kpi-revenue' },
-    { key: 'daily_orders', id: 'kpi-daily_orders' },
-    { key: 'ad_budget',    id: 'kpi-ad_budget' },
-    { key: 'conversion',   id: 'kpi-conversion' },
+    {key:'revenue',id:'kpi-revenue'},{key:'daily_orders',id:'kpi-daily_orders'},
+    {key:'ad_budget',id:'kpi-ad_budget'},{key:'conversion',id:'kpi-conversion'},
   ];
-
   let saved = 0;
   for (const f of fields) {
     const val = document.getElementById(f.id).value.trim();
     if (!val) continue;
-    await fetch('/api/kpi', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ key: f.key, value: parseFloat(val) }),
-    });
+    await fetch('/api/kpi', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({key:f.key,value:parseFloat(val)})});
     saved++;
   }
-
-  dataCache['ozon'] = null;
-  dataCache['wb']   = null;
+  dataCache['ozon'] = null; dataCache['wb'] = null;
   alert(saved ? `✅ Сохранено планов: ${saved}` : 'Заполни хотя бы одно поле');
 }
 
-// Загрузить страницу настроек
+// ── Загрузить настройки ─────────────────────────────────────────
 async function loadSettingsPage() {
   loadStatusBadges();
   try {
     const res = await fetch('/api/kpi');
     const kpi = await res.json();
-    const map = {
-      revenue:      'kpi-revenue',
-      daily_orders: 'kpi-daily_orders',
-      ad_budget:    'kpi-ad_budget',
-      conversion:   'kpi-conversion',
-    };
+    const map = {revenue:'kpi-revenue',daily_orders:'kpi-daily_orders',ad_budget:'kpi-ad_budget',conversion:'kpi-conversion'};
     for (const [key, id] of Object.entries(map)) {
       if (kpi[key] !== undefined) document.getElementById(id).value = kpi[key];
     }
   } catch(e) {}
 }
 
-// Бейджи статуса ключей
+// ── Бейджи ──────────────────────────────────────────────────────
 async function loadStatusBadges() {
   try {
     const res  = await fetch('/api/credentials/status');
     const data = await res.json();
-    document.getElementById('ozon-status-badge').innerHTML = data.ozon
-      ? '<span class="badge-ok">✓ подключён</span>'
-      : '<span class="badge-no">не настроен</span>';
-    document.getElementById('wb-status-badge').innerHTML = data.wb
-      ? '<span class="badge-ok">✓ подключён</span>'
-      : '<span class="badge-no">не настроен</span>';
+    document.getElementById('ozon-status-badge').innerHTML = data.ozon ? '<span class="badge-ok">✓ подключён</span>' : '<span class="badge-no">не настроен</span>';
+    document.getElementById('wb-status-badge').innerHTML   = data.wb   ? '<span class="badge-ok">✓ подключён</span>' : '<span class="badge-no">не настроен</span>';
   } catch(e) {}
 }
 
 // Старт
 loadPlatformData('ozon');
 </script>
-
 </body>
 </html>
