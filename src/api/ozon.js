@@ -28,15 +28,36 @@ function buildMockOzonMetrics(date = dayjs()) {
       adSpend:  round(adSpend      * dayOfMonth * seededValue(daySeed + 23, 0.85, 1.1)),
     },
     stocks: [
-      { sku: "OZ-111", name: "Куртка зимняя XL",   qty: round(seededValue(daySeed + 31, 12, 70)),  daysCover: round(seededValue(daySeed + 37, 4, 22)), warehouseName: "Москва" },
-      { sku: "OZ-248", name: "Термокружка 450мл",  qty: round(seededValue(daySeed + 41, 8, 120)),  daysCover: round(seededValue(daySeed + 43, 3, 40)), warehouseName: "Санкт-Петербург" },
+      { sku: "OZ-111", name: "Куртка зимняя XL",   qty: round(seededValue(daySeed + 31, 12, 70)),  daysCover: round(seededValue(daySeed + 37, 2, 6)),  warehouseName: "Москва (FBO)" },
+      { sku: "OZ-248", name: "Термокружка 450мл",  qty: round(seededValue(daySeed + 41, 8, 120)),  daysCover: round(seededValue(daySeed + 43, 8, 15)), warehouseName: "Санкт-Петербург (FBO)" },
+      { sku: "OZ-335", name: "Рюкзак туристический", qty: round(seededValue(daySeed + 45, 15, 80)), daysCover: round(seededValue(daySeed + 47, 22, 40)), warehouseName: "Склад продавца (FBS)" },
     ],
     warehouses: [
-      { name: "Москва",          qty: round(seededValue(daySeed + 51, 100, 500)) },
-      { name: "Санкт-Петербург", qty: round(seededValue(daySeed + 53, 50, 300)) },
-      { name: "Екатеринбург",    qty: round(seededValue(daySeed + 55, 30, 200)) },
+      { name: "Москва (FBO)",          qty: round(seededValue(daySeed + 51, 100, 500)) },
+      { name: "Санкт-Петербург (FBO)", qty: round(seededValue(daySeed + 53, 50, 300)) },
+      { name: "Екатеринбург (FBO)",    qty: round(seededValue(daySeed + 55, 30, 200)) },
+      { name: "Склад продавца (FBS)",  qty: round(seededValue(daySeed + 57, 20, 120)) },
     ],
-    atRiskProducts: [{ name: "Куртка зимняя XL", reason: "CTR упал за 24ч, продаж нет 3 дня" }],
+    atRiskProducts: [
+      {
+        name: "Куртка зимняя XL", sku: "OZ-111",
+        reason: "CTR упал за 24ч, продаж нет 3 дня",
+        trend: "down",
+        revenueDelta: -41, ordersDelta: -35, ctrDelta: -28,
+      },
+      {
+        name: "Термокружка 450мл", sku: "OZ-248",
+        reason: "Остаток критичен — менее 7 дней покрытия",
+        trend: "down",
+        revenueDelta: -15, ordersDelta: -19, ctrDelta: -9,
+      },
+      {
+        name: "Рюкзак туристический", sku: "OZ-335",
+        reason: "Рост CTR и продаж за последние 7 дней",
+        trend: "up",
+        revenueDelta: 52, ordersDelta: 44, ctrDelta: 67,
+      },
+    ],
   };
 }
 
