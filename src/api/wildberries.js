@@ -28,16 +28,37 @@ function buildMockWildberriesMetrics(date = dayjs()) {
       adSpend:  round(adSpend      * dayOfMonth * seededValue(daySeed + 19, 0.84, 1.12)),
     },
     stocks: [
-      { sku: "WB-784", name: "Лосины женские S",    qty: round(seededValue(daySeed + 21, 4, 95)),  daysCover: round(seededValue(daySeed + 25, 2, 35)), warehouseName: "Коледино" },
-      { sku: "WB-912", name: "Рюкзак городской 22л", qty: round(seededValue(daySeed + 27, 5, 90)), daysCover: round(seededValue(daySeed + 31, 2, 29)), warehouseName: "Электросталь" },
+      { sku: "WB-784", name: "Лосины женские S",    qty: round(seededValue(daySeed + 21, 4, 95)),  daysCover: round(seededValue(daySeed + 25, 2, 13)), warehouseName: "Коледино" },
+      { sku: "WB-912", name: "Рюкзак городской 22л", qty: round(seededValue(daySeed + 27, 5, 90)), daysCover: round(seededValue(daySeed + 31, 14, 29)), warehouseName: "Электросталь" },
+      { sku: "WB-445", name: "Термос 500мл",         qty: round(seededValue(daySeed + 33, 10, 60)), daysCover: round(seededValue(daySeed + 35, 25, 45)), warehouseName: "Склад продавца (FBS)" },
     ],
     warehouses: [
-      { name: "Коледино",      qty: round(seededValue(daySeed + 41, 100, 600)) },
-      { name: "Электросталь",  qty: round(seededValue(daySeed + 43, 50, 400)) },
-      { name: "Казань",        qty: round(seededValue(daySeed + 45, 20, 200)) },
-      { name: "Краснодар",     qty: round(seededValue(daySeed + 47, 10, 150)) },
+      { name: "Коледино",            qty: round(seededValue(daySeed + 41, 100, 600)) },
+      { name: "Электросталь",        qty: round(seededValue(daySeed + 43, 50, 400)) },
+      { name: "Казань",              qty: round(seededValue(daySeed + 45, 20, 200)) },
+      { name: "Краснодар",           qty: round(seededValue(daySeed + 47, 10, 150)) },
+      { name: "Склад продавца (FBS)",qty: round(seededValue(daySeed + 49, 10, 80)) },
     ],
-    atRiskProducts: [{ name: "Лосины женские S", reason: "Перерасход рекламы при просадке конверсии" }],
+    atRiskProducts: [
+      {
+        name: "Лосины женские S", sku: "WB-784",
+        reason: "Перерасход рекламы при просадке конверсии",
+        trend: "down",
+        revenueDelta: -23, ordersDelta: -31, ctrDelta: -18,
+      },
+      {
+        name: "Рюкзак городской 22л", sku: "WB-912",
+        reason: "Остаток критичен — 7 дней покрытия",
+        trend: "down",
+        revenueDelta: -12, ordersDelta: -8, ctrDelta: -5,
+      },
+      {
+        name: "Термос 500мл", sku: "WB-445",
+        reason: "Рост CTR и продаж за последние 7 дней",
+        trend: "up",
+        revenueDelta: 34, ordersDelta: 28, ctrDelta: 41,
+      },
+    ],
   };
 }
 
