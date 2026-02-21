@@ -114,49 +114,99 @@ function formatStatsMessage(snapshot, kpi) {
   return lines.join("\n");
 }
 
-function formatMonthMessage(snapshot, kpi) {
+function formatChannelMonthBlock(channel, label, emoji, kpi) {
   const plans = getMonthPlans(kpi);
-  const revenueLine = `${formatMoney(snapshot.month.revenue)} / ${formatMoney(plans.revenue)}`;
-  const adLine = `${formatMoney(snapshot.month.adSpend)} / ${formatMoney(plans.adBudget)}`;
-  const ordersLine = `${Math.round(snapshot.month.orders).toLocaleString("ru-RU")} / ${Math.round(plans.orders).toLocaleString("ru-RU")}`;
+  const m = channel.month || {};
+  const revenueLine = `${formatMoney(m.revenue)} / ${formatMoney(plans.revenue)}`;
+  const adLine      = `${formatMoney(m.adSpend)} / ${formatMoney(plans.adBudget)}`;
+  const ordersLine  = `${Math.round(m.orders || 0).toLocaleString("ru-RU")} / ${Math.round(plans.orders).toLocaleString("ru-RU")}`;
 
   return [
-    "📈 <b>Месячный отчёт</b>",
+    `${emoji} <b>${label}</b>`,
     "",
-    `Выручка / план: <b>${revenueLine}</b>`,
-    `${makeBar(snapshot.month.revenue, plans.revenue)}`,
+    `💰 Выручка / план: <b>${revenueLine}</b>`,
+    `${makeBar(m.revenue, plans.revenue)}`,
     "",
-    `Рекламный бюджет: <b>${adLine}</b>`,
-    `${makeBar(snapshot.month.adSpend, plans.adBudget)}`,
+    `📢 Рекламный бюджет: <b>${adLine}</b>`,
+    `${makeBar(m.adSpend, plans.adBudget)}`,
     "",
-    `Выполнение плана заказов: <b>${ordersLine}</b>`,
-    `${makeBar(snapshot.month.orders, plans.orders)}`,
-    "",
-    "Ключевые эффекты:",
-    "• 30с — просмотр показателей",
-    "• 10ч — экономия в месяц",
-    "• +15% — потенциал роста прибыли",
-    "• −30% — снижение потерь на рекламе",
+    `📦 Выполнение плана заказов: <b>${ordersLine}</b>`,
+    `${makeBar(m.orders, plans.orders)}`,
   ].join("\n");
 }
 
-function formatStocksMessage(snapshot) {
-  if (!snapshot.stocks.length) {
-    return "📦 <b>Остатки</b>\nДанные по остаткам пока недоступны.";
+function formatMonthMessage(snapshot, kpi) {
+  const channels = snapshot.channels || [];
+  const ozon = channels[0];
+  const wb   = channels[1];
+
+  const hasAnyApi = channels.some(c => c.source === "api");
+  const visibleChannels = hasAnyApi
+    ? channels.filter(c => c.source === "api")
+    : channels;
+
+  const lines = [
+    "📈 <b>Месячный отчёт</b>",
+    `${dayjs().format("DD.MM.YYYY")}`,
+    "",
+  ];
+
+  for (const channel of visibleChannels) {
+    const isOzon = channel === ozon;
+    const label  = isOzon ? "Ozon" : "Wildberries";
+    const emoji  = isOzon ? "🔵" : "🟣";
+    lines.push("━━━━━━━━━━━━━━━━━━");
+    lines.push("");
+    lines.push(formatChannelMonthBlock(channel, label, emoji, kpi));
+    lines.push("");
   }
 
-  const top = snapshot.stocks.slice(0, 8);
-  const lines = ["📦 <b>Остатки на складах</b>", ""];
+  lines.push("━━━━━━━━━━━━━━━━━━");
+  return lines.join("\n");
+}
 
-  for (const item of top) {
-    const status =
-      item.daysCover <= 5 ? "🔴 критично" : item.daysCover <= 12 ? "🟡 контроль" : "🟢 стабильно";
+function formatChannelStocksBlock(channel, label, emoji) {
+  const stocks = (channel.stocks || []).slice(0, 5);
+  if (!stocks.length) return `${emoji} <b>${label}</b>\nДанные по остаткам недоступны.`;
+
+  const lines = [`${emoji} <b>${label}</b>`, ""];
+  for (const item of stocks) {
+    const status = item.daysCover <= 5 ? "🔴 критично" : item.daysCover <= 12 ? "🟡 контроль" : "🟢 стабильно";
     lines.push(
       `• <b>${item.name}</b> (${item.sku})`,
       `  Остаток: ${Math.round(item.qty)} шт · Покрытие: ${Math.round(item.daysCover)} дн · ${status}`,
     );
   }
+  return lines.join("\n");
+}
 
+function formatStocksMessage(snapshot) {
+  const channels = snapshot.channels || [];
+  const ozon = channels[0];
+  const wb   = channels[1];
+
+  const hasAnyApi = channels.some(c => c.source === "api");
+  const visibleChannels = hasAnyApi
+    ? channels.filter(c => c.source === "api")
+    : channels;
+
+  const lines = [
+    "📦 <b>Остатки на складах</b>",
+    `${dayjs().format("DD.MM.YYYY")}`,
+    "",
+  ];
+
+  for (const channel of visibleChannels) {
+    const isOzon = channel === ozon;
+    const label  = isOzon ? "Ozon" : "Wildberries";
+    const emoji  = isOzon ? "🔵" : "🟣";
+    lines.push("━━━━━━━━━━━━━━━━━━");
+    lines.push("");
+    lines.push(formatChannelStocksBlock(channel, label, emoji));
+    lines.push("");
+  }
+
+  lines.push("━━━━━━━━━━━━━━━━━━");
   return lines.join("\n");
 }
 
