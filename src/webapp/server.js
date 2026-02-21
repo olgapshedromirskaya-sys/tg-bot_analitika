@@ -75,11 +75,6 @@ function startWebAppServer({ db }) {
   app.get("/api/data/wb", async (req, res) => {
     try {
       const creds = db.getApiCredentials("wb");
-      if (!creds) {
-        return res.status(400).json({
-          error: "Ключ WB не настроен. Перейдите в Настройки.",
-        });
-      }
 
       // Отдаём кэш если он свежий
       const now = Date.now();
@@ -88,9 +83,13 @@ function startWebAppServer({ db }) {
         return res.json(cache.wb.data);
       }
 
-      // Иначе идём в API
-      process.env.WB_API_KEY   = creds.api_key;
-      process.env.WB_API_TOKEN = creds.api_key;
+      if (creds) {
+        process.env.WB_API_KEY   = creds.api_key;
+        process.env.WB_API_TOKEN = creds.api_key;
+      } else {
+        process.env.WB_API_KEY   = "";
+        process.env.WB_API_TOKEN = "";
+      }
 
       delete require.cache[require.resolve("../api/wildberries")];
       const { getWildberriesMetrics } = require("../api/wildberries");
@@ -122,11 +121,6 @@ function startWebAppServer({ db }) {
   app.get("/api/data/ozon", async (req, res) => {
     try {
       const creds = db.getApiCredentials("ozon");
-      if (!creds) {
-        return res.status(400).json({
-          error: "Ключи Ozon не настроены. Перейдите в Настройки.",
-        });
-      }
 
       const now = Date.now();
       if (cache.ozon.data && (now - cache.ozon.updatedAt) < CACHE_TTL_MS) {
@@ -134,8 +128,14 @@ function startWebAppServer({ db }) {
         return res.json(cache.ozon.data);
       }
 
-      process.env.OZON_API_KEY   = creds.api_key;
-      process.env.OZON_CLIENT_ID = creds.client_id || "";
+      if (creds) {
+        process.env.OZON_API_KEY   = creds.api_key;
+        process.env.OZON_CLIENT_ID = creds.client_id || "";
+      } else {
+        // Нет ключей — сбрасываем env чтобы API вернул демо
+        process.env.OZON_API_KEY   = "";
+        process.env.OZON_CLIENT_ID = "";
+      }
 
       delete require.cache[require.resolve("../api/ozon")];
       const { getOzonMetrics } = require("../api/ozon");
