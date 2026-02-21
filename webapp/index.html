@@ -414,7 +414,10 @@ async function loadPlatformData(platform, forceRefresh) {
   el.innerHTML = `<div class="state-box"><div class="state-icon">⏳</div><p>Загружаю данные ${platform === 'ozon' ? 'Ozon' : 'Wildberries'}...</p></div>`;
 
   try {
-    const res  = await fetch(`/api/data/${platform}`);
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 10000);
+    const res  = await fetch(`/api/data/${platform}`, { signal: controller.signal });
+    clearTimeout(timer);
     const data = await res.json();
 
     if (!res.ok || data.error) {
@@ -426,7 +429,8 @@ async function loadPlatformData(platform, forceRefresh) {
     dataCache[platform] = html;
     el.innerHTML = html;
   } catch(e) {
-    el.innerHTML = `<div class="state-box"><div class="state-icon">❌</div><p>Нет связи с сервером</p><small>${e.message}</small></div>`;
+    const msg = e.name === 'AbortError' ? 'Сервер не отвечает (таймаут 10с)' : e.message;
+    el.innerHTML = `<div class="state-box"><div class="state-icon">❌</div><p>Ошибка загрузки</p><small>${msg}</small><br><button onclick="refreshData('${platform}')" style="margin-top:12px;padding:8px 16px;background:var(--cyan,#599cff);border:none;border-radius:8px;color:#fff;cursor:pointer;font-family:inherit">🔄 Повторить</button></div>`;
   }
 }
 
