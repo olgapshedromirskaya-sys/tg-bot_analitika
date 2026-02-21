@@ -1,7 +1,11 @@
 const cron = require("node-cron");
 const { getAnalyticsSnapshot } = require("../api/analytics");
 const { buildAlerts } = require("./alerts");
-const { formatMonthMessage, formatStatsMessage } = require("../bot/dashboard");
+const {
+  formatMonthMessage,
+  formatStatsMessage,
+  formatStocksMessage,
+} = require("../bot/dashboard");
 const { hasAccess } = require("../bot/roles");
 
 async function safeSend(bot, telegramId, message) {
@@ -25,22 +29,16 @@ function getReceivers(db, minRole) {
 function startScheduler({ bot, db }) {
   const timezone = process.env.TIMEZONE || "Europe/Moscow";
 
+  // ── Алерты — каждые 2 часа (важные уведомления о проблемах) ────
   const alertJob = cron.schedule(
     "0 */2 * * *",
     async () => {
       const receivers = getReceivers(db, "marketer");
-      if (!receivers.length) {
-        return;
-      }
-
+      if (!receivers.length) return;
       const kpi = db.getKpiSettings();
       const snapshot = await getAnalyticsSnapshot();
       const alerts = buildAlerts(snapshot, kpi);
-
-      if (!alerts.length) {
-        return;
-      }
-
+      if (!alerts.length) return;
       for (const receiver of receivers) {
         for (const alert of alerts) {
           db.saveAlert({ telegramId: receiver, code: alert.code, message: alert.message });
@@ -51,18 +49,37 @@ function startScheduler({ bot, db }) {
     { timezone },
   );
 
+  // ── Утро 9:00 — дашборд + месячный отчёт + остатки ─────────────
   const morningJob = cron.schedule(
     "0 9 * * *",
     async () => {
-      const receivers = getReceivers(db, "owner");
-      if (!receivers.length) {
-        return;
-      }
-
+      const receivers = getReceivers(db, "manager");
+      if (!receivers.length) return;
       const kpi = db.getKpiSettings();
       const snapshot = await getAnalyticsSnapshot();
-      const message = `🌅 <b>Утренний отчёт</b>\n\n${formatStatsMessage(snapshot, kpi)}`;
 
+      const dashMsg   = `🌅 <b>Доброе утро! Дашборд за сегодня</b>\n\n${formatStatsMessage(snapshot, kpi)}`;
+      const monthMsg  = formatMonthMessage(snapshot, kpi);
+      const stocksMsg = formatStocksMessage(snapshot);
+
+      for (const receiver of receivers) {
+        await safeSend(bot, receiver, dashMsg);
+        await safeSend(bot, receiver, monthMsg);
+        await safeSend(bot, receiver, stocksMsg);
+      }
+    },
+    { timezone },
+  );
+
+  // ── День 14:00 — только дашборд ─────────────────────────────────
+  const afternoonJob = cron.schedule(
+    "0 14 * * *",
+    async () => {
+      const receivers = getReceivers(db, "manager");
+      if (!receivers.length) return;
+      const kpi = db.getKpiSettings();
+      const snapshot = await getAnalyticsSnapshot();
+      const message = `☀️ <b>Дневной дашборд</b>\n\n${formatStatsMessage(snapshot, kpi)}`;
       for (const receiver of receivers) {
         await safeSend(bot, receiver, message);
       }
@@ -70,20 +87,21 @@ function startScheduler({ bot, db }) {
     { timezone },
   );
 
+  // ── Вечер 19:00 — дашборд + остатки ────────────────────────────
   const eveningJob = cron.schedule(
-    "0 20 * * *",
+    "0 19 * * *",
     async () => {
       const receivers = getReceivers(db, "manager");
-      if (!receivers.length) {
-        return;
-      }
-
+      if (!receivers.length) return;
       const kpi = db.getKpiSettings();
       const snapshot = await getAnalyticsSnapshot();
-      const message = `🌆 <b>Итоговый отчёт дня</b>\n\n${formatMonthMessage(snapshot, kpi)}`;
+
+      const dashMsg   = `🌆 <b>Вечерний дашборд</b>\n\n${formatStatsMessage(snapshot, kpi)}`;
+      const stocksMsg = formatStocksMessage(snapshot);
 
       for (const receiver of receivers) {
-        await safeSend(bot, receiver, message);
+        await safeSend(bot, receiver, dashMsg);
+        await safeSend(bot, receiver, stocksMsg);
       }
     },
     { timezone },
@@ -93,6 +111,7 @@ function startScheduler({ bot, db }) {
     stop() {
       alertJob.stop();
       morningJob.stop();
+      afternoonJob.stop();
       eveningJob.stop();
     },
   };
