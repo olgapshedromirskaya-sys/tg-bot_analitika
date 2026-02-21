@@ -6,7 +6,7 @@ const cache = {
   wb:   { data: null, updatedAt: 0 },
   ozon: { data: null, updatedAt: 0 },
 };
-const CACHE_TTL_MS = 30 * 60 * 1000; // 15 минут
+const CACHE_TTL_MS = 15 * 60 * 1000; // 15 минут
 
 function startWebAppServer({ db }) {
   const app = express();
@@ -158,6 +158,28 @@ function startWebAppServer({ db }) {
       }
 
       res.json(result);
+    } catch (e) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  // ── Удалить API-ключи ───────────────────────────────────────────
+  app.delete("/api/credentials/:platform", (req, res) => {
+    try {
+      const { platform } = req.params;
+      if (!['ozon','wb'].includes(platform)) {
+        return res.status(400).json({ error: 'Неизвестная платформа' });
+      }
+      db.deleteApiCredentials(platform);
+      cache[platform] = { data: null, updatedAt: 0 };
+      if (platform === 'ozon') {
+        process.env.OZON_API_KEY = '';
+        process.env.OZON_CLIENT_ID = '';
+      } else {
+        process.env.WB_API_KEY = '';
+        process.env.WB_API_TOKEN = '';
+      }
+      res.json({ ok: true });
     } catch (e) {
       res.status(500).json({ error: e.message });
     }
