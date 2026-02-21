@@ -151,10 +151,10 @@ async function fetchOzonStocks() {
 
 // ── Главная функция ───────────────────────────────────────────────
 async function getOzonMetrics({ date } = {}) {
-  const clientId = process.env.OZON_CLIENT_ID;
-  const apiKey   = process.env.OZON_API_KEY;
+  const clientId = (process.env.OZON_CLIENT_ID || "").trim();
+  const apiKey   = (process.env.OZON_API_KEY   || "").trim();
 
-  if (!clientId || !apiKey) {
+  if (!clientId || !apiKey || clientId === "" || apiKey === "") {
     console.log("[Ozon] Нет ключей, возвращаю демо-данные");
     return buildMockOzonMetrics(date ? dayjs(date) : undefined);
   }
