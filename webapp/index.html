@@ -454,35 +454,58 @@ function buildDashboard({ today, month, kpi, source, warehouses, stocks, atRiskP
     : '<span class="source-badge source-mock">● демо</span>';
 
   // ── Товары в зоне риска ──
-  const riskItems = (atRiskProducts || []);
+  const riskItems = (atRiskProducts || []).filter(p => p.trend === 'down' || !p.trend);
+  const growthItemsFromRisk = (atRiskProducts || []).filter(p => p.trend === 'up');
   let riskHtml = '';
   if (riskItems.length > 0) {
     riskHtml = `<div class="section-title">🚨 Товары в зоне риска</div>`;
     for (const p of riskItems) {
+      const revenueArrow = (p.revenueDelta || 0) >= 0 ? '▲' : '▼';
+      const revenueColor = (p.revenueDelta || 0) >= 0 ? '#4caf50' : '#ff4444';
+      const ordersArrow  = (p.ordersDelta  || 0) >= 0 ? '▲' : '▼';
+      const ordersColor  = (p.ordersDelta  || 0) >= 0 ? '#4caf50' : '#ff4444';
+      const ctrArrow     = (p.ctrDelta     || 0) >= 0 ? '▲' : '▼';
+      const ctrColor     = (p.ctrDelta     || 0) >= 0 ? '#4caf50' : '#ff4444';
       riskHtml += `
         <div class="risk-item">
           <div class="risk-icon">🚨</div>
-          <div>
-            <div class="risk-name">${p.name}</div>
+          <div style="flex:1">
+            <div class="risk-name">${p.name}${p.sku ? ` <span style="font-size:10px;opacity:0.6;font-weight:400">${p.sku}</span>` : ''}</div>
             <div class="risk-reason">${p.reason}</div>
-            ${p.sku ? `<div class="risk-sku">${p.sku}</div>` : ''}
+            ${(p.revenueDelta !== undefined || p.ordersDelta !== undefined || p.ctrDelta !== undefined) ? `
+            <div style="display:flex;gap:10px;margin-top:6px;flex-wrap:wrap">
+              ${p.revenueDelta !== undefined ? `<span style="font-size:11px;font-weight:700;color:${revenueColor}">${revenueArrow} Выручка ${Math.abs(p.revenueDelta)}%</span>` : ''}
+              ${p.ordersDelta  !== undefined ? `<span style="font-size:11px;font-weight:700;color:${ordersColor}">${ordersArrow} Заказы ${Math.abs(p.ordersDelta)}%</span>` : ''}
+              ${p.ctrDelta     !== undefined ? `<span style="font-size:11px;font-weight:700;color:${ctrColor}">${ctrArrow} CTR ${Math.abs(p.ctrDelta)}%</span>` : ''}
+            </div>` : ''}
           </div>
         </div>`;
     }
   }
 
-  // ── Товары с ростом (из stocks у кого daysCover > 20) ──
-  const growthItems = (stocks || []).filter(s => s.daysCover > 20).slice(0, 3);
+  // ── Товары с ростом ──
+  const growthItems = growthItemsFromRisk.length > 0
+    ? growthItemsFromRisk
+    : (stocks || []).filter(s => s.daysCover > 20).slice(0, 3);
   let growthHtml = '';
   if (growthItems.length > 0) {
-    growthHtml = `<div class="section-title">📈 Стабильные товары</div>`;
+    growthHtml = `<div class="section-title">📈 Рост продаж</div>`;
     for (const p of growthItems) {
+      const revenueArrow = (p.revenueDelta || 0) >= 0 ? '▲' : '▼';
+      const ordersArrow  = (p.ordersDelta  || 0) >= 0 ? '▲' : '▼';
+      const ctrArrow     = (p.ctrDelta     || 0) >= 0 ? '▲' : '▼';
       growthHtml += `
         <div class="growth-item">
           <div class="growth-icon">📈</div>
-          <div>
-            <div class="growth-name">${p.name}</div>
-            <div class="growth-reason">Остаток: ${fmtNum(p.qty)} шт · Покрытие: ${p.daysCover} дн</div>
+          <div style="flex:1">
+            <div class="growth-name">${p.name}${p.sku ? ` <span style="font-size:10px;opacity:0.6;font-weight:400">${p.sku}</span>` : ''}</div>
+            <div class="growth-reason">${p.reason || ('Остаток: ' + fmtNum(p.qty) + ' шт · Покрытие: ' + p.daysCover + ' дн')}</div>
+            ${(p.revenueDelta !== undefined || p.ordersDelta !== undefined || p.ctrDelta !== undefined) ? `
+            <div style="display:flex;gap:10px;margin-top:6px;flex-wrap:wrap">
+              ${p.revenueDelta !== undefined ? `<span style="font-size:11px;font-weight:700;color:#4caf50">${revenueArrow} Выручка ${Math.abs(p.revenueDelta)}%</span>` : ''}
+              ${p.ordersDelta  !== undefined ? `<span style="font-size:11px;font-weight:700;color:#4caf50">${ordersArrow} Заказы ${Math.abs(p.ordersDelta)}%</span>` : ''}
+              ${p.ctrDelta     !== undefined ? `<span style="font-size:11px;font-weight:700;color:#4caf50">${ctrArrow} CTR ${Math.abs(p.ctrDelta)}%</span>` : ''}
+            </div>` : ''}
           </div>
         </div>`;
     }
