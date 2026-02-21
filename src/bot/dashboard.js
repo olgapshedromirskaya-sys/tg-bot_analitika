@@ -20,11 +20,13 @@ function formatSigned(value, digits = 0) {
   return `${rounded >= 0 ? "+" : ""}${rounded}${digits > 0 ? "" : ""}`;
 }
 
-function makeBar(current, plan, length = 18) {
+function makeBar(current, plan, length = 10) {
   const safePlan = plan <= 0 ? 1 : plan;
   const ratio = Math.max(0, Math.min(1, current / safePlan));
   const filled = Math.round(ratio * length);
-  return `${"█".repeat(filled)}${"░".repeat(length - filled)}`;
+  const over = current > safePlan;
+  const fillChar = over ? "🟨" : "🟩";
+  return `${fillChar.repeat(filled)}${"⬜".repeat(length - filled)}`;
 }
 
 function getMonthPlans(kpi) {
