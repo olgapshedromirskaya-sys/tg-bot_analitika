@@ -711,15 +711,20 @@ async function loadStatusBadges() {
   try {
     const res  = await fetch('/api/credentials/status');
     const data = await res.json();
-    document.getElementById('ozon-status-badge').innerHTML = data.ozon
-      ? '<span class="badge-ok">✓ подключён</span> <button class="delete-btn" onclick="deleteCredentials('ozon')">✕ Удалить</button>'
+    const ozonEl = document.getElementById('ozon-status-badge');
+    const wbEl   = document.getElementById('wb-status-badge');
+    ozonEl.innerHTML = data.ozon
+      ? '<span class="badge-ok">&#10003; подключён</span> <button class="delete-btn" id="btn-del-ozon">&#10005; Удалить</button>'
       : '<span class="badge-no">не настроен</span>';
-    document.getElementById('wb-status-badge').innerHTML = data.wb
-      ? '<span class="badge-ok">✓ подключён</span> <button class="delete-btn" onclick="deleteCredentials('wb')">✕ Удалить</button>'
+    wbEl.innerHTML = data.wb
+      ? '<span class="badge-ok">&#10003; подключён</span> <button class="delete-btn" id="btn-del-wb">&#10005; Удалить</button>'
       : '<span class="badge-no">не настроен</span>';
+    const btnOzon = document.getElementById('btn-del-ozon');
+    const btnWb   = document.getElementById('btn-del-wb');
+    if (btnOzon) btnOzon.addEventListener('click', function() { deleteCredentials('ozon'); });
+    if (btnWb)   btnWb.addEventListener('click',   function() { deleteCredentials('wb'); });
   } catch(e) {}
 }
-
 async function deleteCredentials(platform) {
   const name = platform === 'ozon' ? 'Ozon' : 'Wildberries';
   if (!confirm(`Удалить ключи ${name}? Данные переключатся на демо-режим.`)) return;
