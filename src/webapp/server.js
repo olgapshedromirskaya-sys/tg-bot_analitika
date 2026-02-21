@@ -6,7 +6,7 @@ const cache = {
   wb:   { data: null, updatedAt: 0 },
   ozon: { data: null, updatedAt: 0 },
 };
-const CACHE_TTL_MS = 15 * 60 * 1000; // 15 минут
+const CACHE_TTL_MS = 30 * 60 * 1000; // 15 минут
 
 function startWebAppServer({ db }) {
   const app = express();
