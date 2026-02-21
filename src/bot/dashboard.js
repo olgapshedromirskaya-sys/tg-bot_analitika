@@ -58,45 +58,58 @@ function formatHeroMessage() {
   ].join("\n");
 }
 
-function formatStatsMessage(snapshot, kpi) {
-  const plans = getMonthPlans(kpi);
-  const dailyRevenuePlan = plans.revenue / dayjs().daysInMonth();
-  const revenueDelta = ((snapshot.today.revenue / Math.max(dailyRevenuePlan, 1)) - 1) * 100;
-  const ordersDelta = snapshot.today.orders - Number(kpi.daily_orders || 0);
-  const adUsage = (snapshot.month.adSpend / Math.max(plans.adBudget, 1)) * 100;
-  const conversionDelta = snapshot.today.conversion - Number(kpi.conversion || 0);
+function formatChannelBlock(channel, label, emoji) {
+  const t = channel.today || {};
+  const lines = [
+    `${emoji} <b>${label}</b> · ${channel.source === "api" ? "реальные данные" : "демо"}`,
+    `💰 Выручка: <b>${formatCompactMoney(t.revenue)}</b>`,
+    `📦 Заказы: <b>${Math.round(t.orders || 0)}</b>`,
+    `📢 Реклама: <b>${formatCompactMoney(t.adSpend)}</b>`,
+    `🔄 Конверсия: <b>${Number(t.conversion || 0).toFixed(1)}%</b>`,
+  ];
 
-  const riskProduct = snapshot.atRiskProducts[0];
-  const dataSource = snapshot.sources.includes("api") ? "API" : "демо-режим";
+  const risk = (channel.atRiskProducts || []).filter(p => p.trend === "down")[0];
+  if (risk) {
+    lines.push(`🚨 Риск: <b>${risk.name}</b> — ${risk.reason}`);
+  }
+
+  const growth = (channel.atRiskProducts || []).filter(p => p.trend === "up")[0];
+  if (growth) {
+    lines.push(`📈 Рост: <b>${growth.name}</b> — ${growth.reason}`);
+  }
+
+  return lines.join("\n");
+}
+
+function formatStatsMessage(snapshot, kpi) {
+  const channels = snapshot.channels || [];
+  const ozon = channels[0];
+  const wb   = channels[1];
+
+  // Показываем только платформы с реальными ключами (source === "api")
+  // Если обе в демо — показываем обе (нет ни одного ключа)
+  const hasAnyApi = channels.some(c => c.source === "api");
+  const visibleChannels = hasAnyApi
+    ? channels.filter(c => c.source === "api")
+    : channels;
 
   const lines = [
     "🤖 <b>MarketBot Analytics</b>",
-    `Ozon · Wildberries · ${dataSource}`,
+    `${dayjs().format("DD.MM.YYYY")}`,
     "",
-    "💰 <b>Выручка сегодня</b>",
-    `<b>${formatCompactMoney(snapshot.today.revenue)}</b>`,
-    `▲ ${formatSigned(revenueDelta, 0)}% к цели`,
-    "",
-    "📦 <b>Заказы</b>",
-    `<b>${Math.round(snapshot.today.orders)}</b>`,
-    `${ordersDelta >= 0 ? "▲" : "▼"} ${formatSigned(ordersDelta)} от плана`,
-    "",
-    "📢 <b>Расходы на рекламу</b>",
-    `<b>${formatCompactMoney(snapshot.today.adSpend)}</b>`,
-    `${adUsage >= 85 ? "⚠" : "●"} ${Math.round(adUsage)}% бюджета`,
-    "",
-    "🔄 <b>Конверсия</b>",
-    `<b>${snapshot.today.conversion.toFixed(1)}%</b>`,
-    `${conversionDelta >= 0 ? "▲" : "▼"} ${formatSigned(conversionDelta, 1)} п.п.`,
   ];
 
-  if (riskProduct) {
-    lines.push(
-      "",
-      "🚨 <b>Товар в риске</b>",
-      `<b>${riskProduct.name}</b> — ${riskProduct.reason}`,
-    );
+  for (const channel of visibleChannels) {
+    const isOzon = channel === ozon;
+    const label  = isOzon ? "Ozon" : "Wildberries";
+    const emoji  = isOzon ? "🔵" : "🟣";
+    lines.push("━━━━━━━━━━━━━━━━━━");
+    lines.push("");
+    lines.push(formatChannelBlock(channel, label, emoji));
+    lines.push("");
   }
+
+  lines.push("━━━━━━━━━━━━━━━━━━");
 
   return lines.join("\n");
 }
