@@ -860,13 +860,23 @@ async function initTabs() {
     const wbTab     = document.querySelectorAll('.tab-btn')[1];
     const ozonPanel = document.getElementById('panel-ozon');
     const wbPanel   = document.getElementById('panel-wb');
-    if (hasAnyKey) {
-      if (!data.ozon) { ozonTab.style.display = 'none'; ozonPanel.style.display = 'none'; }
-      if (!data.wb)   { wbTab.style.display   = 'none'; wbPanel.style.display   = 'none'; }
-      if (data.ozon)      switchTab('ozon');
-      else if (data.wb)   switchTab('wb');
-    } else {
+
+    if (!hasAnyKey) {
+      // Нет ни одного ключа — обе вкладки видны, оба демо
       loadPlatformData('ozon');
+    } else {
+      // Есть хотя бы один ключ — скрываем вкладку без ключа
+      if (!data.ozon) {
+        ozonTab.style.display  = 'none';
+        ozonPanel.style.display = 'none';
+      }
+      if (!data.wb) {
+        wbTab.style.display  = 'none';
+        wbPanel.style.display = 'none';
+      }
+      // Активируем первую доступную вкладку с реальными данными
+      if (data.ozon)    switchTab('ozon');
+      else if (data.wb) switchTab('wb');
     }
   } catch(e) { loadPlatformData('ozon'); }
 }
