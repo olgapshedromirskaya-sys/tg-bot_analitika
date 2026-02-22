@@ -281,8 +281,6 @@
     transition: background 0.2s;
   }
   .delete-btn:hover { background: rgba(255,80,80,0.25); }
-
-  /* ── KPI блок внутри настроек платформы ── */
   .kpi-platform-block {
     border: 1px solid var(--line);
     border-radius: 14px;
@@ -301,6 +299,13 @@
     color: var(--text-main);
   }
   .kpi-platform-body { padding: 14px; }
+  .subsection-title {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-main);
+    margin-bottom: 8px;
+    margin-top: 2px;
+  }
 </style>
 </head>
 <body>
@@ -328,7 +333,9 @@
 <!-- НАСТРОЙКИ -->
 <div id="panel-settings" class="tab-panel">
 
-  <!-- ── Блок Ozon: ключи + KPI ── -->
+  <!-- ═══════════════════════════════════════════════
+       БЛОК OZON: ключи + KPI + финансы Ozon
+  ═══════════════════════════════════════════════ -->
   <div class="section-card">
     <div class="section-heading">🔵 Ozon <span id="ozon-status-badge"></span></div>
     <div class="hint-box">
@@ -343,10 +350,7 @@
 
     <!-- KPI Ozon -->
     <div class="kpi-platform-block">
-      <div class="kpi-platform-header">
-        <div class="platform-dot ozon"></div>
-        🎯 Планы KPI на месяц — Ozon
-      </div>
+      <div class="kpi-platform-header"><div class="platform-dot ozon"></div>🎯 Планы KPI — Ozon</div>
       <div class="kpi-platform-body">
         <div class="hint-box" style="margin-bottom:10px">Бот сравнивает с реальными данными Ozon и присылает алерты.</div>
         <label class="form-label">💰 Выручка за месяц, ₽</label>
@@ -360,9 +364,37 @@
         <button class="save-btn" onclick="saveKpiForPlatform('ozon')">Сохранить планы Ozon</button>
       </div>
     </div>
+
+    <!-- Финансы Ozon -->
+    <div class="kpi-platform-block">
+      <div class="kpi-platform-header"><div class="platform-dot ozon"></div>💰 Финансы — Ozon</div>
+      <div class="kpi-platform-body">
+
+        <div class="subsection-title">Комиссии по категориям</div>
+        <div class="hint-box" style="margin-bottom:8px">
+          Загружается автоматически из Ozon API.<br>
+          Нужны активные API-ключи Ozon выше.
+        </div>
+        <button class="save-btn" style="margin-bottom:6px" onclick="fetchOzonCommissions()">🔄 Загрузить комиссии из Ozon API</button>
+        <div id="ozon-comm-status" style="font-size:12px;color:var(--text-soft);margin-bottom:8px"></div>
+        <div id="ozon-comm-table" style="margin-bottom:12px"></div>
+
+        <hr class="s-divider" style="margin:10px 0 14px">
+
+        <div class="subsection-title">Запасные значения Ozon</div>
+        <div class="hint-box" style="margin-bottom:10px">Если категория товара не найдена в списке выше.</div>
+        <label class="form-label">📊 Средняя комиссия Ozon, %</label>
+        <input id="ozon-fin-commission" class="form-input" type="number" step="0.1" placeholder="15" inputmode="decimal">
+        <label class="form-label">⚠️ Минимальная рентабельность Ozon, %</label>
+        <input id="ozon-fin-min_profitability" class="form-input" type="number" step="0.1" placeholder="10" inputmode="decimal">
+        <button class="save-btn" onclick="saveFinanceForPlatform('ozon')">Сохранить финансы Ozon</button>
+      </div>
+    </div>
   </div>
 
-  <!-- ── Блок WB: ключи + KPI ── -->
+  <!-- ═══════════════════════════════════════════════
+       БЛОК WB: ключи + KPI + финансы WB
+  ═══════════════════════════════════════════════ -->
   <div class="section-card">
     <div class="section-heading">🟣 Wildberries <span id="wb-status-badge"></span></div>
     <div class="hint-box">
@@ -375,10 +407,7 @@
 
     <!-- KPI WB -->
     <div class="kpi-platform-block">
-      <div class="kpi-platform-header">
-        <div class="platform-dot wb"></div>
-        🎯 Планы KPI на месяц — Wildberries
-      </div>
+      <div class="kpi-platform-header"><div class="platform-dot wb"></div>🎯 Планы KPI — Wildberries</div>
       <div class="kpi-platform-body">
         <div class="hint-box" style="margin-bottom:10px">Бот сравнивает с реальными данными WB и присылает алерты.</div>
         <label class="form-label">💰 Выручка за месяц, ₽</label>
@@ -392,11 +421,63 @@
         <button class="save-btn" onclick="saveKpiForPlatform('wb')">Сохранить планы WB</button>
       </div>
     </div>
+
+    <!-- Финансы WB -->
+    <div class="kpi-platform-block">
+      <div class="kpi-platform-header"><div class="platform-dot wb"></div>💰 Финансы — Wildberries</div>
+      <div class="kpi-platform-body">
+
+        <div class="subsection-title">Комиссии по категориям</div>
+        <div class="hint-box" style="margin-bottom:8px">
+          seller.wildberries.ru → Партнёрам → Комиссии и тарифы → скачай Excel
+        </div>
+        <input id="wb-comm-file" type="file" accept=".xlsx,.xls" style="display:none" onchange="uploadWbCommissions()">
+        <button class="save-btn" style="margin-bottom:6px" onclick="document.getElementById('wb-comm-file').click()">📤 Загрузить Excel с тарифами WB</button>
+        <div id="wb-comm-status" style="font-size:12px;color:var(--text-soft);margin-bottom:8px"></div>
+        <div id="wb-comm-table" style="margin-bottom:12px"></div>
+
+        <hr class="s-divider" style="margin:10px 0 14px">
+
+        <div class="subsection-title">Запасные значения WB</div>
+        <div class="hint-box" style="margin-bottom:10px">Если категория товара не найдена в списке выше.</div>
+        <label class="form-label">📊 Средняя комиссия WB, %</label>
+        <input id="wb-fin-commission" class="form-input" type="number" step="0.1" placeholder="15" inputmode="decimal">
+        <label class="form-label">⚠️ Минимальная рентабельность WB, %</label>
+        <input id="wb-fin-min_profitability" class="form-input" type="number" step="0.1" placeholder="10" inputmode="decimal">
+        <button class="save-btn" onclick="saveFinanceForPlatform('wb')">Сохранить финансы WB</button>
+      </div>
+    </div>
   </div>
 
   <hr class="s-divider">
 
-  <!-- ── Поставки ── -->
+  <!-- ═══════════════════════════════════════════════
+       СЕБЕСТОИМОСТЬ — ОБЩАЯ для обеих площадок
+  ═══════════════════════════════════════════════ -->
+  <div class="section-card">
+    <div class="section-heading">🏷️ Себестоимость товаров</div>
+    <div class="hint-box">
+      Себестоимость одинаковая для Ozon и WB — товар один и тот же.<br>
+      Формат CSV: <strong>артикул ; наименование ; себестоимость</strong><br>
+      Разделитель: точка с запятой или запятая. Заголовок необязателен.
+    </div>
+    <input id="costs-file" type="file" accept=".csv,.txt" style="display:none" onchange="uploadCosts()">
+    <button class="save-btn" style="margin-bottom:8px" onclick="document.getElementById('costs-file').click()">📤 Загрузить CSV с себестоимостью</button>
+    <div id="costs-status" style="font-size:12px;color:var(--text-soft);margin-bottom:8px"></div>
+    <div id="costs-table" style="margin-bottom:12px"></div>
+
+    <hr class="s-divider" style="margin:10px 0 14px">
+
+    <div class="subsection-title">Запасное значение</div>
+    <div class="hint-box" style="margin-bottom:10px">Используется если артикул не найден в файле выше.</div>
+    <label class="form-label">🏷️ Средняя себестоимость, % от выручки</label>
+    <input id="cost-percent" class="form-input" type="number" step="0.1" placeholder="40" inputmode="decimal">
+    <button class="save-btn" onclick="saveCostPercent()">Сохранить % себестоимости</button>
+  </div>
+
+  <hr class="s-divider">
+
+  <!-- Поставки -->
   <div class="section-card">
     <div class="section-heading">🚛 Настройки поставок</div>
     <div class="hint-box">
@@ -528,7 +609,47 @@ function buildDrrCard(t) {
     </div>`;
 }
 
-function buildDashboard({ today, month, kpi, source, warehouses, stocks, atRiskProducts, _prevWeek, _prevMonth }, platform) {
+// Карточка финансов — данные приходят с сервера уже посчитанные для этой платформы
+function buildFinanceCard(finance) {
+  if (!finance) return '';
+  const fm = finance.month;
+  const ft = finance.today;
+  if (!fm && !ft) return '';
+  function fmtM(n) {
+    n = n || 0;
+    if (n >= 1000000) return (n/1000000).toFixed(1) + 'М ₽';
+    if (n >= 1000)    return Math.round(n/1000) + 'К ₽';
+    return n.toLocaleString('ru') + ' ₽';
+  }
+  const mColor = fm ? (fm.isHealthy ? 'var(--green,#4caf50)' : 'var(--orange,#ff8b57)') : 'var(--text-soft)';
+  const tColor = ft ? (ft.isHealthy ? 'var(--green,#4caf50)' : 'var(--orange,#ff8b57)') : 'var(--text-soft)';
+  const mIcon  = fm ? (fm.isHealthy ? '🟢' : '🔴') : '—';
+  const tIcon  = ft ? (ft.isHealthy ? '🟢' : '🔴') : '—';
+  return `
+    <div class="section-title">💰 Финансы — чистая прибыль</div>
+    <div class="kpi-grid" style="margin-bottom:8px">
+      <div class="kpi-card">
+        <div class="kpi-label">Прибыль сегодня</div>
+        <div class="kpi-value" style="font-size:18px;color:${tColor}">${ft ? tIcon + ' ' + fmtM(ft.netProfit) : '—'}</div>
+        <div class="kpi-delta" style="color:var(--text-soft)">${ft ? 'маржа ' + ft.margin.toFixed(1) + '%' : ''}</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Прибыль за месяц</div>
+        <div class="kpi-value" style="font-size:18px;color:${mColor}">${fm ? mIcon + ' ' + fmtM(fm.netProfit) : '—'}</div>
+        <div class="kpi-delta" style="color:var(--text-soft)">${fm ? 'маржа ' + fm.margin.toFixed(1) + '%' : ''}</div>
+      </div>
+    </div>
+    ${fm ? `
+    <div class="bar-card" style="font-size:12px;line-height:2.2">
+      <div style="display:flex;justify-content:space-between"><span style="color:var(--text-soft)">- Себестоимость:</span><span style="color:var(--orange,#ff8b57)">−${fmtM(fm.cost)}</span></div>
+      <div style="display:flex;justify-content:space-between"><span style="color:var(--text-soft)">- Комиссия МП:</span><span style="color:var(--orange,#ff8b57)">−${fmtM(fm.commission)}</span></div>
+      <div style="display:flex;justify-content:space-between"><span style="color:var(--text-soft)">- Реклама:</span><span style="color:var(--orange,#ff8b57)">−${fmtM(fm.adSpend || 0)}</span></div>
+      <div style="border-top:1px solid var(--line);margin:4px 0"></div>
+      <div style="display:flex;justify-content:space-between;font-weight:800"><span>= Чистая прибыль:</span><span style="color:${mColor}">${fmtM(fm.netProfit)}</span></div>
+    </div>` : ''}`;
+}
+
+function buildDashboard({ today, month, kpi, source, warehouses, stocks, atRiskProducts, finance, _prevWeek, _prevMonth }, platform) {
   const t = today || {};
   const m = month || {};
   const k = kpi   || {};
@@ -705,6 +826,7 @@ function buildDashboard({ today, month, kpi, source, warehouses, stocks, atRiskP
       </div>
     </div>
     ${buildDrrCard(t)}
+    ${buildFinanceCard(finance)}
     <div class="section-title">За месяц</div>
     <div class="bar-card">
       <div class="bar-header"><span>Выручка</span><strong>${fmtMoney(m.revenue)} / ${fmtMoney(k.revenue)}</strong></div>
@@ -750,39 +872,173 @@ async function saveCredentials(platform) {
   }
 }
 
-// ── Сохранить KPI для конкретной платформы ─────────────────────
 async function saveKpiForPlatform(platform) {
   const revenue      = document.getElementById(`${platform}-kpi-revenue`).value.trim();
   const daily_orders = document.getElementById(`${platform}-kpi-daily_orders`).value.trim();
   const ad_budget    = document.getElementById(`${platform}-kpi-ad_budget`).value.trim();
   const conversion   = document.getElementById(`${platform}-kpi-conversion`).value.trim();
-
   const body = {};
   if (revenue)      body.revenue      = parseFloat(revenue);
   if (daily_orders) body.daily_orders = parseFloat(daily_orders);
   if (ad_budget)    body.ad_budget    = parseFloat(ad_budget);
   if (conversion)   body.conversion   = parseFloat(conversion);
-
   if (Object.keys(body).length === 0) { alert('Заполни хотя бы одно поле'); return; }
-
   const btn = event.currentTarget;
   btn.disabled = true; btn.textContent = 'Сохраняю...';
   try {
-    const res  = await fetch(`/api/kpi/${platform}`, {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify(body)
-    });
+    const res  = await fetch(`/api/kpi/${platform}`, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) });
+    const data = await res.json();
+    if (data.ok) { delete dataCache[platform]; alert(`✅ Планы ${platform === 'ozon' ? 'Ozon' : 'Wildberries'} сохранены!`); }
+    else { alert('❌ ' + (data.error || 'Ошибка')); }
+  } catch(e) { alert('❌ ' + e.message); }
+  finally { btn.disabled = false; btn.textContent = platform === 'ozon' ? 'Сохранить планы Ozon' : 'Сохранить планы WB'; }
+}
+
+// Финансы платформы — комиссия и рентабельность СВОИ для каждой
+async function saveFinanceForPlatform(platform) {
+  const commission        = document.getElementById(`${platform}-fin-commission`).value.trim();
+  const min_profitability = document.getElementById(`${platform}-fin-min_profitability`).value.trim();
+  const body = {};
+  if (commission)        body.commission        = parseFloat(commission);
+  if (min_profitability) body.min_profitability = parseFloat(min_profitability);
+  if (Object.keys(body).length === 0) { alert('Заполни хотя бы одно поле'); return; }
+  const btn = event.currentTarget;
+  btn.disabled = true; btn.textContent = 'Сохраняю...';
+  try {
+    const res  = await fetch(`/api/finance/${platform}`, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) });
+    const data = await res.json();
+    if (data.ok) { delete dataCache[platform]; alert(`✅ Финансы ${platform === 'ozon' ? 'Ozon' : 'Wildberries'} сохранены!`); }
+    else { alert('❌ ' + (data.error || 'Ошибка')); }
+  } catch(e) { alert('❌ ' + e.message); }
+  finally { btn.disabled = false; btn.textContent = platform === 'ozon' ? 'Сохранить финансы Ozon' : 'Сохранить финансы WB'; }
+}
+
+// % себестоимости — ОБЩИЙ, без привязки к платформе
+async function saveCostPercent() {
+  const val = document.getElementById('cost-percent').value.trim();
+  if (!val || isNaN(val)) { alert('Введите значение'); return; }
+  const btn = event.currentTarget;
+  btn.disabled = true; btn.textContent = 'Сохраняю...';
+  try {
+    const res  = await fetch('/api/kpi', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ key: 'cost_percent', value: parseFloat(val) }) });
+    const data = await res.json();
+    if (data.ok) { delete dataCache['ozon']; delete dataCache['wb']; alert('✅ % себестоимости сохранён!'); }
+    else { alert('❌ ' + (data.error || 'Ошибка')); }
+  } catch(e) { alert('❌ ' + e.message); }
+  finally { btn.disabled = false; btn.textContent = 'Сохранить % себестоимости'; }
+}
+
+async function uploadCosts() {
+  const file = document.getElementById('costs-file').files[0];
+  if (!file) return;
+  const statusEl = document.getElementById('costs-status');
+  statusEl.textContent = '⏳ Загружаю...';
+  const form = new FormData();
+  form.append('file', file);
+  try {
+    const res  = await fetch('/api/costs/upload', { method: 'POST', body: form });
     const data = await res.json();
     if (data.ok) {
-      delete dataCache[platform];
-      alert(`✅ Планы ${platform === 'ozon' ? 'Ozon' : 'Wildberries'} сохранены!`);
-    } else { alert('❌ ' + (data.error || 'Ошибка')); }
-  } catch(e) { alert('❌ ' + e.message); }
-  finally {
-    btn.disabled = false;
-    btn.textContent = platform === 'ozon' ? 'Сохранить планы Ozon' : 'Сохранить планы WB';
-  }
+      statusEl.textContent = `✅ Загружено: ${data.imported} позиций${data.errors && data.errors.length ? ' · ⚠️ ' + data.errors.length + ' ошибок' : ''}`;
+      loadCostsTable();
+    } else { statusEl.textContent = '❌ ' + (data.error || 'Ошибка'); }
+  } catch(e) { statusEl.textContent = '❌ ' + e.message; }
+  document.getElementById('costs-file').value = '';
+}
+
+async function loadCostsTable() {
+  const el = document.getElementById('costs-table');
+  if (!el) return;
+  try {
+    const res  = await fetch('/api/costs');
+    const rows = await res.json();
+    if (!rows.length) { el.innerHTML = '<div style="font-size:12px;color:var(--text-soft)">Файл не загружен — используется запасной %</div>'; return; }
+    el.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+        <span style="font-size:11px;color:var(--text-soft)">${rows.length} позиций</span>
+        <button onclick="deleteCosts()" style="font-size:11px;background:rgba(255,80,80,0.12);border:1px solid rgba(255,80,80,0.3);border-radius:8px;color:#ff6b6b;padding:2px 8px;cursor:pointer;font-family:inherit">🗑️ Очистить</button>
+      </div>
+      <div style="max-height:200px;overflow-y:auto;border:1px solid var(--line);border-radius:10px">
+        <table style="width:100%;border-collapse:collapse;font-size:12px">
+          <thead><tr style="background:rgba(255,255,255,0.05)">
+            <th style="padding:6px 10px;text-align:left;color:var(--text-soft)">Артикул</th>
+            <th style="padding:6px 10px;text-align:left;color:var(--text-soft)">Наименование</th>
+            <th style="padding:6px 10px;text-align:right;color:var(--text-soft)">Себестоимость</th>
+          </tr></thead>
+          <tbody>${rows.slice(0,50).map(r => `<tr style="border-top:1px solid var(--line)">
+            <td style="padding:6px 10px;color:var(--text-soft)">${r.sku}</td>
+            <td style="padding:6px 10px">${r.name}</td>
+            <td style="padding:6px 10px;text-align:right;font-weight:700">${Number(r.cost).toLocaleString('ru')} ₽</td>
+          </tr>`).join('')}</tbody>
+        </table>
+        ${rows.length > 50 ? `<div style="padding:6px 10px;font-size:11px;color:var(--text-soft)">...и ещё ${rows.length-50} позиций</div>` : ''}
+      </div>`;
+  } catch(e) { el.innerHTML = ''; }
+}
+
+async function deleteCosts() {
+  if (!confirm('Удалить все данные о себестоимости?')) return;
+  await fetch('/api/costs', { method: 'DELETE' });
+  document.getElementById('costs-table').innerHTML = '<div style="font-size:12px;color:var(--text-soft)">Файл не загружен — используется запасной %</div>';
+  document.getElementById('costs-status').textContent = '🗑️ Данные удалены';
+}
+
+async function uploadWbCommissions() {
+  const file = document.getElementById('wb-comm-file').files[0];
+  if (!file) return;
+  const statusEl = document.getElementById('wb-comm-status');
+  statusEl.textContent = '⏳ Загружаю...';
+  const form = new FormData();
+  form.append('file', file);
+  try {
+    const res  = await fetch('/api/commissions/wb/upload', { method: 'POST', body: form });
+    const data = await res.json();
+    if (data.ok) {
+      statusEl.textContent = `✅ Загружено категорий: ${data.imported}`;
+      loadCommissionsTable('wb');
+    } else { statusEl.textContent = '❌ ' + (data.error || 'Ошибка'); }
+  } catch(e) { statusEl.textContent = '❌ ' + e.message; }
+  document.getElementById('wb-comm-file').value = '';
+}
+
+async function fetchOzonCommissions() {
+  const btn = event.currentTarget;
+  const statusEl = document.getElementById('ozon-comm-status');
+  btn.disabled = true; btn.textContent = '⏳ Загружаю...';
+  try {
+    const res  = await fetch('/api/commissions/ozon/fetch', { method: 'POST' });
+    const data = await res.json();
+    if (data.ok) {
+      statusEl.textContent = `✅ Загружено категорий: ${data.imported}`;
+      loadCommissionsTable('ozon');
+    } else { statusEl.textContent = '❌ ' + (data.error || 'Ошибка'); }
+  } catch(e) { statusEl.textContent = '❌ ' + e.message; }
+  finally { btn.disabled = false; btn.textContent = '🔄 Загрузить комиссии из Ozon API'; }
+}
+
+async function loadCommissionsTable(platform) {
+  const el = document.getElementById(`${platform}-comm-table`);
+  if (!el) return;
+  try {
+    const res  = await fetch(`/api/commissions/${platform}`);
+    const rows = await res.json();
+    if (!rows.length) { el.innerHTML = '<div style="font-size:12px;color:var(--text-soft)">Нет данных — используется запасная комиссия</div>'; return; }
+    el.innerHTML = `
+      <div style="font-size:11px;color:var(--text-soft);margin-bottom:6px">${rows.length} категорий</div>
+      <div style="max-height:160px;overflow-y:auto;border:1px solid var(--line);border-radius:10px">
+        <table style="width:100%;border-collapse:collapse;font-size:12px">
+          <thead><tr style="background:rgba(255,255,255,0.05)">
+            <th style="padding:6px 10px;text-align:left;color:var(--text-soft)">Категория</th>
+            <th style="padding:6px 10px;text-align:right;color:var(--text-soft)">Комиссия</th>
+          </tr></thead>
+          <tbody>${rows.slice(0,30).map(r => `<tr style="border-top:1px solid var(--line)">
+            <td style="padding:6px 10px">${r.category}</td>
+            <td style="padding:6px 10px;text-align:right;font-weight:700;color:var(--cyan)">${Number(r.rate).toFixed(1)}%</td>
+          </tr>`).join('')}</tbody>
+        </table>
+        ${rows.length > 30 ? `<div style="padding:6px 10px;font-size:11px;color:var(--text-soft)">...и ещё ${rows.length-30} категорий</div>` : ''}
+      </div>`;
+  } catch(e) { el.innerHTML = ''; }
 }
 
 async function saveSupplyDays() {
@@ -799,23 +1055,37 @@ async function saveSupplyDays() {
 
 async function loadSettingsPage() {
   loadStatusBadges();
+  loadCostsTable();
+  loadCommissionsTable('wb');
+  loadCommissionsTable('ozon');
   try {
     const res = await fetch('/api/kpi');
     const kpi = await res.json();
 
-    // Заполняем поля KPI Ozon (сначала ищем ozon_*, потом общие как запасной вариант)
+    // KPI Ozon
     ['revenue','daily_orders','ad_budget','conversion'].forEach(field => {
       const val = kpi[`ozon_${field}`] !== undefined ? kpi[`ozon_${field}`] : kpi[field];
       const el = document.getElementById(`ozon-kpi-${field}`);
       if (el && val !== undefined) el.value = val;
     });
 
-    // Заполняем поля KPI WB
+    // KPI WB
     ['revenue','daily_orders','ad_budget','conversion'].forEach(field => {
       const val = kpi[`wb_${field}`] !== undefined ? kpi[`wb_${field}`] : kpi[field];
       const el = document.getElementById(`wb-kpi-${field}`);
       if (el && val !== undefined) el.value = val;
     });
+
+    // Финансы Ozon — свои ключи в БД
+    if (kpi.ozon_commission        != null) document.getElementById('ozon-fin-commission').value        = kpi.ozon_commission;
+    if (kpi.ozon_min_profitability != null) document.getElementById('ozon-fin-min_profitability').value = kpi.ozon_min_profitability;
+
+    // Финансы WB — свои ключи в БД
+    if (kpi.wb_commission          != null) document.getElementById('wb-fin-commission').value          = kpi.wb_commission;
+    if (kpi.wb_min_profitability   != null) document.getElementById('wb-fin-min_profitability').value   = kpi.wb_min_profitability;
+
+    // Себестоимость % — общий ключ
+    if (kpi.cost_percent           != null) document.getElementById('cost-percent').value               = kpi.cost_percent;
 
     if (kpi.supply_days !== undefined) document.getElementById('supply-days').value = kpi.supply_days;
   } catch(e) {}
@@ -860,21 +1130,11 @@ async function initTabs() {
     const wbTab     = document.querySelectorAll('.tab-btn')[1];
     const ozonPanel = document.getElementById('panel-ozon');
     const wbPanel   = document.getElementById('panel-wb');
-
     if (!hasAnyKey) {
-      // Нет ни одного ключа — обе вкладки видны, оба демо
       loadPlatformData('ozon');
     } else {
-      // Есть хотя бы один ключ — скрываем вкладку без ключа
-      if (!data.ozon) {
-        ozonTab.style.display  = 'none';
-        ozonPanel.style.display = 'none';
-      }
-      if (!data.wb) {
-        wbTab.style.display  = 'none';
-        wbPanel.style.display = 'none';
-      }
-      // Активируем первую доступную вкладку с реальными данными
+      if (!data.ozon) { ozonTab.style.display = 'none'; ozonPanel.style.display = 'none'; }
+      if (!data.wb)   { wbTab.style.display   = 'none'; wbPanel.style.display   = 'none'; }
       if (data.ozon)    switchTab('ozon');
       else if (data.wb) switchTab('wb');
     }
