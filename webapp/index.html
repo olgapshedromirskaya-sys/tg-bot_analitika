@@ -633,6 +633,18 @@ function buildDashboard({ today, month, kpi, source, warehouses, stocks, atRiskP
       </div>
     </div>
 
+    <div class="kpi-card" style="margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;gap:12px">
+      <div>
+        <div class="kpi-label">📊 ДРР (Доля рекламных расходов)</div>
+        <div class="kpi-value" style="font-size:28px;color:${(() => { const d = t.revenue ? (t.adSpend/t.revenue*100) : 0; return d <= 10 ? 'var(--green,#4caf50)' : d <= 20 ? 'var(--yellow,#f5c518)' : 'var(--orange,#ff8b57)'; })()}">${t.revenue ? (t.adSpend/t.revenue*100).toFixed(1) : '0.0'}%</div>
+      </div>
+      <div style="text-align:right;font-size:11px;color:var(--text-soft);line-height:1.8">
+        <div style="color:var(--green,#4caf50)">🟢 до 10% — отлично</div>
+        <div style="color:var(--yellow,#f5c518)">🟡 10–20% — норма</div>
+        <div style="color:var(--orange,#ff8b57)">🔴 выше 20% — много</div>
+      </div>
+    </div>
+
     <div class="section-title">За месяц</div>
     <div class="bar-card">
       <div class="bar-header"><span>Выручка</span><strong>${fmtMoney(m.revenue)} / ${fmtMoney(k.revenue)}</strong></div>
@@ -742,8 +754,46 @@ async function deleteCredentials(platform) {
   }
 }
 
+// ── Скрытие вкладок без API ключей ─────────────────────────────
+async function initTabs() {
+  try {
+    const res  = await fetch('/api/credentials/status');
+    const data = await res.json();
+    const hasAnyKey = data.ozon || data.wb;
+
+    const ozonTab = document.querySelector('.tab-btn[onclick="switchTab('ozon')"]');
+    const wbTab   = document.querySelector('.tab-btn[onclick="switchTab('wb')"]');
+    const ozonPanel = document.getElementById('panel-ozon');
+    const wbPanel   = document.getElementById('panel-wb');
+
+    if (hasAnyKey) {
+      // Есть хотя бы один ключ — скрываем платформы без ключа
+      if (!data.ozon) {
+        ozonTab.style.display = 'none';
+        ozonPanel.style.display = 'none';
+      }
+      if (!data.wb) {
+        wbTab.style.display = 'none';
+        wbPanel.style.display = 'none';
+      }
+      // Активируем первую видимую вкладку
+      if (data.ozon) {
+        switchTab('ozon');
+      } else if (data.wb) {
+        switchTab('wb');
+      }
+    } else {
+      // Нет ни одного ключа — показываем обе в демо-режиме
+      loadPlatformData('ozon');
+    }
+  } catch(e) {
+    // Ошибка — показываем демо
+    loadPlatformData('ozon');
+  }
+}
+
 // Старт
-loadPlatformData('ozon');
+initTabs();
 </script>
 </body>
 </html>
