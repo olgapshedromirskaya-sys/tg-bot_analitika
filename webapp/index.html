@@ -333,9 +333,6 @@
 <!-- НАСТРОЙКИ -->
 <div id="panel-settings" class="tab-panel">
 
-  <!-- ═══════════════════════════════════════════════
-       БЛОК OZON: ключи + KPI + финансы Ozon
-  ═══════════════════════════════════════════════ -->
   <div class="section-card">
     <div class="section-heading">🔵 Ozon <span id="ozon-status-badge"></span></div>
     <div class="hint-box">
@@ -348,7 +345,6 @@
     <input id="ozon-api-key" class="form-input" type="password" placeholder="Вставьте API-ключ Ozon">
     <button class="save-btn" style="margin-bottom:4px" onclick="saveCredentials('ozon')">Сохранить ключи Ozon</button>
 
-    <!-- KPI Ozon -->
     <div class="kpi-platform-block">
       <div class="kpi-platform-header"><div class="platform-dot ozon"></div>🎯 Планы KPI — Ozon</div>
       <div class="kpi-platform-body">
@@ -365,11 +361,9 @@
       </div>
     </div>
 
-    <!-- Финансы Ozon -->
     <div class="kpi-platform-block">
       <div class="kpi-platform-header"><div class="platform-dot ozon"></div>💰 Финансы — Ozon</div>
       <div class="kpi-platform-body">
-
         <div class="subsection-title">Комиссии по категориям</div>
         <div class="hint-box" style="margin-bottom:8px">
           Загружается автоматически из Ozon API.<br>
@@ -378,9 +372,7 @@
         <button class="save-btn" style="margin-bottom:6px" onclick="fetchOzonCommissions()">🔄 Загрузить комиссии из Ozon API</button>
         <div id="ozon-comm-status" style="font-size:12px;color:var(--text-soft);margin-bottom:8px"></div>
         <div id="ozon-comm-table" style="margin-bottom:12px"></div>
-
         <hr class="s-divider" style="margin:10px 0 14px">
-
         <div class="subsection-title">Запасные значения Ozon</div>
         <div class="hint-box" style="margin-bottom:10px">Если категория товара не найдена в списке выше.</div>
         <label class="form-label">📊 Средняя комиссия Ozon, %</label>
@@ -392,9 +384,6 @@
     </div>
   </div>
 
-  <!-- ═══════════════════════════════════════════════
-       БЛОК WB: ключи + KPI + финансы WB
-  ═══════════════════════════════════════════════ -->
   <div class="section-card">
     <div class="section-heading">🟣 Wildberries <span id="wb-status-badge"></span></div>
     <div class="hint-box">
@@ -405,7 +394,6 @@
     <input id="wb-api-key" class="form-input" type="password" placeholder="Вставьте токен WB">
     <button class="save-btn" style="margin-bottom:4px" onclick="saveCredentials('wb')">Сохранить ключ WB</button>
 
-    <!-- KPI WB -->
     <div class="kpi-platform-block">
       <div class="kpi-platform-header"><div class="platform-dot wb"></div>🎯 Планы KPI — Wildberries</div>
       <div class="kpi-platform-body">
@@ -422,11 +410,9 @@
       </div>
     </div>
 
-    <!-- Финансы WB -->
     <div class="kpi-platform-block">
       <div class="kpi-platform-header"><div class="platform-dot wb"></div>💰 Финансы — Wildberries</div>
       <div class="kpi-platform-body">
-
         <div class="subsection-title">Комиссии по категориям</div>
         <div class="hint-box" style="margin-bottom:8px">
           seller.wildberries.ru → Партнёрам → Комиссии и тарифы → скачай Excel
@@ -435,9 +421,7 @@
         <button class="save-btn" style="margin-bottom:6px" onclick="document.getElementById('wb-comm-file').click()">📤 Загрузить Excel с тарифами WB</button>
         <div id="wb-comm-status" style="font-size:12px;color:var(--text-soft);margin-bottom:8px"></div>
         <div id="wb-comm-table" style="margin-bottom:12px"></div>
-
         <hr class="s-divider" style="margin:10px 0 14px">
-
         <div class="subsection-title">Запасные значения WB</div>
         <div class="hint-box" style="margin-bottom:10px">Если категория товара не найдена в списке выше.</div>
         <label class="form-label">📊 Средняя комиссия WB, %</label>
@@ -451,9 +435,6 @@
 
   <hr class="s-divider">
 
-  <!-- ═══════════════════════════════════════════════
-       СЕБЕСТОИМОСТЬ — ОБЩАЯ для обеих площадок
-  ═══════════════════════════════════════════════ -->
   <div class="section-card">
     <div class="section-heading">🏷️ Себестоимость товаров</div>
     <div class="hint-box">
@@ -465,9 +446,7 @@
     <button class="save-btn" style="margin-bottom:8px" onclick="document.getElementById('costs-file').click()">📤 Загрузить CSV с себестоимостью</button>
     <div id="costs-status" style="font-size:12px;color:var(--text-soft);margin-bottom:8px"></div>
     <div id="costs-table" style="margin-bottom:12px"></div>
-
     <hr class="s-divider" style="margin:10px 0 14px">
-
     <div class="subsection-title">Запасное значение</div>
     <div class="hint-box" style="margin-bottom:10px">Используется если артикул не найден в файле выше.</div>
     <label class="form-label">🏷️ Средняя себестоимость, % от выручки</label>
@@ -477,7 +456,6 @@
 
   <hr class="s-divider">
 
-  <!-- Поставки -->
   <div class="section-card">
     <div class="section-heading">🚛 Настройки поставок</div>
     <div class="hint-box">
@@ -609,7 +587,43 @@ function buildDrrCard(t) {
     </div>`;
 }
 
-// Карточка финансов — данные приходят с сервера уже посчитанные для этой платформы
+// ── НОВЫЙ БЛОК: CPO — стоимость привлечения одного заказа ──────────
+// Считается из уже имеющихся данных: adSpend / orders
+// Нормы: WB до 300 ₽ — хорошо, 300–600 ₽ — норма, выше 600 ₽ — дорого
+//        Ozon до 200 ₽ — хорошо, 200–500 ₽ — норма, выше 500 ₽ — дорого
+function buildCpoCard(t, platform) {
+  if (!t || !t.orders || !t.adSpend) return '';
+  const cpo = t.adSpend / t.orders;
+  function fmtR(n) {
+    if (n >= 1000) return Math.round(n/1000) + 'К ₽';
+    return Math.round(n) + ' ₽';
+  }
+  // Нормы отличаются для WB и Ozon
+  const threshLow  = platform === 'wb' ? 300 : 200;
+  const threshHigh = platform === 'wb' ? 600 : 500;
+  const color = cpo <= threshLow  ? 'var(--green,#4caf50)'
+              : cpo <= threshHigh ? 'var(--yellow,#f5c518)'
+              :                     'var(--orange,#ff8b57)';
+  const icon  = cpo <= threshLow  ? '🟢' : cpo <= threshHigh ? '🟡' : '🔴';
+
+  // CPO за месяц из adSpend месяца (если нет — показываем только сегодня)
+  return `
+    <div class="kpi-card" style="margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;gap:12px">
+      <div>
+        <div class="kpi-label">🎯 CPO — стоимость одного заказа</div>
+        <div class="kpi-value" style="font-size:28px;color:${color}">${icon} ${fmtR(cpo)}</div>
+        <div style="font-size:11px;color:var(--text-soft);margin-top:4px">
+          ${Math.round(t.adSpend).toLocaleString('ru')} ₽ ÷ ${t.orders} заказов
+        </div>
+      </div>
+      <div style="text-align:right;font-size:11px;color:var(--text-soft);line-height:1.8">
+        <div style="color:var(--green,#4caf50)">🟢 до ${threshLow} ₽ — отлично</div>
+        <div style="color:var(--yellow,#f5c518)">🟡 до ${threshHigh} ₽ — норма</div>
+        <div style="color:var(--orange,#ff8b57)">🔴 выше ${threshHigh} ₽ — дорого</div>
+      </div>
+    </div>`;
+}
+
 function buildFinanceCard(finance) {
   if (!finance) return '';
   const fm = finance.month;
@@ -826,6 +840,7 @@ function buildDashboard({ today, month, kpi, source, warehouses, stocks, atRiskP
       </div>
     </div>
     ${buildDrrCard(t)}
+    ${buildCpoCard(t, platform)}
     ${buildFinanceCard(finance)}
     <div class="section-title">За месяц</div>
     <div class="bar-card">
@@ -894,7 +909,6 @@ async function saveKpiForPlatform(platform) {
   finally { btn.disabled = false; btn.textContent = platform === 'ozon' ? 'Сохранить планы Ozon' : 'Сохранить планы WB'; }
 }
 
-// Финансы платформы — комиссия и рентабельность СВОИ для каждой
 async function saveFinanceForPlatform(platform) {
   const commission        = document.getElementById(`${platform}-fin-commission`).value.trim();
   const min_profitability = document.getElementById(`${platform}-fin-min_profitability`).value.trim();
@@ -913,7 +927,6 @@ async function saveFinanceForPlatform(platform) {
   finally { btn.disabled = false; btn.textContent = platform === 'ozon' ? 'Сохранить финансы Ozon' : 'Сохранить финансы WB'; }
 }
 
-// % себестоимости — ОБЩИЙ, без привязки к платформе
 async function saveCostPercent() {
   const val = document.getElementById('cost-percent').value.trim();
   if (!val || isNaN(val)) { alert('Введите значение'); return; }
@@ -1061,32 +1074,21 @@ async function loadSettingsPage() {
   try {
     const res = await fetch('/api/kpi');
     const kpi = await res.json();
-
-    // KPI Ozon
     ['revenue','daily_orders','ad_budget','conversion'].forEach(field => {
       const val = kpi[`ozon_${field}`] !== undefined ? kpi[`ozon_${field}`] : kpi[field];
       const el = document.getElementById(`ozon-kpi-${field}`);
       if (el && val !== undefined) el.value = val;
     });
-
-    // KPI WB
     ['revenue','daily_orders','ad_budget','conversion'].forEach(field => {
       const val = kpi[`wb_${field}`] !== undefined ? kpi[`wb_${field}`] : kpi[field];
       const el = document.getElementById(`wb-kpi-${field}`);
       if (el && val !== undefined) el.value = val;
     });
-
-    // Финансы Ozon — свои ключи в БД
     if (kpi.ozon_commission        != null) document.getElementById('ozon-fin-commission').value        = kpi.ozon_commission;
     if (kpi.ozon_min_profitability != null) document.getElementById('ozon-fin-min_profitability').value = kpi.ozon_min_profitability;
-
-    // Финансы WB — свои ключи в БД
     if (kpi.wb_commission          != null) document.getElementById('wb-fin-commission').value          = kpi.wb_commission;
     if (kpi.wb_min_profitability   != null) document.getElementById('wb-fin-min_profitability').value   = kpi.wb_min_profitability;
-
-    // Себестоимость % — общий ключ
     if (kpi.cost_percent           != null) document.getElementById('cost-percent').value               = kpi.cost_percent;
-
     if (kpi.supply_days !== undefined) document.getElementById('supply-days').value = kpi.supply_days;
   } catch(e) {}
 }
