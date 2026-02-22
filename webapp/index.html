@@ -440,7 +440,17 @@ async function loadPlatformData(platform, forceRefresh) {
   try {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 10000);
-    const res  = await fetch(`/api/data/${platform}`, { signal: controller.signal });
+
+    const now = new Date();
+    const prevWeek  = new Date(now); prevWeek.setDate(now.getDate() - 7);
+    const prevMonth = new Date(now); prevMonth.setMonth(now.getMonth() - 1);
+    const fmtDate = d => d.toISOString().split('T')[0];
+
+    const [res, resWeek, resMonth] = await Promise.all([
+      fetch(`/api/data/${platform}`, { signal: controller.signal }),
+      fetch(`/api/data/${platform}?date=${fmtDate(prevWeek)}`).catch(() => null),
+      fetch(`/api/data/${platform}?date=${fmtDate(prevMonth)}`).catch(() => null),
+    ]);
     clearTimeout(timer);
     const data = await res.json();
 
@@ -448,6 +458,9 @@ async function loadPlatformData(platform, forceRefresh) {
       el.innerHTML = `<div class="state-box"><div class="state-icon">🔑</div><p>${data.error || 'Ошибка загрузки'}</p><small>Перейдите в ⚙️ Настройки и введите API-ключи</small></div>`;
       return;
     }
+
+    data._prevWeek  = resWeek  && resWeek.ok  ? await resWeek.json()  : null;
+    data._prevMonth = resMonth && resMonth.ok ? await resMonth.json() : null;
 
     const html = buildDashboard(data, platform);
     dataCache[platform] = html;
@@ -461,6 +474,66 @@ async function loadPlatformData(platform, forceRefresh) {
 function refreshData(platform) { delete dataCache[platform]; loadPlatformData(platform, true); }
 
 // ── ДРР карточка ────────────────────────────────────────────────
+function buildCompareBlocks(month, prevWeek, prevMonth) {
+  function pctDiff(now, prev) {
+    if (!prev || prev === 0) return null;
+    return ((now - prev) / prev * 100);
+  }
+  function arrow(d, inverse) {
+    if (d === null) return '<span style="color:var(--text-soft)">—</span>';
+    const up = d >= 0;
+    const good = inverse ? !up : up;
+    const color = good ? 'var(--green,#4caf50)' : 'var(--orange,#ff8b57)';
+    const sign = up ? '▲' : '▼';
+    return `<span style="color:${color};font-weight:700">${sign} ${Math.abs(d).toFixed(1)}%</span>`;
+  }
+
+  const pw = prevWeek  ? (prevWeek.month  || {}) : null;
+  const pm = prevMonth ? (prevMonth.month || {}) : null;
+
+  // Неделя к неделе (используем today данные прошлой недели)
+  const pwToday = prevWeek ? (prevWeek.today || {}) : null;
+  const mToday  = prevWeek ? (month || {}) : null;
+
+  const wRevD   = pw ? pctDiff(month.revenue,  pw.revenue)  : null;
+  const wOrdD   = pw ? pctDiff(month.orders,   pw.orders)   : null;
+  const wDrrNow  = month.revenue   ? (month.adSpend   / month.revenue   * 100) : 0;
+  const wDrrPrev = pw && pw.revenue ? (pw.adSpend / pw.revenue * 100) : null;
+  const wDrrD   = wDrrPrev !== null ? (wDrrNow - wDrrPrev) : null;
+
+  const mRevD  = pm ? pctDiff(month.revenue,  pm.revenue)  : null;
+  const mOrdD  = pm ? pctDiff(month.orders,   pm.orders)   : null;
+  const mDrrNow  = month.revenue   ? (month.adSpend / month.revenue * 100) : 0;
+  const mDrrPrev = pm && pm.revenue ? (pm.adSpend / pm.revenue * 100) : null;
+  const mDrrD   = mDrrPrev !== null ? (mDrrNow - mDrrPrev) : null;
+
+  const drrStatus = d => d === null ? '' : d <= 0 ? ' 🟢' : d <= 2 ? ' 🟡' : ' 🔴';
+
+  return `
+    <div class="section-title">📈 Сравнение периодов</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+
+      <div class="bar-card" style="background:var(--card2,rgba(255,255,255,0.04))">
+        <div style="font-size:11px;font-weight:700;color:var(--text-soft);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">Эта неделя vs прошлая</div>
+        <div style="display:flex;flex-direction:column;gap:6px;font-size:13px">
+          <div style="display:flex;justify-content:space-between"><span>💰 Выручка</span>${arrow(wRevD, false)}</div>
+          <div style="display:flex;justify-content:space-between"><span>📦 Заказы</span>${arrow(wOrdD, false)}</div>
+          <div style="display:flex;justify-content:space-between"><span>📊 ДРР</span>${wDrrD !== null ? `<span style="color:${wDrrD<=0?'var(--green,#4caf50)':'var(--orange,#ff8b57)'};font-weight:700">${wDrrD>=0?'+':''}${wDrrD.toFixed(1)} п.п.${drrStatus(wDrrD)}</span>` : '<span style="color:var(--text-soft)">—</span>'}</div>
+        </div>
+      </div>
+
+      <div class="bar-card" style="background:var(--card2,rgba(255,255,255,0.04))">
+        <div style="font-size:11px;font-weight:700;color:var(--text-soft);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">Этот месяц vs прошлый</div>
+        <div style="display:flex;flex-direction:column;gap:6px;font-size:13px">
+          <div style="display:flex;justify-content:space-between"><span>💰 Выручка</span>${arrow(mRevD, false)}</div>
+          <div style="display:flex;justify-content:space-between"><span>📦 Заказы</span>${arrow(mOrdD, false)}</div>
+          <div style="display:flex;justify-content:space-between"><span>📊 ДРР</span>${mDrrD !== null ? `<span style="color:${mDrrD<=0?'var(--green,#4caf50)':'var(--orange,#ff8b57)'};font-weight:700">${mDrrD>=0?'+':''}${mDrrD.toFixed(1)} п.п.${drrStatus(mDrrD)}</span>` : '<span style="color:var(--text-soft)">—</span>'}</div>
+        </div>
+      </div>
+
+    </div>`;
+}
+
 function buildDrrCard(t) {
   const drr = t.revenue ? (t.adSpend / t.revenue * 100) : 0;
   const color = drr <= 10 ? 'var(--green,#4caf50)' : drr <= 20 ? 'var(--yellow,#f5c518)' : 'var(--orange,#ff8b57)';
@@ -480,7 +553,7 @@ function buildDrrCard(t) {
 }
 
 // ── Построение дашборда ─────────────────────────────────────────
-function buildDashboard({ today, month, kpi, source, warehouses, stocks, atRiskProducts }, platform) {
+function buildDashboard({ today, month, kpi, source, warehouses, stocks, atRiskProducts, _prevWeek, _prevMonth }, platform) {
   const t = today || {};
   const m = month || {};
   const k = kpi   || {};
@@ -738,6 +811,8 @@ function buildDashboard({ today, month, kpi, source, warehouses, stocks, atRiskP
       <div class="bar-header"><span>Рекламный бюджет</span><strong>${fmtMoney(t.adSpend)} / ${fmtMoney(k.ad_budget)}</strong></div>
       ${barHtml(t.adSpend, k.ad_budget, t.adSpend > k.ad_budget*0.7)}
     </div>
+
+    ${buildCompareBlocks(m, _prevWeek, _prevMonth)}
 
     ${riskHtml}
     ${growthHtml}
