@@ -5,12 +5,32 @@ function buildAlerts(snapshot, kpi) {
   const now = dayjs();
   const daysInMonth = now.daysInMonth();
   const elapsedDays = now.date();
-
   const conversionPlan = Number(kpi.conversion || 0);
   const adBudgetPlan = Number(kpi.ad_budget || 0);
   const monthRevenuePlan = Number(kpi.revenue || 0);
   const dayOrdersPlan = Number(kpi.daily_orders || 0);
+  const drrThreshold = Number(kpi.drr_threshold || 20); // порог ДРР, по умолчанию 20%
 
+  // ── ДРР превышает порог ──────────────────────────────────────────
+  const channels = snapshot.channels || [];
+  for (const channel of channels) {
+    const t = channel.today || {};
+    if (t.revenue && t.adSpend) {
+      const drr = (t.adSpend / t.revenue) * 100;
+      if (drr > drrThreshold) {
+        const label = channels.indexOf(channel) === 0 ? "Ozon" : "Wildberries";
+        alerts.push({
+          code: `drr_high_${label.toLowerCase()}`,
+          message:
+            `🔴 <b>ДРР превышает норму — ${label}</b>\n` +
+            `Факт: <b>${drr.toFixed(1)}%</b>, порог: <b>${drrThreshold}%</b>\n` +
+            `Реклама съедает слишком большую долю выручки`,
+        });
+      }
+    }
+  }
+
+  // ── Конверсия ниже порога ────────────────────────────────────────
   if (conversionPlan > 0 && snapshot.today.conversion < conversionPlan * 0.7) {
     alerts.push({
       code: "conversion_low",
@@ -21,6 +41,7 @@ function buildAlerts(snapshot, kpi) {
     });
   }
 
+  // ── Рекламный бюджет почти исчерпан ─────────────────────────────
   if (adBudgetPlan > 0 && snapshot.month.adSpend >= adBudgetPlan * 0.85) {
     alerts.push({
       code: "ad_budget_high",
@@ -30,6 +51,7 @@ function buildAlerts(snapshot, kpi) {
     });
   }
 
+  // ── Выручка отстаёт от плана ─────────────────────────────────────
   if (monthRevenuePlan > 0) {
     const expectedRevenueByDate = (monthRevenuePlan / daysInMonth) * elapsedDays;
     if (snapshot.month.revenue < expectedRevenueByDate * 0.6) {
@@ -43,6 +65,7 @@ function buildAlerts(snapshot, kpi) {
     }
   }
 
+  // ── Заказов значительно меньше плана ────────────────────────────
   if (dayOrdersPlan > 0 && snapshot.today.orders < dayOrdersPlan * 0.4) {
     alerts.push({
       code: "orders_low",
@@ -53,6 +76,7 @@ function buildAlerts(snapshot, kpi) {
     });
   }
 
+  // ── Товар в зоне риска ───────────────────────────────────────────
   if (snapshot.atRiskProducts.length > 0) {
     const atRisk = snapshot.atRiskProducts[0];
     alerts.push({
