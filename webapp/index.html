@@ -436,6 +436,25 @@ async function loadPlatformData(platform, forceRefresh) {
 
 function refreshData(platform) { delete dataCache[platform]; loadPlatformData(platform, true); }
 
+// ── ДРР карточка ────────────────────────────────────────────────
+function buildDrrCard(t) {
+  const drr = t.revenue ? (t.adSpend / t.revenue * 100) : 0;
+  const color = drr <= 10 ? 'var(--green,#4caf50)' : drr <= 20 ? 'var(--yellow,#f5c518)' : 'var(--orange,#ff8b57)';
+  const icon  = drr <= 10 ? '🟢' : drr <= 20 ? '🟡' : '🔴';
+  return `
+    <div class="kpi-card" style="margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;gap:12px">
+      <div>
+        <div class="kpi-label">📊 ДРР — доля рекламных расходов</div>
+        <div class="kpi-value" style="font-size:28px;color:${color}">${icon} ${drr.toFixed(1)}%</div>
+      </div>
+      <div style="text-align:right;font-size:11px;color:var(--text-soft);line-height:1.8">
+        <div style="color:var(--green,#4caf50)">🟢 до 10% — отлично</div>
+        <div style="color:var(--yellow,#f5c518)">🟡 10–20% — норма</div>
+        <div style="color:var(--orange,#ff8b57)">🔴 выше 20% — много</div>
+      </div>
+    </div>`;
+}
+
 // ── Построение дашборда ─────────────────────────────────────────
 function buildDashboard({ today, month, kpi, source, warehouses, stocks, atRiskProducts }, platform) {
   const t = today || {};
@@ -633,17 +652,7 @@ function buildDashboard({ today, month, kpi, source, warehouses, stocks, atRiskP
       </div>
     </div>
 
-    <div class="kpi-card" style="margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;gap:12px">
-      <div>
-        <div class="kpi-label">📊 ДРР (Доля рекламных расходов)</div>
-        <div class="kpi-value" style="font-size:28px;color:${(() => { const d = t.revenue ? (t.adSpend/t.revenue*100) : 0; return d <= 10 ? 'var(--green,#4caf50)' : d <= 20 ? 'var(--yellow,#f5c518)' : 'var(--orange,#ff8b57)'; })()}">${t.revenue ? (t.adSpend/t.revenue*100).toFixed(1) : '0.0'}%</div>
-      </div>
-      <div style="text-align:right;font-size:11px;color:var(--text-soft);line-height:1.8">
-        <div style="color:var(--green,#4caf50)">🟢 до 10% — отлично</div>
-        <div style="color:var(--yellow,#f5c518)">🟡 10–20% — норма</div>
-        <div style="color:var(--orange,#ff8b57)">🔴 выше 20% — много</div>
-      </div>
-    </div>
+    ${buildDrrCard(t)}
 
     <div class="section-title">За месяц</div>
     <div class="bar-card">
