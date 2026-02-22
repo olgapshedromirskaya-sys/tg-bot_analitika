@@ -5,6 +5,7 @@ const {
   formatMonthMessage,
   formatStatsMessage,
   formatStocksMessage,
+  formatWeeklyMessage,
 } = require("../bot/dashboard");
 const { hasAccess } = require("../bot/roles");
 
@@ -60,7 +61,7 @@ function startScheduler({ bot, db }) {
 
       const dashMsg   = `🌅 <b>Доброе утро! Дашборд за сегодня</b>\n\n${formatStatsMessage(snapshot, kpi)}`;
       const monthMsg  = formatMonthMessage(snapshot, kpi);
-      const stocksMsg = formatStocksMessage(snapshot);
+      const stocksMsg = formatStocksMessage(snapshot, kpi);
 
       for (const receiver of receivers) {
         await safeSend(bot, receiver, dashMsg);
@@ -97,11 +98,36 @@ function startScheduler({ bot, db }) {
       const snapshot = await getAnalyticsSnapshot();
 
       const dashMsg   = `🌆 <b>Вечерний дашборд</b>\n\n${formatStatsMessage(snapshot, kpi)}`;
-      const stocksMsg = formatStocksMessage(snapshot);
+      const stocksMsg = formatStocksMessage(snapshot, kpi);
 
       for (const receiver of receivers) {
         await safeSend(bot, receiver, dashMsg);
         await safeSend(bot, receiver, stocksMsg);
+      }
+    },
+    { timezone },
+  );
+
+  // ── Понедельник 11:00 — еженедельный отчёт ──────────────────────
+  const weeklyJob = cron.schedule(
+    "0 11 * * 1",
+    async () => {
+      const receivers = getReceivers(db, "manager");
+      if (!receivers.length) return;
+      const kpi = db.getKpiSettings();
+
+      // Получаем данные за текущую и прошлую неделю
+      const now  = require("dayjs")();
+      const prev = now.subtract(7, "day");
+
+      const [snapshotNow, snapshotPrev] = await Promise.all([
+        getAnalyticsSnapshot(),
+        getAnalyticsSnapshot({ date: prev.toDate() }),
+      ]);
+
+      const message = formatWeeklyMessage(snapshotNow, snapshotPrev, kpi);
+      for (const receiver of receivers) {
+        await safeSend(bot, receiver, message);
       }
     },
     { timezone },
@@ -113,6 +139,7 @@ function startScheduler({ bot, db }) {
       morningJob.stop();
       afternoonJob.stop();
       eveningJob.stop();
+      weeklyJob.stop();
     },
   };
 }
