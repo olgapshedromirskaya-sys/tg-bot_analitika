@@ -16,6 +16,13 @@ const DEFAULT_KPI = {
   conversion: 3.5,
   ad_budget: 100000,
   daily_orders: 100,
+  // Финансы — раздельно по платформам
+  ozon_commission:        15,
+  ozon_min_profitability: 10,
+  wb_commission:          15,
+  wb_min_profitability:   10,
+  // Себестоимость — общая для обеих площадок
+  cost_percent: 40,
 };
 
 function resolveDbPath(inputPath) {
@@ -66,6 +73,28 @@ function initDatabase() {
       api_key    TEXT NOT NULL,
       client_id  TEXT DEFAULT '',
       updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+  `);
+
+  // Себестоимость по артикулам — ОБЩАЯ для обеих площадок
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS product_costs (
+      sku        TEXT PRIMARY KEY,
+      name       TEXT,
+      cost       REAL NOT NULL,
+      updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+  `);
+
+  // Комиссии по категориям — РАЗДЕЛЬНЫЕ (platform = 'ozon' | 'wb')
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS marketplace_commissions (
+      id         INTEGER PRIMARY KEY AUTOINCREMENT,
+      platform   TEXT NOT NULL,
+      category   TEXT NOT NULL,
+      rate       REAL NOT NULL,
+      updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+      UNIQUE(platform, category)
     );
   `);
 
@@ -198,14 +227,20 @@ function initDatabase() {
       return result;
     },
 
-    // Получить KPI для конкретной платформы (ozon / wb)
+    // KPI платформы — финансы раздельные, себестоимость общая
     getKpiByPlatform(platform) {
       const all = this.getKpiSettings();
       return {
-        revenue:      all[`${platform}_revenue`]      ?? all.revenue,
-        conversion:   all[`${platform}_conversion`]   ?? all.conversion,
-        ad_budget:    all[`${platform}_ad_budget`]    ?? all.ad_budget,
-        daily_orders: all[`${platform}_daily_orders`] ?? all.daily_orders,
+        revenue:           all[`${platform}_revenue`]           ?? all.revenue,
+        conversion:        all[`${platform}_conversion`]        ?? all.conversion,
+        ad_budget:         all[`${platform}_ad_budget`]         ?? all.ad_budget,
+        daily_orders:      all[`${platform}_daily_orders`]      ?? all.daily_orders,
+        supply_days:       all.supply_days                      ?? 14,
+        // Своя для каждой платформы
+        commission:        all[`${platform}_commission`]        ?? 15,
+        min_profitability: all[`${platform}_min_profitability`] ?? 10,
+        // Общая
+        cost_percent:      all.cost_percent                     ?? 40,
       };
     },
 
@@ -213,13 +248,26 @@ function initDatabase() {
       setKpiStmt.run({ key, value: Number(value) });
     },
 
-    // Сохранить все KPI для платформы одним вызовом
     setKpiForPlatform(platform, { revenue, conversion, ad_budget, daily_orders }) {
       const fields = { revenue, conversion, ad_budget, daily_orders };
       for (const [field, value] of Object.entries(fields)) {
         if (value !== undefined && value !== null && value !== "") {
           setKpiStmt.run({ key: `${platform}_${field}`, value: Number(value) });
         }
+      }
+    },
+
+    // commission и min_profitability — с префиксом платформы (раздельные)
+    // cost_percent — без префикса (общая)
+    setFinanceForPlatform(platform, { commission, min_profitability, cost_percent }) {
+      if (commission        != null && commission        !== "") {
+        setKpiStmt.run({ key: `${platform}_commission`,        value: Number(commission) });
+      }
+      if (min_profitability != null && min_profitability !== "") {
+        setKpiStmt.run({ key: `${platform}_min_profitability`, value: Number(min_profitability) });
+      }
+      if (cost_percent      != null && cost_percent      !== "") {
+        setKpiStmt.run({ key: 'cost_percent',                  value: Number(cost_percent) });
       }
     },
 
@@ -246,6 +294,55 @@ function initDatabase() {
 
     deleteApiCredentials(platform) {
       db.prepare('DELETE FROM api_credentials WHERE platform = ?').run(platform);
+    },
+
+    // ── Себестоимость (общая таблица) ────────────────────────────────
+    upsertProductCost({ sku, name, cost }) {
+      db.prepare(`
+        INSERT INTO product_costs (sku, name, cost, updated_at)
+        VALUES (@sku, @name, @cost, datetime('now'))
+        ON CONFLICT(sku) DO UPDATE SET
+          name = excluded.name,
+          cost = excluded.cost,
+          updated_at = excluded.updated_at
+      `).run({ sku: String(sku), name: name || '', cost: Number(cost) });
+    },
+
+    getProductCosts() {
+      return db.prepare('SELECT sku, name, cost FROM product_costs ORDER BY name').all();
+    },
+
+    getProductCostBySku(sku) {
+      const row = db.prepare('SELECT cost FROM product_costs WHERE sku = ?').get(String(sku));
+      return row ? Number(row.cost) : null;
+    },
+
+    deleteAllProductCosts() {
+      db.prepare('DELETE FROM product_costs').run();
+    },
+
+    // ── Комиссии (раздельные по платформам) ─────────────────────────
+    upsertCommission({ platform, category, rate }) {
+      db.prepare(`
+        INSERT INTO marketplace_commissions (platform, category, rate, updated_at)
+        VALUES (@platform, @category, @rate, datetime('now'))
+        ON CONFLICT(platform, category) DO UPDATE SET
+          rate = excluded.rate,
+          updated_at = excluded.updated_at
+      `).run({ platform, category: String(category), rate: Number(rate) });
+    },
+
+    getCommissions(platform) {
+      return db.prepare('SELECT category, rate FROM marketplace_commissions WHERE platform = ? ORDER BY category').all(platform);
+    },
+
+    deleteCommissions(platform) {
+      db.prepare('DELETE FROM marketplace_commissions WHERE platform = ?').run(platform);
+    },
+
+    getAvgCommission(platform) {
+      const row = db.prepare('SELECT AVG(rate) as avg FROM marketplace_commissions WHERE platform = ?').get(platform);
+      return row && row.avg ? Number(row.avg) : null;
     },
   };
 }
