@@ -257,6 +257,19 @@
   }
   .s-divider { border: none; border-top: 1px solid var(--line); margin: 14px 0; }
 
+  /* ── Поставки ── */
+  .supply-alert {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 5px 8px;
+    border-radius: 8px;
+    margin-top: 6px;
+    line-height: 1.4;
+  }
+  .supply-urgent { background: rgba(255,68,68,0.12); color: #ff6b6b; border: 1px solid rgba(255,68,68,0.25); }
+  .supply-soon   { background: rgba(245,197,24,0.12); color: #f5c518; border: 1px solid rgba(245,197,24,0.25); }
+  .supply-ok     { background: rgba(76,175,80,0.08);  color: #4caf50; border: 1px solid rgba(76,175,80,0.2); }
+
   /* ── Состояния ── */
   .state-box { text-align: center; padding: 40px 16px; color: var(--text-soft); }
   .state-icon { font-size: 36px; margin-bottom: 10px; }
@@ -376,6 +389,17 @@
     <label class="form-label">🔄 Целевая конверсия, %</label>
     <input id="kpi-conversion" class="form-input" type="number" step="0.1" placeholder="3.5" inputmode="decimal">
     <button class="save-btn" onclick="saveAllKpi()">Сохранить планы</button>
+  </div>
+
+  <div class="section-card">
+    <div class="section-heading">🚛 Настройки поставок</div>
+    <div class="hint-box">
+      Укажи сколько дней занимает доставка товара на склад маркетплейса.<br>
+      Бот будет предупреждать заранее когда пора отправлять поставку.
+    </div>
+    <label class="form-label">⏱ Срок поставки на склад, дней</label>
+    <input id="supply-days" class="form-input" type="number" placeholder="14" inputmode="numeric" min="1" max="60">
+    <button class="save-btn" onclick="saveSupplyDays()">Сохранить срок поставки</button>
   </div>
 </div>
 
@@ -549,20 +573,67 @@ function buildDashboard({ today, month, kpi, source, warehouses, stocks, atRiskP
   }
 
   // ── Остатки на складах ──
+  const SUPPLY_DAYS = (k.supply_days && k.supply_days > 0) ? k.supply_days : 14; // срок поставки на склад
+  const STOCK_TARGET_DAYS = 30; // целевой запас 30 дней продаж
+
   let stocksHtml = '';
   if (stocks && stocks.length > 0) {
-    stocksHtml = `<div class="section-title">📦 Остатки на складах</div>`;
+    stocksHtml = `<div class="section-title">📦 Остатки и поставки</div>`;
     for (const s of stocks.slice(0, 10)) {
       const level = s.daysCover < 7 ? 'critical' : s.daysCover < 14 ? 'warning' : 'ok';
       const label = s.daysCover < 7 ? '🔴 критично' : s.daysCover < 14 ? '🟡 контроль' : '🟢 стабильно';
+
+      // Расчёт поставки
+      const dailySales = s.daysCover > 0 ? s.qty / s.daysCover : 0;
+      const daysUntilOrder = s.daysCover - SUPPLY_DAYS;
+      const totalQtyToOrder = Math.max(0, Math.round(dailySales * STOCK_TARGET_DAYS - s.qty));
+      const orderDate = new Date();
+      orderDate.setDate(orderDate.getDate() + Math.max(0, daysUntilOrder));
+      const orderDateStr = orderDate.toLocaleDateString('ru', { day: 'numeric', month: 'short' });
+
+      // Распределение по складам пропорционально продажам
+      // (qty склада = прокси объёма продаж в регионе)
+      function whDistrib(warehouses, total) {
+        if (!warehouses || !warehouses.length || total <= 0) return [];
+        const totalSales = warehouses.reduce((s,w) => s + (w.qty||0), 0) || 1;
+        return warehouses
+          .map(w => ({ name: w.name, qty: Math.round(total * (w.qty||0) / totalSales) }))
+          .filter(w => w.qty > 0);
+      }
+
+      const whRows = whDistrib(warehouses, totalQtyToOrder);
+      const whHtml = whRows.length > 0
+        ? whRows.map(w => `<div style="padding:2px 0">📦 <b>${w.name}</b>: ${fmtNum(w.qty)} шт</div>`).join('')
+        : `<div>📦 <b>${s.warehouseName || 'склад'}</b>: ${fmtNum(totalQtyToOrder)} шт</div>`;
+
+      let supplyHtml = '';
+      if (s.daysCover < SUPPLY_DAYS) {
+        supplyHtml = `
+          <div class="supply-alert supply-urgent">
+            🚨 <b>Поставка срочно!</b> Осталось ${s.daysCover} дн · Догрузить: ${fmtNum(totalQtyToOrder)} шт
+            <div style="margin-top:5px;padding-left:4px;font-size:11px">${whHtml}</div>
+          </div>`;
+      } else if (s.daysCover < SUPPLY_DAYS + 7) {
+        supplyHtml = `
+          <div class="supply-alert supply-soon">
+            ⚡ <b>Поставка:</b> отгрузить ${orderDateStr} · Догрузить: ${fmtNum(totalQtyToOrder)} шт
+            <div style="margin-top:5px;padding-left:4px;font-size:11px">${whHtml}</div>
+          </div>`;
+      } else if (totalQtyToOrder > 0) {
+        supplyHtml = `<div class="supply-alert supply-ok">📋 Следующая поставка: ${orderDateStr} · ${fmtNum(totalQtyToOrder)} шт</div>`;
+      }
+
       stocksHtml += `
-        <div class="stock-item">
-          <div class="stock-indicator ${level}"></div>
-          <div class="stock-info">
-            <div class="stock-name">${s.name}</div>
-            <div class="stock-meta">${s.sku} · ${s.warehouseName || ''} · ${s.daysCover} дн · ${label}</div>
+        <div class="stock-item" style="flex-direction:column;align-items:stretch">
+          <div style="display:flex;align-items:center;gap:10px">
+            <div class="stock-indicator ${level}"></div>
+            <div class="stock-info">
+              <div class="stock-name">${s.name}</div>
+              <div class="stock-meta">Арт. ${s.sku} · ${s.daysCover} дн · ${label}</div>
+            </div>
+            <div class="stock-qty">${fmtNum(s.qty)}</div>
           </div>
-          <div class="stock-qty">${fmtNum(s.qty)}</div>
+          ${supplyHtml}
         </div>`;
     }
   }
@@ -714,6 +785,19 @@ async function saveAllKpi() {
   alert(saved ? `✅ Сохранено планов: ${saved}` : 'Заполни хотя бы одно поле');
 }
 
+// ── Сохранить срок поставки ────────────────────────────────────
+async function saveSupplyDays() {
+  const val = document.getElementById('supply-days').value.trim();
+  if (!val || isNaN(val) || Number(val) < 1) { alert('Введите срок поставки в днях'); return; }
+  const btn = event.currentTarget;
+  btn.disabled = true; btn.textContent = 'Сохраняю...';
+  try {
+    await fetch('/api/kpi', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ key: 'supply_days', value: parseFloat(val) }) });
+    alert('✅ Срок поставки сохранён: ' + val + ' дней');
+  } catch(e) { alert('❌ ' + e.message); }
+  finally { btn.disabled = false; btn.textContent = 'Сохранить срок поставки'; }
+}
+
 // ── Загрузить настройки ─────────────────────────────────────────
 async function loadSettingsPage() {
   loadStatusBadges();
@@ -724,6 +808,7 @@ async function loadSettingsPage() {
     for (const [key, id] of Object.entries(map)) {
       if (kpi[key] !== undefined) document.getElementById(id).value = kpi[key];
     }
+    if (kpi.supply_days !== undefined) document.getElementById('supply-days').value = kpi.supply_days;
   } catch(e) {}
 }
 
