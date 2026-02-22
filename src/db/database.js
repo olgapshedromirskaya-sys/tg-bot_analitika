@@ -3,6 +3,15 @@ const path = require("node:path");
 const Database = require("better-sqlite3");
 
 const DEFAULT_KPI = {
+  ozon_revenue: 5000000,
+  ozon_conversion: 3.5,
+  ozon_ad_budget: 100000,
+  ozon_daily_orders: 100,
+  wb_revenue: 5000000,
+  wb_conversion: 3.5,
+  wb_ad_budget: 100000,
+  wb_daily_orders: 100,
+  // Старые ключи оставляем для обратной совместимости
   revenue: 5000000,
   conversion: 3.5,
   ad_budget: 100000,
@@ -51,7 +60,6 @@ function initDatabase() {
     );
   `);
 
-  // Таблица для хранения API-ключей маркетплейсов
   db.exec(`
     CREATE TABLE IF NOT EXISTS api_credentials (
       platform   TEXT PRIMARY KEY,
@@ -190,8 +198,29 @@ function initDatabase() {
       return result;
     },
 
+    // Получить KPI для конкретной платформы (ozon / wb)
+    getKpiByPlatform(platform) {
+      const all = this.getKpiSettings();
+      return {
+        revenue:      all[`${platform}_revenue`]      ?? all.revenue,
+        conversion:   all[`${platform}_conversion`]   ?? all.conversion,
+        ad_budget:    all[`${platform}_ad_budget`]    ?? all.ad_budget,
+        daily_orders: all[`${platform}_daily_orders`] ?? all.daily_orders,
+      };
+    },
+
     setKpiValue(key, value) {
       setKpiStmt.run({ key, value: Number(value) });
+    },
+
+    // Сохранить все KPI для платформы одним вызовом
+    setKpiForPlatform(platform, { revenue, conversion, ad_budget, daily_orders }) {
+      const fields = { revenue, conversion, ad_budget, daily_orders };
+      for (const [field, value] of Object.entries(fields)) {
+        if (value !== undefined && value !== null && value !== "") {
+          setKpiStmt.run({ key: `${platform}_${field}`, value: Number(value) });
+        }
+      }
     },
 
     saveAlert({ telegramId, code, message }) {
@@ -202,23 +231,19 @@ function initDatabase() {
       });
     },
 
-    // Получить API-ключи платформы
     getApiCredentials(platform) {
       return getCredentialsStmt.get(platform);
     },
 
-    // Сохранить API-ключи платформы
     saveApiCredentials({ platform, apiKey, clientId = "" }) {
       saveCredentialsStmt.run({ platform, apiKey, clientId });
     },
 
-    // Проверить — настроены ли ключи для платформы
     hasCredentials(platform) {
       const creds = getCredentialsStmt.get(platform);
       return !!(creds && creds.api_key);
     },
 
-    // Удалить API-ключи платформы
     deleteApiCredentials(platform) {
       db.prepare('DELETE FROM api_credentials WHERE platform = ?').run(platform);
     },
