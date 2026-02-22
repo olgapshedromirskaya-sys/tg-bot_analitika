@@ -87,6 +87,51 @@ function buildAlerts(snapshot, kpi) {
     });
   }
 
+  // ── Негативные отзывы ────────────────────────────────────────────
+  const badReviews = (snapshot.badReviews || []);
+  if (badReviews.length > 0) {
+    const review = badReviews[0];
+    alerts.push({
+      code: "bad_review",
+      message:
+        `⭐ <b>Новый негативный отзыв</b>
+` +
+        `Товар: <b>${review.productName}</b>
+` +
+        `Оценка: ${"★".repeat(review.rating)}${"☆".repeat(5 - review.rating)} (${review.rating}/5)
+` +
+        `"${review.text ? review.text.slice(0, 120) : "без текста"}"`,
+    });
+  }
+
+  // ── Сравнение с прошлой неделей — падение выручки ────────────────
+  if (snapshot.weekRevenueDelta !== undefined && snapshot.weekRevenueDelta < -15) {
+    alerts.push({
+      code: "week_revenue_drop",
+      message:
+        `📉 <b>Выручка падает по сравнению с прошлой неделей</b>
+` +
+        `Снижение: <b>${Math.abs(snapshot.weekRevenueDelta).toFixed(1)}%</b>
+` +
+        `Проверьте рекламу и наличие товара на складах`,
+    });
+  }
+
+  // ── Срочная поставка нужна ────────────────────────────────────────
+  const SUPPLY_DAYS = (kpi.supply_days && kpi.supply_days > 0) ? Number(kpi.supply_days) : 14;
+  const urgentStocks = snapshot.stocks.filter(s => s.daysCover < SUPPLY_DAYS);
+  if (urgentStocks.length > 0) {
+    const names = urgentStocks.slice(0, 3).map(s => s.name).join(", ");
+    alerts.push({
+      code: "supply_urgent",
+      message:
+        `🚛 <b>Срочно везти на склад!</b>\n` +
+        `Товары заканчиваются (менее ${SUPPLY_DAYS} дней):\n` +
+        `<b>${names}</b>\n` +
+        `Нужно организовать поставку немедленно`,
+    });
+  }
+
   return alerts;
 }
 
