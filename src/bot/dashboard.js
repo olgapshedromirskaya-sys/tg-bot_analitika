@@ -185,22 +185,78 @@ function formatMonthMessage(snapshot, kpi) {
   return lines.join("\n");
 }
 
-function formatChannelStocksBlock(channel, label, emoji) {
+function calcWarehouseSupply(warehouses, totalQtyToOrder) {
+  // Распределяем пропорционально продажам (qty = прокси продаж по складу):
+  // где больше продаж — туда больше везём
+  if (!warehouses || !warehouses.length || totalQtyToOrder <= 0) return [];
+
+  const totalSales = warehouses.reduce((s, w) => s + (w.qty || 0), 0) || 1;
+
+  return warehouses
+    .map(w => ({
+      name: w.name,
+      qty:  Math.round(totalQtyToOrder * (w.qty || 0) / totalSales),
+    }))
+    .filter(w => w.qty > 0);
+}
+
+function formatChannelStocksBlock(channel, label, emoji, kpi) {
   const stocks = (channel.stocks || []).slice(0, 5);
   if (!stocks.length) return `${emoji} <b>${label}</b>\nДанные по остаткам недоступны.`;
 
+  const SUPPLY_DAYS = (kpi && kpi.supply_days > 0) ? Number(kpi.supply_days) : 14;
+  const TARGET_DAYS = 30; // целевой запас 30 дней продаж
+  const channelWarehouses = channel.warehouses || [];
+
   const lines = [`${emoji} <b>${label}</b>`, ""];
+
   for (const item of stocks) {
     const status = item.daysCover <= 5 ? "🔴 критично" : item.daysCover <= 12 ? "🟡 контроль" : "🟢 стабильно";
-    lines.push(
-      `• <b>${item.name}</b> (${item.sku})`,
-      `  Остаток: ${Math.round(item.qty)} шт · Покрытие: ${Math.round(item.daysCover)} дн · ${status}`,
-    );
+
+    const dailySales = item.daysCover > 0 ? item.qty / item.daysCover : 0;
+    const totalQtyToOrder = Math.max(0, Math.round(dailySales * TARGET_DAYS - item.qty));
+    const daysUntilOrder = item.daysCover - SUPPLY_DAYS;
+
+    lines.push(`• <b>${item.name}</b> · арт. ${item.sku}`);
+    lines.push(`  Остаток: ${Math.round(item.qty)} шт · Покрытие: ${Math.round(item.daysCover)} дн · ${status}`);
+
+    if (item.daysCover < SUPPLY_DAYS) {
+      // Срочно — разбиваем по складам
+      lines.push(`  🚨 <b>Поставка срочно!</b> Догрузить: ${totalQtyToOrder} шт`);
+      // Распределяем по складам пропорционально дефициту
+      const whs1 = calcWarehouseSupply(channelWarehouses, totalQtyToOrder);
+      if (whs1.length > 0) {
+        for (const wh of whs1) {
+          lines.push(`    📦 Догрузить на <b>${wh.name}</b>: <b>${wh.qty} шт</b>`);
+        }
+      } else {
+        lines.push(`    📦 Догрузить на <b>${item.warehouseName || "склад"}</b>: <b>${totalQtyToOrder} шт</b>`);
+      }
+    } else if (item.daysCover < SUPPLY_DAYS + 7) {
+      const orderDate = new Date();
+      orderDate.setDate(orderDate.getDate() + Math.max(0, daysUntilOrder));
+      const dateStr = orderDate.toLocaleDateString("ru", { day: "numeric", month: "short" });
+      lines.push(`  ⚡ <b>Поставка:</b> отгрузить <b>${dateStr}</b> · Догрузить: ${totalQtyToOrder} шт`);
+      const whs2 = calcWarehouseSupply(channelWarehouses, totalQtyToOrder);
+      if (whs2.length > 0) {
+        for (const wh of whs2) {
+          lines.push(`    📦 На <b>${wh.name}</b>: <b>${wh.qty} шт</b>`);
+        }
+      }
+    } else if (totalQtyToOrder > 0) {
+      const orderDate = new Date();
+      orderDate.setDate(orderDate.getDate() + Math.max(0, daysUntilOrder));
+      const dateStr = orderDate.toLocaleDateString("ru", { day: "numeric", month: "short" });
+      lines.push(`  📋 Следующая поставка: <b>${dateStr}</b> · ${totalQtyToOrder} шт`);
+    }
+
+    lines.push("");
   }
+
   return lines.join("\n");
 }
 
-function formatStocksMessage(snapshot) {
+function formatStocksMessage(snapshot, kpi) {
   const channels = snapshot.channels || [];
   const ozon = channels[0];
   const wb   = channels[1];
@@ -222,7 +278,7 @@ function formatStocksMessage(snapshot) {
     const emoji  = isOzon ? "🔵" : "🟣";
     lines.push("━━━━━━━━━━━━━━━━━━");
     lines.push("");
-    lines.push(formatChannelStocksBlock(channel, label, emoji));
+    lines.push(formatChannelStocksBlock(channel, label, emoji, kpi));
     lines.push("");
   }
 
