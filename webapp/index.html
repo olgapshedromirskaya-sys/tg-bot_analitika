@@ -6,7 +6,6 @@
 <title>Аналитика маркетплейсов</title>
 <link rel="stylesheet" href="assets/styles.css">
 <style>
-  /* ── Вкладки ── */
   .tabs {
     display: flex;
     position: sticky;
@@ -35,8 +34,6 @@
   }
   .tab-panel { display: none; padding: 14px; }
   .tab-panel.active { display: block; }
-
-  /* ── Карточки метрик ── */
   .kpi-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -54,8 +51,6 @@
   .kpi-delta { font-size: 11px; font-weight: 600; }
   .delta-up   { color: var(--green, #4caf50); }
   .delta-down { color: var(--orange, #ff8b57); }
-
-  /* ── Прогресс-бары ── */
   .bar-card {
     background: var(--bg-card-strong, #151929);
     border: 1px solid var(--line);
@@ -79,8 +74,6 @@
     transition: width 0.8s ease;
   }
   .bar-fill.warn { background: linear-gradient(90deg, #f5c518, #ff8b57); }
-
-  /* ── Секции ── */
   .section-title {
     font-size: 10px;
     font-weight: 700;
@@ -89,8 +82,6 @@
     text-transform: uppercase;
     margin: 16px 0 8px;
   }
-
-  /* ── Товары в зоне риска ── */
   .risk-item {
     background: rgba(255,87,87,0.08);
     border: 1px solid rgba(255,87,87,0.25);
@@ -104,9 +95,6 @@
   .risk-icon { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
   .risk-name { font-size: 13px; font-weight: 700; color: #ff6b6b; margin-bottom: 3px; }
   .risk-reason { font-size: 12px; color: var(--text-soft); line-height: 1.4; }
-  .risk-sku { font-size: 10px; color: var(--text-soft); opacity: 0.6; margin-top: 2px; }
-
-  /* ── Товары с ростом ── */
   .growth-item {
     background: rgba(76,175,80,0.08);
     border: 1px solid rgba(76,175,80,0.25);
@@ -120,8 +108,6 @@
   .growth-icon { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
   .growth-name { font-size: 13px; font-weight: 700; color: #4caf50; margin-bottom: 3px; }
   .growth-reason { font-size: 12px; color: var(--text-soft); line-height: 1.4; }
-
-  /* ── Остатки ── */
   .stock-item {
     background: var(--bg-card-strong, #151929);
     border: 1px solid var(--line);
@@ -132,11 +118,7 @@
     align-items: center;
     gap: 10px;
   }
-  .stock-indicator {
-    width: 10px; height: 10px;
-    border-radius: 50%;
-    flex-shrink: 0;
-  }
+  .stock-indicator { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
   .stock-indicator.critical { background: #ff4444; box-shadow: 0 0 6px #ff4444; }
   .stock-indicator.warning  { background: #f5c518; box-shadow: 0 0 6px #f5c518; }
   .stock-indicator.ok       { background: #4caf50; box-shadow: 0 0 6px #4caf50; }
@@ -144,8 +126,6 @@
   .stock-name { font-size: 13px; font-weight: 700; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .stock-meta { font-size: 11px; color: var(--text-soft); }
   .stock-qty  { font-size: 16px; font-weight: 800; color: var(--text-main); flex-shrink: 0; }
-
-  /* ── Круговая диаграмма ── */
   .pie-wrap {
     background: var(--bg-card-strong, #151929);
     border: 1px solid var(--line);
@@ -153,30 +133,13 @@
     padding: 16px;
     margin-bottom: 12px;
   }
-  .pie-container {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-  }
+  .pie-container { display: flex; align-items: center; gap: 16px; }
   .pie-svg-wrap { flex-shrink: 0; }
   .pie-legend { flex: 1; }
-  .pie-legend-item {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-bottom: 8px;
-    font-size: 12px;
-  }
-  .pie-legend-dot {
-    width: 10px; height: 10px;
-    border-radius: 3px;
-    flex-shrink: 0;
-  }
+  .pie-legend-item { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; font-size: 12px; }
+  .pie-legend-dot { width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0; }
   .pie-legend-name { color: var(--text-main); flex: 1; }
   .pie-legend-pct  { color: var(--text-soft); font-weight: 700; }
-  .pie-legend-qty  { color: var(--text-soft); font-size: 11px; }
-
-  /* ── Настройки ── */
   .section-card {
     background: var(--bg-card);
     border: 1px solid var(--line);
@@ -256,8 +219,6 @@
     margin-left: 6px;
   }
   .s-divider { border: none; border-top: 1px solid var(--line); margin: 14px 0; }
-
-  /* ── Поставки ── */
   .supply-alert {
     font-size: 11px;
     font-weight: 600;
@@ -269,13 +230,10 @@
   .supply-urgent { background: rgba(255,68,68,0.12); color: #ff6b6b; border: 1px solid rgba(255,68,68,0.25); }
   .supply-soon   { background: rgba(245,197,24,0.12); color: #f5c518; border: 1px solid rgba(245,197,24,0.25); }
   .supply-ok     { background: rgba(76,175,80,0.08);  color: #4caf50; border: 1px solid rgba(76,175,80,0.2); }
-
-  /* ── Состояния ── */
   .state-box { text-align: center; padding: 40px 16px; color: var(--text-soft); }
   .state-icon { font-size: 36px; margin-bottom: 10px; }
   .state-box p { font-size: 14px; line-height: 1.5; margin: 0 0 6px; }
   .state-box small { font-size: 12px; opacity: 0.65; }
-
   .platform-header {
     display: flex;
     align-items: center;
@@ -299,8 +257,6 @@
     cursor: pointer;
     font-family: inherit;
   }
-
-  /* ── Источник данных ── */
   .source-badge {
     display: inline-block;
     font-size: 10px;
@@ -325,6 +281,26 @@
     transition: background 0.2s;
   }
   .delete-btn:hover { background: rgba(255,80,80,0.25); }
+
+  /* ── KPI блок внутри настроек платформы ── */
+  .kpi-platform-block {
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    overflow: hidden;
+    margin-top: 14px;
+  }
+  .kpi-platform-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+    background: rgba(255,255,255,0.03);
+    border-bottom: 1px solid var(--line);
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-main);
+  }
+  .kpi-platform-body { padding: 14px; }
 </style>
 </head>
 <body>
@@ -351,8 +327,10 @@
 
 <!-- НАСТРОЙКИ -->
 <div id="panel-settings" class="tab-panel">
+
+  <!-- ── Блок Ozon: ключи + KPI ── -->
   <div class="section-card">
-    <div class="section-heading">🔑 API-ключи Ozon <span id="ozon-status-badge"></span></div>
+    <div class="section-heading">🔵 Ozon <span id="ozon-status-badge"></span></div>
     <div class="hint-box">
       seller.ozon.ru → Настройки ⚙️ → API ключи → Создать ключ → тип <strong>Admin</strong><br>
       Нужны: <strong>Client-ID</strong> и <strong>API-ключ</strong>
@@ -361,36 +339,64 @@
     <input id="ozon-client-id" class="form-input" type="text" placeholder="Например: 123456" inputmode="numeric">
     <label class="form-label">API-ключ</label>
     <input id="ozon-api-key" class="form-input" type="password" placeholder="Вставьте API-ключ Ozon">
-    <button class="save-btn" onclick="saveCredentials('ozon')">Сохранить ключи Ozon</button>
+    <button class="save-btn" style="margin-bottom:4px" onclick="saveCredentials('ozon')">Сохранить ключи Ozon</button>
+
+    <!-- KPI Ozon -->
+    <div class="kpi-platform-block">
+      <div class="kpi-platform-header">
+        <div class="platform-dot ozon"></div>
+        🎯 Планы KPI на месяц — Ozon
+      </div>
+      <div class="kpi-platform-body">
+        <div class="hint-box" style="margin-bottom:10px">Бот сравнивает с реальными данными Ozon и присылает алерты.</div>
+        <label class="form-label">💰 Выручка за месяц, ₽</label>
+        <input id="ozon-kpi-revenue" class="form-input" type="number" placeholder="5000000" inputmode="numeric">
+        <label class="form-label">📦 Заказов в день, штук</label>
+        <input id="ozon-kpi-daily_orders" class="form-input" type="number" placeholder="100" inputmode="numeric">
+        <label class="form-label">📢 Рекламный бюджет в месяц, ₽</label>
+        <input id="ozon-kpi-ad_budget" class="form-input" type="number" placeholder="100000" inputmode="numeric">
+        <label class="form-label">🔄 Целевая конверсия, %</label>
+        <input id="ozon-kpi-conversion" class="form-input" type="number" step="0.1" placeholder="3.5" inputmode="decimal">
+        <button class="save-btn" onclick="saveKpiForPlatform('ozon')">Сохранить планы Ozon</button>
+      </div>
+    </div>
   </div>
 
+  <!-- ── Блок WB: ключи + KPI ── -->
   <div class="section-card">
-    <div class="section-heading">🔑 API-ключ Wildberries <span id="wb-status-badge"></span></div>
+    <div class="section-heading">🟣 Wildberries <span id="wb-status-badge"></span></div>
     <div class="hint-box">
       seller.wildberries.ru → Профиль → Настройки → Доступ к API → Создать токен<br>
       Галочки: ✅ Статистика &nbsp;✅ Реклама &nbsp;✅ Аналитика
     </div>
     <label class="form-label">API-токен</label>
     <input id="wb-api-key" class="form-input" type="password" placeholder="Вставьте токен WB">
-    <button class="save-btn" onclick="saveCredentials('wb')">Сохранить ключ WB</button>
+    <button class="save-btn" style="margin-bottom:4px" onclick="saveCredentials('wb')">Сохранить ключ WB</button>
+
+    <!-- KPI WB -->
+    <div class="kpi-platform-block">
+      <div class="kpi-platform-header">
+        <div class="platform-dot wb"></div>
+        🎯 Планы KPI на месяц — Wildberries
+      </div>
+      <div class="kpi-platform-body">
+        <div class="hint-box" style="margin-bottom:10px">Бот сравнивает с реальными данными WB и присылает алерты.</div>
+        <label class="form-label">💰 Выручка за месяц, ₽</label>
+        <input id="wb-kpi-revenue" class="form-input" type="number" placeholder="5000000" inputmode="numeric">
+        <label class="form-label">📦 Заказов в день, штук</label>
+        <input id="wb-kpi-daily_orders" class="form-input" type="number" placeholder="100" inputmode="numeric">
+        <label class="form-label">📢 Рекламный бюджет в месяц, ₽</label>
+        <input id="wb-kpi-ad_budget" class="form-input" type="number" placeholder="100000" inputmode="numeric">
+        <label class="form-label">🔄 Целевая конверсия, %</label>
+        <input id="wb-kpi-conversion" class="form-input" type="number" step="0.1" placeholder="3.5" inputmode="decimal">
+        <button class="save-btn" onclick="saveKpiForPlatform('wb')">Сохранить планы WB</button>
+      </div>
+    </div>
   </div>
 
   <hr class="s-divider">
 
-  <div class="section-card">
-    <div class="section-heading">🎯 Планы KPI на месяц</div>
-    <div class="hint-box">Укажи цели — бот сравнивает с реальными данными и присылает алерты.</div>
-    <label class="form-label">💰 Выручка за месяц, ₽</label>
-    <input id="kpi-revenue" class="form-input" type="number" placeholder="5000000" inputmode="numeric">
-    <label class="form-label">📦 Заказов в день, штук</label>
-    <input id="kpi-daily_orders" class="form-input" type="number" placeholder="100" inputmode="numeric">
-    <label class="form-label">📢 Рекламный бюджет в месяц, ₽</label>
-    <input id="kpi-ad_budget" class="form-input" type="number" placeholder="100000" inputmode="numeric">
-    <label class="form-label">🔄 Целевая конверсия, %</label>
-    <input id="kpi-conversion" class="form-input" type="number" step="0.1" placeholder="3.5" inputmode="decimal">
-    <button class="save-btn" onclick="saveAllKpi()">Сохранить планы</button>
-  </div>
-
+  <!-- ── Поставки ── -->
   <div class="section-card">
     <div class="section-heading">🚛 Настройки поставок</div>
     <div class="hint-box">
@@ -404,7 +410,6 @@
 </div>
 
 <script>
-// ── Telegram WebApp ─────────────────────────────────────────────
 (function() {
   const tg = window.Telegram && window.Telegram.WebApp;
   if (!tg) return;
@@ -412,14 +417,8 @@
 })();
 
 const dataCache = {};
+const PIE_COLORS = ['#599cff','#66cec3','#f5c518','#ff8b57','#a78bfa','#34d399','#f472b6','#60a5fa','#fbbf24','#4ade80'];
 
-// ── Цвета для круговой диаграммы ───────────────────────────────
-const PIE_COLORS = [
-  '#599cff','#66cec3','#f5c518','#ff8b57','#a78bfa',
-  '#34d399','#f472b6','#60a5fa','#fbbf24','#4ade80'
-];
-
-// ── Переключение вкладок ────────────────────────────────────────
 function switchTab(name) {
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
   document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
@@ -430,22 +429,17 @@ function switchTab(name) {
   if (name === 'settings') loadSettingsPage();
 }
 
-// ── Загрузка данных ─────────────────────────────────────────────
 async function loadPlatformData(platform, forceRefresh) {
   const el = document.getElementById(`${platform}-content`);
   if (dataCache[platform] && !forceRefresh) { el.innerHTML = dataCache[platform]; return; }
-
   el.innerHTML = `<div class="state-box"><div class="state-icon">⏳</div><p>Загружаю данные ${platform === 'ozon' ? 'Ozon' : 'Wildberries'}...</p></div>`;
-
   try {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 10000);
-
     const now = new Date();
     const prevWeek  = new Date(now); prevWeek.setDate(now.getDate() - 7);
     const prevMonth = new Date(now); prevMonth.setMonth(now.getMonth() - 1);
     const fmtDate = d => d.toISOString().split('T')[0];
-
     const [res, resWeek, resMonth] = await Promise.all([
       fetch(`/api/data/${platform}`, { signal: controller.signal }),
       fetch(`/api/data/${platform}?date=${fmtDate(prevWeek)}`).catch(() => null),
@@ -453,15 +447,12 @@ async function loadPlatformData(platform, forceRefresh) {
     ]);
     clearTimeout(timer);
     const data = await res.json();
-
     if (!res.ok || data.error) {
       el.innerHTML = `<div class="state-box"><div class="state-icon">🔑</div><p>${data.error || 'Ошибка загрузки'}</p><small>Перейдите в ⚙️ Настройки и введите API-ключи</small></div>`;
       return;
     }
-
     data._prevWeek  = resWeek  && resWeek.ok  ? await resWeek.json()  : null;
     data._prevMonth = resMonth && resMonth.ok ? await resMonth.json() : null;
-
     const html = buildDashboard(data, platform);
     dataCache[platform] = html;
     el.innerHTML = html;
@@ -473,64 +464,49 @@ async function loadPlatformData(platform, forceRefresh) {
 
 function refreshData(platform) { delete dataCache[platform]; loadPlatformData(platform, true); }
 
-// ── ДРР карточка ────────────────────────────────────────────────
 function buildCompareBlocks(month, prevWeek, prevMonth) {
-  function pctDiff(now, prev) {
-    if (!prev || prev === 0) return null;
-    return ((now - prev) / prev * 100);
-  }
+  function pctDiff(now, prev) { if (!prev || prev === 0) return null; return ((now - prev) / prev * 100); }
   function arrow(d, inverse) {
     if (d === null) return '<span style="color:var(--text-soft)">—</span>';
-    const up = d >= 0;
-    const good = inverse ? !up : up;
+    const up = d >= 0; const good = inverse ? !up : up;
     const color = good ? 'var(--green,#4caf50)' : 'var(--orange,#ff8b57)';
-    const sign = up ? '▲' : '▼';
-    return `<span style="color:${color};font-weight:700">${sign} ${Math.abs(d).toFixed(1)}%</span>`;
+    return `<span style="color:${color};font-weight:700">${up?'▲':'▼'} ${Math.abs(d).toFixed(1)}%</span>`;
   }
-
   const pw = prevWeek  ? (prevWeek.month  || {}) : null;
   const pm = prevMonth ? (prevMonth.month || {}) : null;
-
-  // Неделя к неделе (используем today данные прошлой недели)
-  const pwToday = prevWeek ? (prevWeek.today || {}) : null;
-  const mToday  = prevWeek ? (month || {}) : null;
-
-  const wRevD   = pw ? pctDiff(month.revenue,  pw.revenue)  : null;
-  const wOrdD   = pw ? pctDiff(month.orders,   pw.orders)   : null;
-  const wDrrNow  = month.revenue   ? (month.adSpend   / month.revenue   * 100) : 0;
+  const wRevD = pw ? pctDiff(month.revenue, pw.revenue) : null;
+  const wOrdD = pw ? pctDiff(month.orders,  pw.orders)  : null;
+  const wDrrNow  = month.revenue ? (month.adSpend / month.revenue * 100) : 0;
   const wDrrPrev = pw && pw.revenue ? (pw.adSpend / pw.revenue * 100) : null;
-  const wDrrD   = wDrrPrev !== null ? (wDrrNow - wDrrPrev) : null;
-
-  const mRevD  = pm ? pctDiff(month.revenue,  pm.revenue)  : null;
-  const mOrdD  = pm ? pctDiff(month.orders,   pm.orders)   : null;
-  const mDrrNow  = month.revenue   ? (month.adSpend / month.revenue * 100) : 0;
+  const wDrrD = wDrrPrev !== null ? (wDrrNow - wDrrPrev) : null;
+  const mRevD = pm ? pctDiff(month.revenue, pm.revenue) : null;
+  const mOrdD = pm ? pctDiff(month.orders,  pm.orders)  : null;
+  const mDrrNow  = month.revenue ? (month.adSpend / month.revenue * 100) : 0;
   const mDrrPrev = pm && pm.revenue ? (pm.adSpend / pm.revenue * 100) : null;
-  const mDrrD   = mDrrPrev !== null ? (mDrrNow - mDrrPrev) : null;
-
+  const mDrrD = mDrrPrev !== null ? (mDrrNow - mDrrPrev) : null;
   const drrStatus = d => d === null ? '' : d <= 0 ? ' 🟢' : d <= 2 ? ' 🟡' : ' 🔴';
-
+  const drrSpan = (d) => d !== null
+    ? `<span style="color:${d<=0?'var(--green,#4caf50)':'var(--orange,#ff8b57)'};font-weight:700">${d>=0?'+':''}${d.toFixed(1)} п.п.${drrStatus(d)}</span>`
+    : '<span style="color:var(--text-soft)">—</span>';
   return `
     <div class="section-title">📈 Сравнение периодов</div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
-
       <div class="bar-card" style="background:var(--card2,rgba(255,255,255,0.04))">
         <div style="font-size:11px;font-weight:700;color:var(--text-soft);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">Эта неделя vs прошлая</div>
         <div style="display:flex;flex-direction:column;gap:6px;font-size:13px">
-          <div style="display:flex;justify-content:space-between"><span>💰 Выручка</span>${arrow(wRevD, false)}</div>
-          <div style="display:flex;justify-content:space-between"><span>📦 Заказы</span>${arrow(wOrdD, false)}</div>
-          <div style="display:flex;justify-content:space-between"><span>📊 ДРР</span>${wDrrD !== null ? `<span style="color:${wDrrD<=0?'var(--green,#4caf50)':'var(--orange,#ff8b57)'};font-weight:700">${wDrrD>=0?'+':''}${wDrrD.toFixed(1)} п.п.${drrStatus(wDrrD)}</span>` : '<span style="color:var(--text-soft)">—</span>'}</div>
+          <div style="display:flex;justify-content:space-between"><span>💰 Выручка</span>${arrow(wRevD,false)}</div>
+          <div style="display:flex;justify-content:space-between"><span>📦 Заказы</span>${arrow(wOrdD,false)}</div>
+          <div style="display:flex;justify-content:space-between"><span>📊 ДРР</span>${drrSpan(wDrrD)}</div>
         </div>
       </div>
-
       <div class="bar-card" style="background:var(--card2,rgba(255,255,255,0.04))">
         <div style="font-size:11px;font-weight:700;color:var(--text-soft);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">Этот месяц vs прошлый</div>
         <div style="display:flex;flex-direction:column;gap:6px;font-size:13px">
-          <div style="display:flex;justify-content:space-between"><span>💰 Выручка</span>${arrow(mRevD, false)}</div>
-          <div style="display:flex;justify-content:space-between"><span>📦 Заказы</span>${arrow(mOrdD, false)}</div>
-          <div style="display:flex;justify-content:space-between"><span>📊 ДРР</span>${mDrrD !== null ? `<span style="color:${mDrrD<=0?'var(--green,#4caf50)':'var(--orange,#ff8b57)'};font-weight:700">${mDrrD>=0?'+':''}${mDrrD.toFixed(1)} п.п.${drrStatus(mDrrD)}</span>` : '<span style="color:var(--text-soft)">—</span>'}</div>
+          <div style="display:flex;justify-content:space-between"><span>💰 Выручка</span>${arrow(mRevD,false)}</div>
+          <div style="display:flex;justify-content:space-between"><span>📦 Заказы</span>${arrow(mOrdD,false)}</div>
+          <div style="display:flex;justify-content:space-between"><span>📊 ДРР</span>${drrSpan(mDrrD)}</div>
         </div>
       </div>
-
     </div>`;
 }
 
@@ -552,15 +528,13 @@ function buildDrrCard(t) {
     </div>`;
 }
 
-// ── Построение дашборда ─────────────────────────────────────────
 function buildDashboard({ today, month, kpi, source, warehouses, stocks, atRiskProducts, _prevWeek, _prevMonth }, platform) {
   const t = today || {};
   const m = month || {};
   const k = kpi   || {};
   const now = new Date().toLocaleTimeString('ru', { hour: '2-digit', minute: '2-digit' });
   const isOzon = platform === 'ozon';
-
-  const dayRevTarget = k.revenue      ? k.revenue / 30 : 0;
+  const dayRevTarget = k.revenue ? k.revenue / 30 : 0;
   const dayOrdTarget = k.daily_orders || 0;
   const adBudget     = k.ad_budget    || 0;
   const convTarget   = k.conversion   || 0;
@@ -587,37 +561,29 @@ function buildDashboard({ today, month, kpi, source, warehouses, stocks, atRiskP
     ? '<span class="source-badge source-api">● реальные данные</span>'
     : '<span class="source-badge source-mock">● демо</span>';
 
-  // ── Товары в зоне риска ──
   const riskItems = (atRiskProducts || []).filter(p => p.trend === 'down' || !p.trend);
   const growthItemsFromRisk = (atRiskProducts || []).filter(p => p.trend === 'up');
+
   let riskHtml = '';
   if (riskItems.length > 0) {
     riskHtml = `<div class="section-title">🚨 Товары в зоне риска</div>`;
     for (const p of riskItems) {
-      const revenueArrow = (p.revenueDelta || 0) >= 0 ? '▲' : '▼';
-      const revenueColor = (p.revenueDelta || 0) >= 0 ? '#4caf50' : '#ff4444';
-      const ordersArrow  = (p.ordersDelta  || 0) >= 0 ? '▲' : '▼';
-      const ordersColor  = (p.ordersDelta  || 0) >= 0 ? '#4caf50' : '#ff4444';
-      const ctrArrow     = (p.ctrDelta     || 0) >= 0 ? '▲' : '▼';
-      const ctrColor     = (p.ctrDelta     || 0) >= 0 ? '#4caf50' : '#ff4444';
-      riskHtml += `
-        <div class="risk-item">
-          <div class="risk-icon">🚨</div>
-          <div style="flex:1">
-            <div class="risk-name">${p.name}${p.sku ? ` <span style="font-size:10px;opacity:0.6;font-weight:400">${p.sku}</span>` : ''}</div>
-            <div class="risk-reason">${p.reason}</div>
-            ${(p.revenueDelta !== undefined || p.ordersDelta !== undefined || p.ctrDelta !== undefined) ? `
-            <div style="display:flex;gap:10px;margin-top:6px;flex-wrap:wrap">
-              ${p.revenueDelta !== undefined ? `<span style="font-size:11px;font-weight:700;color:${revenueColor}">${revenueArrow} Выручка ${Math.abs(p.revenueDelta)}%</span>` : ''}
-              ${p.ordersDelta  !== undefined ? `<span style="font-size:11px;font-weight:700;color:${ordersColor}">${ordersArrow} Заказы ${Math.abs(p.ordersDelta)}%</span>` : ''}
-              ${p.ctrDelta     !== undefined ? `<span style="font-size:11px;font-weight:700;color:${ctrColor}">${ctrArrow} CTR ${Math.abs(p.ctrDelta)}%</span>` : ''}
-            </div>` : ''}
-          </div>
-        </div>`;
+      const rC = (p.revenueDelta||0)>=0?'#4caf50':'#ff4444';
+      const oC = (p.ordersDelta||0)>=0?'#4caf50':'#ff4444';
+      const cC = (p.ctrDelta||0)>=0?'#4caf50':'#ff4444';
+      riskHtml += `<div class="risk-item"><div class="risk-icon">🚨</div><div style="flex:1">
+        <div class="risk-name">${p.name}${p.sku?` <span style="font-size:10px;opacity:0.6;font-weight:400">${p.sku}</span>`:''}</div>
+        <div class="risk-reason">${p.reason}</div>
+        ${(p.revenueDelta!==undefined||p.ordersDelta!==undefined||p.ctrDelta!==undefined)?`
+        <div style="display:flex;gap:10px;margin-top:6px;flex-wrap:wrap">
+          ${p.revenueDelta!==undefined?`<span style="font-size:11px;font-weight:700;color:${rC}">${(p.revenueDelta||0)>=0?'▲':'▼'} Выручка ${Math.abs(p.revenueDelta)}%</span>`:''}
+          ${p.ordersDelta!==undefined?`<span style="font-size:11px;font-weight:700;color:${oC}">${(p.ordersDelta||0)>=0?'▲':'▼'} Заказы ${Math.abs(p.ordersDelta)}%</span>`:''}
+          ${p.ctrDelta!==undefined?`<span style="font-size:11px;font-weight:700;color:${cC}">${(p.ctrDelta||0)>=0?'▲':'▼'} CTR ${Math.abs(p.ctrDelta)}%</span>`:''}
+        </div>`:''}
+      </div></div>`;
     }
   }
 
-  // ── Товары с ростом ──
   const growthItems = growthItemsFromRisk.length > 0
     ? growthItemsFromRisk
     : (stocks || []).filter(s => s.daysCover > 20).slice(0, 3);
@@ -625,141 +591,85 @@ function buildDashboard({ today, month, kpi, source, warehouses, stocks, atRiskP
   if (growthItems.length > 0) {
     growthHtml = `<div class="section-title">📈 Рост продаж</div>`;
     for (const p of growthItems) {
-      const revenueArrow = (p.revenueDelta || 0) >= 0 ? '▲' : '▼';
-      const ordersArrow  = (p.ordersDelta  || 0) >= 0 ? '▲' : '▼';
-      const ctrArrow     = (p.ctrDelta     || 0) >= 0 ? '▲' : '▼';
-      growthHtml += `
-        <div class="growth-item">
-          <div class="growth-icon">📈</div>
-          <div style="flex:1">
-            <div class="growth-name">${p.name}${p.sku ? ` <span style="font-size:10px;opacity:0.6;font-weight:400">${p.sku}</span>` : ''}</div>
-            <div class="growth-reason">${p.reason || ('Остаток: ' + fmtNum(p.qty) + ' шт · Покрытие: ' + p.daysCover + ' дн')}</div>
-            ${(p.revenueDelta !== undefined || p.ordersDelta !== undefined || p.ctrDelta !== undefined) ? `
-            <div style="display:flex;gap:10px;margin-top:6px;flex-wrap:wrap">
-              ${p.revenueDelta !== undefined ? `<span style="font-size:11px;font-weight:700;color:#4caf50">${revenueArrow} Выручка ${Math.abs(p.revenueDelta)}%</span>` : ''}
-              ${p.ordersDelta  !== undefined ? `<span style="font-size:11px;font-weight:700;color:#4caf50">${ordersArrow} Заказы ${Math.abs(p.ordersDelta)}%</span>` : ''}
-              ${p.ctrDelta     !== undefined ? `<span style="font-size:11px;font-weight:700;color:#4caf50">${ctrArrow} CTR ${Math.abs(p.ctrDelta)}%</span>` : ''}
-            </div>` : ''}
-          </div>
-        </div>`;
+      growthHtml += `<div class="growth-item"><div class="growth-icon">📈</div><div style="flex:1">
+        <div class="growth-name">${p.name}${p.sku?` <span style="font-size:10px;opacity:0.6;font-weight:400">${p.sku}</span>`:''}</div>
+        <div class="growth-reason">${p.reason||('Остаток: '+fmtNum(p.qty)+' шт · Покрытие: '+p.daysCover+' дн')}</div>
+        ${(p.revenueDelta!==undefined||p.ordersDelta!==undefined||p.ctrDelta!==undefined)?`
+        <div style="display:flex;gap:10px;margin-top:6px;flex-wrap:wrap">
+          ${p.revenueDelta!==undefined?`<span style="font-size:11px;font-weight:700;color:#4caf50">${(p.revenueDelta||0)>=0?'▲':'▼'} Выручка ${Math.abs(p.revenueDelta)}%</span>`:''}
+          ${p.ordersDelta!==undefined?`<span style="font-size:11px;font-weight:700;color:#4caf50">${(p.ordersDelta||0)>=0?'▲':'▼'} Заказы ${Math.abs(p.ordersDelta)}%</span>`:''}
+          ${p.ctrDelta!==undefined?`<span style="font-size:11px;font-weight:700;color:#4caf50">${(p.ctrDelta||0)>=0?'▲':'▼'} CTR ${Math.abs(p.ctrDelta)}%</span>`:''}
+        </div>`:''}
+      </div></div>`;
     }
   }
 
-  // ── Остатки на складах ──
-  const SUPPLY_DAYS = (k.supply_days && k.supply_days > 0) ? k.supply_days : 14; // срок поставки на склад
-  const STOCK_TARGET_DAYS = 30; // целевой запас 30 дней продаж
-
+  const SUPPLY_DAYS = (k.supply_days && k.supply_days > 0) ? k.supply_days : 14;
+  const STOCK_TARGET_DAYS = 30;
   let stocksHtml = '';
   if (stocks && stocks.length > 0) {
     stocksHtml = `<div class="section-title">📦 Остатки и поставки</div>`;
     for (const s of stocks.slice(0, 10)) {
       const level = s.daysCover < 7 ? 'critical' : s.daysCover < 14 ? 'warning' : 'ok';
       const label = s.daysCover < 7 ? '🔴 критично' : s.daysCover < 14 ? '🟡 контроль' : '🟢 стабильно';
-
-      // Расчёт поставки
       const dailySales = s.daysCover > 0 ? s.qty / s.daysCover : 0;
       const daysUntilOrder = s.daysCover - SUPPLY_DAYS;
       const totalQtyToOrder = Math.max(0, Math.round(dailySales * STOCK_TARGET_DAYS - s.qty));
-      const orderDate = new Date();
-      orderDate.setDate(orderDate.getDate() + Math.max(0, daysUntilOrder));
+      const orderDate = new Date(); orderDate.setDate(orderDate.getDate() + Math.max(0, daysUntilOrder));
       const orderDateStr = orderDate.toLocaleDateString('ru', { day: 'numeric', month: 'short' });
-
-      // Распределение по складам пропорционально продажам
-      // (qty склада = прокси объёма продаж в регионе)
-      function whDistrib(warehouses, total) {
-        if (!warehouses || !warehouses.length || total <= 0) return [];
-        const totalSales = warehouses.reduce((s,w) => s + (w.qty||0), 0) || 1;
-        return warehouses
-          .map(w => ({ name: w.name, qty: Math.round(total * (w.qty||0) / totalSales) }))
-          .filter(w => w.qty > 0);
+      function whDistrib(whs, total) {
+        if (!whs || !whs.length || total <= 0) return [];
+        const tot = whs.reduce((s,w) => s+(w.qty||0), 0) || 1;
+        return whs.map(w => ({ name: w.name, qty: Math.round(total*(w.qty||0)/tot) })).filter(w => w.qty > 0);
       }
-
       const whRows = whDistrib(warehouses, totalQtyToOrder);
       const whHtml = whRows.length > 0
         ? whRows.map(w => `<div style="padding:2px 0">📦 <b>${w.name}</b>: ${fmtNum(w.qty)} шт</div>`).join('')
-        : `<div>📦 <b>${s.warehouseName || 'склад'}</b>: ${fmtNum(totalQtyToOrder)} шт</div>`;
-
+        : `<div>📦 <b>${s.warehouseName||'склад'}</b>: ${fmtNum(totalQtyToOrder)} шт</div>`;
       let supplyHtml = '';
       if (s.daysCover < SUPPLY_DAYS) {
-        supplyHtml = `
-          <div class="supply-alert supply-urgent">
-            🚨 <b>Поставка срочно!</b> Осталось ${s.daysCover} дн · Догрузить: ${fmtNum(totalQtyToOrder)} шт
-            <div style="margin-top:5px;padding-left:4px;font-size:11px">${whHtml}</div>
-          </div>`;
+        supplyHtml = `<div class="supply-alert supply-urgent">🚨 <b>Поставка срочно!</b> Осталось ${s.daysCover} дн · Догрузить: ${fmtNum(totalQtyToOrder)} шт<div style="margin-top:5px;padding-left:4px;font-size:11px">${whHtml}</div></div>`;
       } else if (s.daysCover < SUPPLY_DAYS + 7) {
-        supplyHtml = `
-          <div class="supply-alert supply-soon">
-            ⚡ <b>Поставка:</b> отгрузить ${orderDateStr} · Догрузить: ${fmtNum(totalQtyToOrder)} шт
-            <div style="margin-top:5px;padding-left:4px;font-size:11px">${whHtml}</div>
-          </div>`;
+        supplyHtml = `<div class="supply-alert supply-soon">⚡ <b>Поставка:</b> отгрузить ${orderDateStr} · Догрузить: ${fmtNum(totalQtyToOrder)} шт<div style="margin-top:5px;padding-left:4px;font-size:11px">${whHtml}</div></div>`;
       } else if (totalQtyToOrder > 0) {
         supplyHtml = `<div class="supply-alert supply-ok">📋 Следующая поставка: ${orderDateStr} · ${fmtNum(totalQtyToOrder)} шт</div>`;
       }
-
-      stocksHtml += `
-        <div class="stock-item" style="flex-direction:column;align-items:stretch">
-          <div style="display:flex;align-items:center;gap:10px">
-            <div class="stock-indicator ${level}"></div>
-            <div class="stock-info">
-              <div class="stock-name">${s.name}</div>
-              <div class="stock-meta">Арт. ${s.sku} · ${s.daysCover} дн · ${label}</div>
-            </div>
-            <div class="stock-qty">${fmtNum(s.qty)}</div>
-          </div>
-          ${supplyHtml}
-        </div>`;
+      stocksHtml += `<div class="stock-item" style="flex-direction:column;align-items:stretch">
+        <div style="display:flex;align-items:center;gap:10px">
+          <div class="stock-indicator ${level}"></div>
+          <div class="stock-info"><div class="stock-name">${s.name}</div><div class="stock-meta">Арт. ${s.sku} · ${s.daysCover} дн · ${label}</div></div>
+          <div class="stock-qty">${fmtNum(s.qty)}</div>
+        </div>${supplyHtml}</div>`;
     }
   }
 
-  // ── Круговая диаграмма складов ──
   let pieHtml = '';
   if (warehouses && warehouses.length > 0) {
     const total = warehouses.reduce((s, w) => s + w.qty, 0);
-    const top   = warehouses.slice(0, 8);
-
-    // SVG пирог
+    const top = warehouses.slice(0, 8);
     const SIZE = 120, CX = 60, CY = 60, R = 50;
-    let svgPaths = '';
-    let startAngle = -Math.PI / 2;
+    let svgPaths = ''; let startAngle = -Math.PI / 2;
     for (let i = 0; i < top.length; i++) {
       const slice = (top[i].qty / total) * 2 * Math.PI;
       const endAngle = startAngle + slice;
-      const x1 = CX + R * Math.cos(startAngle);
-      const y1 = CY + R * Math.sin(startAngle);
-      const x2 = CX + R * Math.cos(endAngle);
-      const y2 = CY + R * Math.sin(endAngle);
+      const x1 = CX + R * Math.cos(startAngle); const y1 = CY + R * Math.sin(startAngle);
+      const x2 = CX + R * Math.cos(endAngle);   const y2 = CY + R * Math.sin(endAngle);
       const large = slice > Math.PI ? 1 : 0;
       const color = PIE_COLORS[i % PIE_COLORS.length];
       svgPaths += `<path d="M${CX},${CY} L${x1.toFixed(1)},${y1.toFixed(1)} A${R},${R} 0 ${large},1 ${x2.toFixed(1)},${y2.toFixed(1)} Z" fill="${color}" stroke="#0a0f1e" stroke-width="2"/>`;
       startAngle = endAngle;
     }
-
-    // Легенда
     let legendHtml = '';
     for (let i = 0; i < top.length; i++) {
       const p = ((top[i].qty / total) * 100).toFixed(0);
-      legendHtml += `
-        <div class="pie-legend-item">
-          <div class="pie-legend-dot" style="background:${PIE_COLORS[i % PIE_COLORS.length]}"></div>
-          <div class="pie-legend-name">${top[i].name}</div>
-          <div class="pie-legend-pct">${p}%</div>
-        </div>
-        <div style="font-size:11px;color:var(--text-soft);margin:-4px 0 6px 18px">${fmtNum(top[i].qty)} шт</div>`;
+      legendHtml += `<div class="pie-legend-item"><div class="pie-legend-dot" style="background:${PIE_COLORS[i%PIE_COLORS.length]}"></div><div class="pie-legend-name">${top[i].name}</div><div class="pie-legend-pct">${p}%</div></div><div style="font-size:11px;color:var(--text-soft);margin:-4px 0 6px 18px">${fmtNum(top[i].qty)} шт</div>`;
     }
-
-    pieHtml = `
-      <div class="section-title">🗺️ Распределение по складам</div>
-      <div class="pie-wrap">
-        <div class="pie-container">
-          <div class="pie-svg-wrap">
-            <svg width="${SIZE}" height="${SIZE}" viewBox="0 0 ${SIZE} ${SIZE}">${svgPaths}</svg>
-          </div>
-          <div class="pie-legend">${legendHtml}</div>
-        </div>
-        <div style="font-size:11px;color:var(--text-soft);margin-top:10px;text-align:center">
-          Всего на складах: <strong style="color:var(--text-main)">${fmtNum(total)} шт</strong>
-        </div>
-      </div>`;
+    pieHtml = `<div class="section-title">🗺️ Распределение по складам</div>
+      <div class="pie-wrap"><div class="pie-container">
+        <div class="pie-svg-wrap"><svg width="${SIZE}" height="${SIZE}" viewBox="0 0 ${SIZE} ${SIZE}">${svgPaths}</svg></div>
+        <div class="pie-legend">${legendHtml}</div>
+      </div>
+      <div style="font-size:11px;color:var(--text-soft);margin-top:10px;text-align:center">Всего на складах: <strong style="color:var(--text-main)">${fmtNum(total)} шт</strong></div></div>`;
   }
 
   return `
@@ -769,7 +679,6 @@ function buildDashboard({ today, month, kpi, source, warehouses, stocks, atRiskP
       <div class="platform-updated">${now}</div>
       <button class="refresh-btn" onclick="refreshData('${platform}')">🔄</button>
     </div>
-
     <div class="section-title">Сегодня</div>
     <div class="kpi-grid">
       <div class="kpi-card">
@@ -795,9 +704,7 @@ function buildDashboard({ today, month, kpi, source, warehouses, stocks, atRiskP
         ${deltaHtml(t.conversion, convTarget)}
       </div>
     </div>
-
     ${buildDrrCard(t)}
-
     <div class="section-title">За месяц</div>
     <div class="bar-card">
       <div class="bar-header"><span>Выручка</span><strong>${fmtMoney(m.revenue)} / ${fmtMoney(k.revenue)}</strong></div>
@@ -811,9 +718,7 @@ function buildDashboard({ today, month, kpi, source, warehouses, stocks, atRiskP
       <div class="bar-header"><span>Рекламный бюджет</span><strong>${fmtMoney(t.adSpend)} / ${fmtMoney(k.ad_budget)}</strong></div>
       ${barHtml(t.adSpend, k.ad_budget, t.adSpend > k.ad_budget*0.7)}
     </div>
-
     ${buildCompareBlocks(m, _prevWeek, _prevMonth)}
-
     ${riskHtml}
     ${growthHtml}
     ${stocksHtml}
@@ -821,7 +726,6 @@ function buildDashboard({ today, month, kpi, source, warehouses, stocks, atRiskP
   `;
 }
 
-// ── Сохранить API-ключи ─────────────────────────────────────────
 async function saveCredentials(platform) {
   const apiKey   = document.getElementById(`${platform}-api-key`).value.trim();
   const clientId = platform === 'ozon' ? document.getElementById('ozon-client-id').value.trim() : '';
@@ -840,27 +744,47 @@ async function saveCredentials(platform) {
       alert(`✅ Ключи сохранены! Данные обновятся при следующем открытии вкладки.`);
     } else { alert('❌ ' + (data.error || 'Ошибка')); }
   } catch(e) { alert('❌ ' + e.message); }
-  finally { btn.disabled = false; btn.textContent = platform === 'ozon' ? 'Сохранить ключи Ozon' : 'Сохранить ключ WB'; }
-}
-
-// ── Сохранить KPI ───────────────────────────────────────────────
-async function saveAllKpi() {
-  const fields = [
-    {key:'revenue',id:'kpi-revenue'},{key:'daily_orders',id:'kpi-daily_orders'},
-    {key:'ad_budget',id:'kpi-ad_budget'},{key:'conversion',id:'kpi-conversion'},
-  ];
-  let saved = 0;
-  for (const f of fields) {
-    const val = document.getElementById(f.id).value.trim();
-    if (!val) continue;
-    await fetch('/api/kpi', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({key:f.key,value:parseFloat(val)})});
-    saved++;
+  finally {
+    btn.disabled = false;
+    btn.textContent = platform === 'ozon' ? 'Сохранить ключи Ozon' : 'Сохранить ключ WB';
   }
-  dataCache['ozon'] = null; dataCache['wb'] = null;
-  alert(saved ? `✅ Сохранено планов: ${saved}` : 'Заполни хотя бы одно поле');
 }
 
-// ── Сохранить срок поставки ────────────────────────────────────
+// ── Сохранить KPI для конкретной платформы ─────────────────────
+async function saveKpiForPlatform(platform) {
+  const revenue      = document.getElementById(`${platform}-kpi-revenue`).value.trim();
+  const daily_orders = document.getElementById(`${platform}-kpi-daily_orders`).value.trim();
+  const ad_budget    = document.getElementById(`${platform}-kpi-ad_budget`).value.trim();
+  const conversion   = document.getElementById(`${platform}-kpi-conversion`).value.trim();
+
+  const body = {};
+  if (revenue)      body.revenue      = parseFloat(revenue);
+  if (daily_orders) body.daily_orders = parseFloat(daily_orders);
+  if (ad_budget)    body.ad_budget    = parseFloat(ad_budget);
+  if (conversion)   body.conversion   = parseFloat(conversion);
+
+  if (Object.keys(body).length === 0) { alert('Заполни хотя бы одно поле'); return; }
+
+  const btn = event.currentTarget;
+  btn.disabled = true; btn.textContent = 'Сохраняю...';
+  try {
+    const res  = await fetch(`/api/kpi/${platform}`, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify(body)
+    });
+    const data = await res.json();
+    if (data.ok) {
+      delete dataCache[platform];
+      alert(`✅ Планы ${platform === 'ozon' ? 'Ozon' : 'Wildberries'} сохранены!`);
+    } else { alert('❌ ' + (data.error || 'Ошибка')); }
+  } catch(e) { alert('❌ ' + e.message); }
+  finally {
+    btn.disabled = false;
+    btn.textContent = platform === 'ozon' ? 'Сохранить планы Ozon' : 'Сохранить планы WB';
+  }
+}
+
 async function saveSupplyDays() {
   const val = document.getElementById('supply-days').value.trim();
   if (!val || isNaN(val) || Number(val) < 1) { alert('Введите срок поставки в днях'); return; }
@@ -873,21 +797,30 @@ async function saveSupplyDays() {
   finally { btn.disabled = false; btn.textContent = 'Сохранить срок поставки'; }
 }
 
-// ── Загрузить настройки ─────────────────────────────────────────
 async function loadSettingsPage() {
   loadStatusBadges();
   try {
     const res = await fetch('/api/kpi');
     const kpi = await res.json();
-    const map = {revenue:'kpi-revenue',daily_orders:'kpi-daily_orders',ad_budget:'kpi-ad_budget',conversion:'kpi-conversion'};
-    for (const [key, id] of Object.entries(map)) {
-      if (kpi[key] !== undefined) document.getElementById(id).value = kpi[key];
-    }
+
+    // Заполняем поля KPI Ozon (сначала ищем ozon_*, потом общие как запасной вариант)
+    ['revenue','daily_orders','ad_budget','conversion'].forEach(field => {
+      const val = kpi[`ozon_${field}`] !== undefined ? kpi[`ozon_${field}`] : kpi[field];
+      const el = document.getElementById(`ozon-kpi-${field}`);
+      if (el && val !== undefined) el.value = val;
+    });
+
+    // Заполняем поля KPI WB
+    ['revenue','daily_orders','ad_budget','conversion'].forEach(field => {
+      const val = kpi[`wb_${field}`] !== undefined ? kpi[`wb_${field}`] : kpi[field];
+      const el = document.getElementById(`wb-kpi-${field}`);
+      if (el && val !== undefined) el.value = val;
+    });
+
     if (kpi.supply_days !== undefined) document.getElementById('supply-days').value = kpi.supply_days;
   } catch(e) {}
 }
 
-// ── Бейджи ──────────────────────────────────────────────────────
 async function loadStatusBadges() {
   try {
     const res  = await fetch('/api/credentials/status');
@@ -906,58 +839,38 @@ async function loadStatusBadges() {
     if (btnWb)   btnWb.addEventListener('click',   function() { deleteCredentials('wb'); });
   } catch(e) {}
 }
+
 async function deleteCredentials(platform) {
   const name = platform === 'ozon' ? 'Ozon' : 'Wildberries';
   if (!confirm(`Удалить ключи ${name}? Данные переключатся на демо-режим.`)) return;
   try {
     const res  = await fetch('/api/credentials/' + platform, { method: 'DELETE' });
     const data = await res.json();
-    if (data.ok) {
-      loadStatusBadges();
-      alert('✅ Ключи ' + name + ' удалены');
-    } else {
-      alert('❌ ' + (data.error || 'Ошибка'));
-    }
-  } catch(e) {
-    alert('❌ ' + e.message);
-  }
+    if (data.ok) { loadStatusBadges(); alert('✅ Ключи ' + name + ' удалены'); }
+    else { alert('❌ ' + (data.error || 'Ошибка')); }
+  } catch(e) { alert('❌ ' + e.message); }
 }
 
-// ── Скрытие вкладок без API ключей ─────────────────────────────
 async function initTabs() {
   try {
     const res  = await fetch('/api/credentials/status');
     const data = await res.json();
     const hasAnyKey = data.ozon || data.wb;
-
     const ozonTab   = document.querySelectorAll('.tab-btn')[0];
     const wbTab     = document.querySelectorAll('.tab-btn')[1];
     const ozonPanel = document.getElementById('panel-ozon');
     const wbPanel   = document.getElementById('panel-wb');
-
     if (hasAnyKey) {
-      if (!data.ozon) {
-        ozonTab.style.display = 'none';
-        ozonPanel.style.display = 'none';
-      }
-      if (!data.wb) {
-        wbTab.style.display = 'none';
-        wbPanel.style.display = 'none';
-      }
-      if (data.ozon) {
-        switchTab('ozon');
-      } else if (data.wb) {
-        switchTab('wb');
-      }
+      if (!data.ozon) { ozonTab.style.display = 'none'; ozonPanel.style.display = 'none'; }
+      if (!data.wb)   { wbTab.style.display   = 'none'; wbPanel.style.display   = 'none'; }
+      if (data.ozon)      switchTab('ozon');
+      else if (data.wb)   switchTab('wb');
     } else {
       loadPlatformData('ozon');
     }
-  } catch(e) {
-    loadPlatformData('ozon');
-  }
+  } catch(e) { loadPlatformData('ozon'); }
 }
 
-// Старт
 initTabs();
 </script>
 </body>
