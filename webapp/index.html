@@ -770,13 +770,12 @@ async function initTabs() {
     const data = await res.json();
     const hasAnyKey = data.ozon || data.wb;
 
-    const ozonTab = document.querySelector('.tab-btn[onclick="switchTab('ozon')"]');
-    const wbTab   = document.querySelector('.tab-btn[onclick="switchTab('wb')"]');
+    const ozonTab   = document.querySelectorAll('.tab-btn')[0];
+    const wbTab     = document.querySelectorAll('.tab-btn')[1];
     const ozonPanel = document.getElementById('panel-ozon');
     const wbPanel   = document.getElementById('panel-wb');
 
     if (hasAnyKey) {
-      // Есть хотя бы один ключ — скрываем платформы без ключа
       if (!data.ozon) {
         ozonTab.style.display = 'none';
         ozonPanel.style.display = 'none';
@@ -785,18 +784,15 @@ async function initTabs() {
         wbTab.style.display = 'none';
         wbPanel.style.display = 'none';
       }
-      // Активируем первую видимую вкладку
       if (data.ozon) {
         switchTab('ozon');
       } else if (data.wb) {
         switchTab('wb');
       }
     } else {
-      // Нет ни одного ключа — показываем обе в демо-режиме
       loadPlatformData('ozon');
     }
   } catch(e) {
-    // Ошибка — показываем демо
     loadPlatformData('ozon');
   }
 }
