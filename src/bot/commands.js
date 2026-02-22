@@ -88,8 +88,8 @@ async function requireRole(ctx, db, role) {
 function createMainKeyboard() {
   return Markup.keyboard([
     ["📊 Дашборд за сегодня", "📅 Отчёт за месяц"],
-    ["📦 Остатки на складах", "⚙️ Настройки KPI"],
-    ["👥 Список пользователей"],
+    ["📦 Остатки на складах", "📈 Отчёт за неделю"],
+    ["⚙️ Настройки KPI", "👥 Список пользователей"],
     ["🚀 Открыть WebApp дашборд"],
   ])
     .resize()
@@ -118,6 +118,7 @@ function formatHelp() {
     "/app — открыть WebApp-интерфейс",
     "/month — отчёт за месяц (manager+)",
     "/stocks — остатки на складах (manager+)",
+    "/week — отчёт за неделю vs прошлая (manager+)",
     "/settings — текущие KPI (owner)",
     "/setkpi revenue 5000000 — изменить KPI (owner)",
     "/adduser 123456 manager Алексей — добавить/обновить пользователя (owner)",
@@ -131,6 +132,7 @@ function registerCommands(bot, db) {
   bot.telegram.setMyCommands([
     { command: "stats",    description: "📊 Дашборд за сегодня" },
     { command: "month",    description: "📅 Отчёт за месяц" },
+    { command: "week",     description: "📈 Отчёт за неделю vs прошлая" },
     { command: "stocks",   description: "📦 Остатки на складах" },
     { command: "app",      description: "🚀 Открыть WebApp" },
     { command: "settings", description: "⚙️ Настройки KPI" },
@@ -184,6 +186,20 @@ function registerCommands(bot, db) {
     if (!user) return;
     const users = db.listUsers();
     await ctx.reply(formatUsers(users), { parse_mode: "HTML" });
+  });
+
+  bot.hears("📈 Отчёт за неделю", async (ctx) => {
+    const user = await requireRole(ctx, db, "manager");
+    if (!user) return;
+    const kpi = db.getKpiSettings();
+    const dayjs = require("dayjs");
+    const prev  = dayjs().subtract(7, "day");
+    const [snapshotNow, snapshotPrev] = await Promise.all([
+      getAnalyticsSnapshot(),
+      getAnalyticsSnapshot({ date: prev.toDate() }),
+    ]);
+    const { formatWeeklyMessage } = require("./dashboard");
+    await ctx.reply(formatWeeklyMessage(snapshotNow, snapshotPrev, kpi), { parse_mode: "HTML" });
   });
 
   bot.hears("🚀 Открыть WebApp дашборд", async (ctx) => {
@@ -289,6 +305,20 @@ function registerCommands(bot, db) {
     if (!owner) return;
     const users = db.listUsers();
     await ctx.reply(formatUsers(users), { parse_mode: "HTML" });
+  });
+
+  bot.command("week", async (ctx) => {
+    const user = await requireRole(ctx, db, "manager");
+    if (!user) return;
+    const kpi = db.getKpiSettings();
+    const dayjs = require("dayjs");
+    const prev  = dayjs().subtract(7, "day");
+    const [snapshotNow, snapshotPrev] = await Promise.all([
+      getAnalyticsSnapshot(),
+      getAnalyticsSnapshot({ date: prev.toDate() }),
+    ]);
+    const { formatWeeklyMessage } = require("./dashboard");
+    await ctx.reply(formatWeeklyMessage(snapshotNow, snapshotPrev, kpi), { parse_mode: "HTML" });
   });
 
   bot.catch(async (error, ctx) => {
