@@ -296,11 +296,82 @@ function formatSettingsMessage(kpi) {
   ].join("\n");
 }
 
+function formatWeeklyMessage(snapshotNow, snapshotPrev, kpi) {
+  // snapshotNow = текущая неделя, snapshotPrev = прошлая неделя
+  const channels = snapshotNow.channels || [];
+  const channelsPrev = snapshotPrev ? (snapshotPrev.channels || []) : [];
+
+  function delta(now, prev) {
+    if (!prev || prev === 0) return null;
+    return ((now - prev) / prev * 100);
+  }
+  function fmtDelta(d) {
+    if (d === null) return "";
+    const sign = d >= 0 ? "▲" : "▼";
+    return ` ${sign} ${Math.abs(d).toFixed(1)}% к прошлой неделе`;
+  }
+
+  const now = dayjs();
+  const weekStart = now.subtract(7, 'day').format("DD.MM");
+  const weekEnd   = now.format("DD.MM");
+
+  const lines = [
+    `📅 <b>Еженедельный отчёт</b>`,
+    `${weekStart} — ${weekEnd}`,
+    "",
+  ];
+
+  for (let i = 0; i < channels.length; i++) {
+    const ch     = channels[i];
+    const chPrev = channelsPrev[i] || null;
+    const isOzon = i === 0;
+    const emoji  = isOzon ? "🔵" : "🟣";
+    const label  = isOzon ? "Ozon" : "Wildberries";
+
+    if (ch.source !== "api" && channelsPrev.some(c => c.source === "api")) continue;
+
+    const m     = ch.month     || {};
+    const mPrev = chPrev ? (chPrev.month || {}) : {};
+
+    const revDelta  = delta(m.revenue,  mPrev.revenue);
+    const ordDelta  = delta(m.orders,   mPrev.orders);
+    const adDelta   = delta(m.adSpend,  mPrev.adSpend);
+    const drrNow    = m.revenue  ? (m.adSpend  / m.revenue  * 100) : 0;
+    const drrPrev   = mPrev.revenue ? (mPrev.adSpend / mPrev.revenue * 100) : null;
+    const drrDelta  = drrPrev !== null ? (drrNow - drrPrev) : null;
+    const drrStatus = drrNow <= 10 ? "🟢" : drrNow <= 20 ? "🟡" : "🔴";
+
+    lines.push(`━━━━━━━━━━━━━━━━━━`);
+    lines.push(`${emoji} <b>${label}</b>`);
+    lines.push("");
+    lines.push(`💰 Выручка: <b>${formatCompactMoney(m.revenue)}</b>${fmtDelta(revDelta)}`);
+    lines.push(`📦 Заказы: <b>${Math.round(m.orders || 0)}</b>${fmtDelta(ordDelta)}`);
+    lines.push(`📢 Реклама: <b>${formatCompactMoney(m.adSpend)}</b>${fmtDelta(adDelta)}`);
+    lines.push(`📊 ДРР: <b>${drrNow.toFixed(1)}%</b> ${drrStatus}${drrDelta !== null ? ` (${drrDelta >= 0 ? "+" : ""}${drrDelta.toFixed(1)} п.п.)` : ""}`);
+    lines.push("");
+  }
+
+  lines.push(`━━━━━━━━━━━━━━━━━━`);
+
+  // Товары требующие внимания
+  const atRisk = snapshotNow.atRiskProducts.filter(p => p.trend === "down").slice(0, 2);
+  if (atRisk.length > 0) {
+    lines.push("");
+    lines.push("🚨 <b>Требуют внимания на этой неделе:</b>");
+    for (const p of atRisk) {
+      lines.push(`• <b>${p.name}</b> — ${p.reason}`);
+    }
+  }
+
+  return lines.join("\n");
+}
+
 module.exports = {
   formatHeroMessage,
   formatStatsMessage,
   formatMonthMessage,
   formatStocksMessage,
+  formatWeeklyMessage,
   formatSettingsMessage,
   formatMoney,
 };
