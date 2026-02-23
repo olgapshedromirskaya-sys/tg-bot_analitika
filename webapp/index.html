@@ -660,6 +660,58 @@ function buildCpoCard(t, stocks) {
     </div>`;
 }
 
+// ── БЛОК 2: Оборачиваемость ────────────────────────────────────────
+function buildTurnoverCard(stocks, platform) {
+  if (!stocks || stocks.length === 0) return '';
+  const withDays = stocks.filter(s => s.daysCover > 0);
+  if (withDays.length === 0) return '';
+
+  const PAID_DAYS = platform === 'wb' ? 60 : 61;
+  const avgDays = Math.round(withDays.reduce((s, i) => s + i.daysCover, 0) / withDays.length);
+  const atRisk  = withDays.filter(s => s.daysCover > PAID_DAYS);
+
+  const avgColor = avgDays <= 30 ? 'var(--green,#4caf50)' : avgDays <= PAID_DAYS ? 'var(--yellow,#f5c518)' : 'var(--orange,#ff8b57)';
+  const avgIcon  = avgDays <= 30 ? '🟢' : avgDays <= PAID_DAYS ? '🟡' : '🔴';
+
+  const rows = withDays.map(s => {
+    const isPaid = s.daysCover > PAID_DAYS;
+    const isSlow = s.daysCover > 30 && !isPaid;
+    const color  = isPaid ? 'var(--orange,#ff8b57)' : isSlow ? 'var(--yellow,#f5c518)' : 'var(--green,#4caf50)';
+    const icon   = isPaid ? '🔴' : isSlow ? '🟡' : '🟢';
+    const warn   = isPaid ? ` <span style="color:var(--orange,#ff8b57);font-weight:700">· платное хранение!</span>` : '';
+    return `<div style="display:flex;align-items:center;justify-content:space-between;padding:7px 12px;border-bottom:1px solid var(--line);font-size:12px">
+      <div style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
+        <span style="font-weight:700">${s.name}</span>
+        <span style="color:var(--text-soft);font-size:11px;margin-left:5px">${s.sku}</span>${warn}
+      </div>
+      <div style="font-weight:800;color:${color};flex-shrink:0;margin-left:10px">${icon} ${s.daysCover} дн</div>
+    </div>`;
+  }).join('');
+
+  const alertHtml = atRisk.length > 0
+    ? `<div style="margin:8px 12px 0;background:rgba(255,68,68,0.1);border:1px solid rgba(255,68,68,0.3);border-radius:10px;padding:8px 12px;font-size:12px;color:#ff6b6b;font-weight:600">
+        🚨 ${atRisk.length} ${atRisk.length === 1 ? 'товар' : 'товара'} на платном хранении (>${PAID_DAYS} дн) — маркетплейс списывает деньги каждый день
+       </div>` : '';
+
+  return `
+    <div class="section-title">🔄 Оборачиваемость товаров</div>
+    <div style="background:var(--bg-card-strong,#151929);border:1px solid var(--line);border-radius:14px;overflow:hidden;margin-bottom:12px">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-bottom:1px solid var(--line)">
+        <div>
+          <div style="font-size:11px;color:var(--text-soft);margin-bottom:3px">Средняя оборачиваемость</div>
+          <div style="font-size:24px;font-weight:800;color:${avgColor}">${avgIcon} ${avgDays} дней</div>
+        </div>
+        <div style="text-align:right;font-size:11px;color:var(--text-soft);line-height:1.9">
+          <div style="color:var(--green,#4caf50)">🟢 до 30 дн — хорошо</div>
+          <div style="color:var(--yellow,#f5c518)">🟡 30–${PAID_DAYS} дн — медленно</div>
+          <div style="color:var(--orange,#ff8b57)">🔴 >${PAID_DAYS} дн — платное хранение</div>
+        </div>
+      </div>
+      ${alertHtml}
+      ${rows}
+    </div>`;
+}
+
 function buildFinanceCard(finance) {
   if (!finance) return '';
   const fm = finance.month;
@@ -878,6 +930,7 @@ function buildDashboard({ today, month, kpi, source, warehouses, stocks, atRiskP
     ${buildDrrCard(t)}
     ${buildCpoCard(t, stocks)}
     ${buildFinanceCard(finance)}
+    ${buildTurnoverCard(stocks, platform)}
     <div class="section-title">За месяц</div>
     <div class="bar-card">
       <div class="bar-header"><span>Выручка</span><strong>${fmtMoney(m.revenue)} / ${fmtMoney(k.revenue)}</strong></div>
