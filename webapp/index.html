@@ -660,6 +660,62 @@ function buildCpoCard(t, stocks) {
     </div>`;
 }
 
+// ── БЛОК 3: Выкуп% ────────────────────────────────────────────────
+// WB норма: 80%+, Ozon норма: 90%+
+// Показываем: среднее + только проблемные артикулы (ниже нормы)
+function buildRedemptionCard(redemption, platform) {
+  if (!redemption || redemption.avg === null || redemption.avg === undefined) return '';
+
+  const THRESHOLD = platform === 'wb' ? 80 : 90;
+  const avg = redemption.avg;
+  const bad = redemption.bad || [];
+
+  const avgColor = avg >= THRESHOLD     ? 'var(--green,#4caf50)'
+                 : avg >= THRESHOLD - 10 ? 'var(--yellow,#f5c518)'
+                 : 'var(--orange,#ff8b57)';
+  const avgIcon  = avg >= THRESHOLD     ? '🟢'
+                 : avg >= THRESHOLD - 10 ? '🟡' : '🔴';
+
+  const badRows = bad.map(s => {
+    const color = s.rate >= THRESHOLD - 10 ? 'var(--yellow,#f5c518)' : 'var(--orange,#ff8b57)';
+    const icon  = s.rate >= THRESHOLD - 10 ? '🟡' : '🔴';
+    return `<div style="display:flex;align-items:center;justify-content:space-between;padding:7px 12px;border-bottom:1px solid var(--line);font-size:12px">
+      <div style="flex:1;min-width:0">
+        <div style="font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${s.name}</div>
+        <div style="font-size:11px;color:var(--text-soft)">${s.sku} · ${s.orders} заказов → ${s.sales} выкуплено</div>
+      </div>
+      <div style="font-weight:800;color:${color};flex-shrink:0;margin-left:10px">${icon} ${s.rate}%</div>
+    </div>`;
+  }).join('');
+
+  const alertHtml = bad.length > 0
+    ? `<div style="margin:8px 12px 0;background:rgba(255,139,87,0.1);border:1px solid rgba(255,139,87,0.3);border-radius:10px;padding:8px 12px;font-size:12px;color:var(--orange,#ff8b57);font-weight:600">
+        ⚠️ ${bad.length} ${bad.length === 1 ? 'артикул' : 'артикула'} с выкупом ниже нормы (${THRESHOLD}%) — возможны проблемы с размерной сеткой, фото или описанием
+       </div>` : '';
+
+  const allGoodHtml = bad.length === 0
+    ? `<div style="padding:10px 14px;font-size:12px;color:var(--green,#4caf50);font-weight:600">✅ Все артикулы в норме — выкуп выше ${THRESHOLD}%</div>` : '';
+
+  return `
+    <div class="section-title">🛍️ Выкуп товаров</div>
+    <div style="background:var(--bg-card-strong,#151929);border:1px solid var(--line);border-radius:14px;overflow:hidden;margin-bottom:12px">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-bottom:1px solid var(--line)">
+        <div>
+          <div style="font-size:11px;color:var(--text-soft);margin-bottom:3px">Средний выкуп за месяц</div>
+          <div style="font-size:24px;font-weight:800;color:${avgColor}">${avgIcon} ${avg}%</div>
+        </div>
+        <div style="text-align:right;font-size:11px;color:var(--text-soft);line-height:1.9">
+          <div style="color:var(--green,#4caf50)">🟢 ≥${THRESHOLD}% — норма</div>
+          <div style="color:var(--yellow,#f5c518)">🟡 ${THRESHOLD-10}–${THRESHOLD-1}% — проверить</div>
+          <div style="color:var(--orange,#ff8b57)">🔴 &lt;${THRESHOLD-10}% — проблема</div>
+        </div>
+      </div>
+      ${alertHtml}
+      ${allGoodHtml}
+      ${badRows}
+    </div>`;
+}
+
 // ── БЛОК 2: Оборачиваемость ────────────────────────────────────────
 function buildTurnoverCard(stocks, platform) {
   if (!stocks || stocks.length === 0) return '';
@@ -751,7 +807,7 @@ function buildFinanceCard(finance) {
     </div>` : ''}`;
 }
 
-function buildDashboard({ today, month, kpi, source, warehouses, stocks, atRiskProducts, finance, _prevWeek, _prevMonth }, platform) {
+function buildDashboard({ today, month, kpi, source, warehouses, stocks, atRiskProducts, finance, redemption, _prevWeek, _prevMonth }, platform) {
   const t = today || {};
   const m = month || {};
   const k = kpi   || {};
@@ -929,6 +985,7 @@ function buildDashboard({ today, month, kpi, source, warehouses, stocks, atRiskP
     </div>
     ${buildDrrCard(t)}
     ${buildCpoCard(t, stocks)}
+    ${buildRedemptionCard(redemption, platform)}
     ${buildFinanceCard(finance)}
     ${buildTurnoverCard(stocks, platform)}
     <div class="section-title">За месяц</div>
