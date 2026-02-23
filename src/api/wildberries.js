@@ -31,6 +31,13 @@ function buildMockWildberriesMetrics(date = dayjs()) {
       "WB-912": round(adSpend * 0.35),
       "WB-445": round(adSpend * 0.20),
     },
+    redemption: {
+      avg: 76,
+      bad: [
+        { sku: "WB-784", name: "Лосины женские S",     orders: 42, sales: 29, rate: 69 },
+        { sku: "WB-912", name: "Рюкзак городской 22л", orders: 35, sales: 25, rate: 71 },
+      ],
+    },
     stocks: [
       { sku: "WB-784", name: "Лосины женские S",     qty: round(seededValue(daySeed + 21, 4,  95)), daysCover: round(seededValue(daySeed + 25, 2,  13)), warehouseName: "Коледино",             monthAdSpend: round(adSpend * 0.45), monthOrders: round(seededValue(daySeed + 61, 15, 50)), cpo: round(adSpend * 0.45 / Math.max(1, round(seededValue(daySeed + 61, 15, 50)))) },
       { sku: "WB-912", name: "Рюкзак городской 22л", qty: round(seededValue(daySeed + 27, 5,  90)), daysCover: round(seededValue(daySeed + 31, 14, 29)), warehouseName: "Электросталь",         monthAdSpend: round(adSpend * 0.35), monthOrders: round(seededValue(daySeed + 63, 10, 40)), cpo: round(adSpend * 0.35 / Math.max(1, round(seededValue(daySeed + 63, 10, 40)))) },
@@ -97,10 +104,8 @@ async function fetchAdSpend(dateFrom, dateTo) {
   }
 }
 
-// CPO по артикулам — безопасно, не роняет всё при ошибке
 async function fetchAdSpendBySku(dateFrom, dateTo) {
   try {
-    // Список кампаний
     const campResp = await axios.get(`${WB_ADV_BASE}/promotion/count`, {
       headers: statHeaders(), timeout: 8000,
     });
@@ -108,21 +113,16 @@ async function fetchAdSpendBySku(dateFrom, dateTo) {
     const ids = adverts
       .flatMap(g => (g.advert_list || []).map(a => a.advertId))
       .filter(Boolean).slice(0, 50);
-
     if (!ids.length) return { skuAdSpend: {}, skuOrders: {} };
-
     await sleep(300);
-
     const statsResp = await axios.post(
       `${WB_ADV_BASE_V2}/fullstats`,
       ids.map(id => ({ id, dates: [dateFrom.format("YYYY-MM-DD"), dateTo.format("YYYY-MM-DD")] })),
       { headers: statHeaders(), timeout: 15000 }
     );
-
     const campaigns = statsResp.data || [];
     const skuAdSpend = {};
     const skuOrders  = {};
-
     for (const camp of campaigns) {
       for (const day of (camp.days || [])) {
         for (const app of (day.apps || [])) {
@@ -194,6 +194,49 @@ function calcOrdersBySku(orders) {
   return map;
 }
 
+// Выкуп% по артикулам — считается из уже загруженных sales и orders, без новых запросов
+function calcRedemptionBySku(monthOrders, monthSales, stocks) {
+  const THRESHOLD = 80;
+
+  const ordersMap = {};
+  for (const o of monthOrders) {
+    const key = o.supplierArticle || String(o.nmId || "");
+    if (key) ordersMap[key] = (ordersMap[key] || 0) + 1;
+  }
+
+  const salesMap = {};
+  for (const s of monthSales) {
+    const key = s.supplierArticle || String(s.nmId || "");
+    if (key) salesMap[key] = (salesMap[key] || 0) + 1;
+  }
+
+  const skuNameMap = {};
+  for (const s of stocks) {
+    skuNameMap[s.sku] = s.name;
+    if (s.nmId) skuNameMap[s.nmId] = s.name;
+  }
+
+  let totalOrders = 0, totalSales = 0;
+  const skuRates = [];
+
+  for (const [sku, orders] of Object.entries(ordersMap)) {
+    if (orders < 5) continue;
+    const sales = salesMap[sku] || 0;
+    const rate  = Math.round(sales / orders * 100);
+    totalOrders += orders;
+    totalSales  += sales;
+    skuRates.push({ sku, name: skuNameMap[sku] || sku, orders, sales, rate });
+  }
+
+  const avg = totalOrders > 0 ? Math.round(totalSales / totalOrders * 100) : null;
+  const bad = skuRates
+    .filter(s => s.rate < THRESHOLD)
+    .sort((a, b) => a.rate - b.rate)
+    .slice(0, 10);
+
+  return { avg, bad };
+}
+
 async function getWildberriesMetrics({ date } = {}) {
   const token = getToken();
   if (!token) {
@@ -213,7 +256,6 @@ async function getWildberriesMetrics({ date } = {}) {
     const monthAdSpend = await fetchAdSpend(monthStart, now); await sleep(500);
     const { stocks, warehouses } = await fetchStocks();
 
-    // CPO по артикулам — не блокирует если упадёт
     const { skuAdSpend, skuOrders: skuOrdersFromAds } = await fetchAdSpendBySku(monthStart, now);
     const skuOrdersFromStat = calcOrdersBySku(monthOrders);
 
@@ -226,6 +268,9 @@ async function getWildberriesMetrics({ date } = {}) {
       s.cpo          = (ad > 0 && orders > 0) ? round(ad / orders) : null;
     }
 
+    // Выкуп% — без новых API запросов, из уже загруженных данных
+    const redemption = calcRedemptionBySku(monthOrders, monthSales, stocks);
+
     const dayOfMonth       = now.date();
     const todayAdSpend     = dayOfMonth > 0 ? round(monthAdSpend / dayOfMonth) : 0;
     const todayRevenue     = round(calcRevenue(todaySales));
@@ -233,7 +278,7 @@ async function getWildberriesMetrics({ date } = {}) {
     const monthRevenue     = round(calcRevenue(monthSales));
     const monthOrdersCount = monthOrders.length;
 
-    console.log(`[WB API] Сегодня: выручка=${todayRevenue}, заказы=${todayOrdersCount}`);
+    console.log(`[WB API] Сегодня: выручка=${todayRevenue}, заказы=${todayOrdersCount}, выкуп=${redemption.avg}%`);
 
     return {
       source:  "api",
@@ -241,6 +286,7 @@ async function getWildberriesMetrics({ date } = {}) {
       today: { revenue: todayRevenue, orders: todayOrdersCount, conversion: calcConversion(todaySales.length, todayOrdersCount), adSpend: todayAdSpend },
       month: { revenue: monthRevenue, orders: monthOrdersCount, adSpend: monthAdSpend },
       skuAdSpend,
+      redemption,
       stocks,
       warehouses,
       atRiskProducts: [],
