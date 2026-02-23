@@ -27,44 +27,36 @@ function buildMockWildberriesMetrics(date = dayjs()) {
       orders:   round(dailyOrders  * dayOfMonth * seededValue(daySeed + 17, 0.88, 1.16)),
       adSpend:  round(adSpend      * dayOfMonth * seededValue(daySeed + 19, 0.84, 1.12)),
     },
+    // skuAdSpend для демо — распределяем бюджет по артикулам
+    skuAdSpend: {
+      "WB-784": round(adSpend * 0.45),
+      "WB-912": round(adSpend * 0.35),
+      "WB-445": round(adSpend * 0.20),
+    },
     stocks: [
-      { sku: "WB-784", name: "Лосины женские S",    qty: round(seededValue(daySeed + 21, 4, 95)),  daysCover: round(seededValue(daySeed + 25, 2, 13)), warehouseName: "Коледино" },
-      { sku: "WB-912", name: "Рюкзак городской 22л", qty: round(seededValue(daySeed + 27, 5, 90)), daysCover: round(seededValue(daySeed + 31, 14, 29)), warehouseName: "Электросталь" },
-      { sku: "WB-445", name: "Термос 500мл",         qty: round(seededValue(daySeed + 33, 10, 60)), daysCover: round(seededValue(daySeed + 35, 25, 45)), warehouseName: "Склад продавца (FBS)" },
+      { sku: "WB-784", name: "Лосины женские S",     qty: round(seededValue(daySeed + 21, 4,  95)), daysCover: round(seededValue(daySeed + 25, 2,  13)), warehouseName: "Коледино",             orders: round(seededValue(daySeed + 61, 15, 50)) },
+      { sku: "WB-912", name: "Рюкзак городской 22л", qty: round(seededValue(daySeed + 27, 5,  90)), daysCover: round(seededValue(daySeed + 31, 14, 29)), warehouseName: "Электросталь",         orders: round(seededValue(daySeed + 63, 10, 40)) },
+      { sku: "WB-445", name: "Термос 500мл",         qty: round(seededValue(daySeed + 33, 10, 60)), daysCover: round(seededValue(daySeed + 35, 25, 45)), warehouseName: "Склад продавца (FBS)", orders: round(seededValue(daySeed + 65, 5,  25)) },
     ],
     warehouses: [
-      { name: "Коледино",            qty: round(seededValue(daySeed + 41, 100, 600)) },
-      { name: "Электросталь",        qty: round(seededValue(daySeed + 43, 50, 400)) },
-      { name: "Казань",              qty: round(seededValue(daySeed + 45, 20, 200)) },
-      { name: "Краснодар",           qty: round(seededValue(daySeed + 47, 10, 150)) },
-      { name: "Склад продавца (FBS)",qty: round(seededValue(daySeed + 49, 10, 80)) },
+      { name: "Коледино",             qty: round(seededValue(daySeed + 41, 100, 600)) },
+      { name: "Электросталь",         qty: round(seededValue(daySeed + 43, 50,  400)) },
+      { name: "Казань",               qty: round(seededValue(daySeed + 45, 20,  200)) },
+      { name: "Краснодар",            qty: round(seededValue(daySeed + 47, 10,  150)) },
+      { name: "Склад продавца (FBS)", qty: round(seededValue(daySeed + 49, 10,  80))  },
     ],
     atRiskProducts: [
-      {
-        name: "Лосины женские S", sku: "WB-784",
-        reason: "Перерасход рекламы при просадке конверсии",
-        trend: "down",
-        revenueDelta: -23, ordersDelta: -31, ctrDelta: -18,
-      },
-      {
-        name: "Рюкзак городской 22л", sku: "WB-912",
-        reason: "Остаток критичен — 7 дней покрытия",
-        trend: "down",
-        revenueDelta: -12, ordersDelta: -8, ctrDelta: -5,
-      },
-      {
-        name: "Термос 500мл", sku: "WB-445",
-        reason: "Рост CTR и продаж за последние 7 дней",
-        trend: "up",
-        revenueDelta: 34, ordersDelta: 28, ctrDelta: 41,
-      },
+      { name: "Лосины женские S",     sku: "WB-784", reason: "Перерасход рекламы при просадке конверсии", trend: "down", revenueDelta: -23, ordersDelta: -31, ctrDelta: -18 },
+      { name: "Рюкзак городской 22л", sku: "WB-912", reason: "Остаток критичен — 7 дней покрытия",        trend: "down", revenueDelta: -12, ordersDelta: -8,  ctrDelta: -5  },
+      { name: "Термос 500мл",         sku: "WB-445", reason: "Рост CTR и продаж за последние 7 дней",     trend: "up",   revenueDelta:  34, ordersDelta:  28, ctrDelta:  41 },
     ],
   };
 }
 
 // ── Реальный WB API ───────────────────────────────────────────────
-const WB_STAT_BASE = "https://statistics-api.wildberries.ru/api/v1";
-const WB_ADV_BASE  = "https://advert-api.wildberries.ru/adv/v1";
+const WB_STAT_BASE    = "https://statistics-api.wildberries.ru/api/v1";
+const WB_ADV_BASE     = "https://advert-api.wildberries.ru/adv/v1";
+const WB_ADV_BASE_V2  = "https://advert-api.wildberries.ru/adv/v2";
 const WB_CONTENT_BASE = "https://suppliers-api.wildberries.ru";
 
 function getToken() {
@@ -73,13 +65,10 @@ function getToken() {
 function statHeaders() {
   return { Authorization: getToken(), "Content-Type": "application/json" };
 }
-
-// Пауза между запросами чтобы не получать 429
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-// Продажи за период
 async function fetchSales(dateFrom, dateTo) {
   const resp = await axios.get(`${WB_STAT_BASE}/supplier/sales`, {
     headers: statHeaders(),
@@ -93,7 +82,6 @@ async function fetchSales(dateFrom, dateTo) {
   return resp.data || [];
 }
 
-// Заказы за период
 async function fetchOrders(dateFrom, dateTo) {
   const resp = await axios.get(`${WB_STAT_BASE}/supplier/orders`, {
     headers: statHeaders(),
@@ -107,7 +95,7 @@ async function fetchOrders(dateFrom, dateTo) {
   return resp.data || [];
 }
 
-// Расходы на рекламу
+// Суммарные расходы на рекламу (для общего CPO)
 async function fetchAdSpend(dateFrom, dateTo) {
   try {
     const resp = await axios.get(`${WB_ADV_BASE}/upd`, {
@@ -125,7 +113,57 @@ async function fetchAdSpend(dateFrom, dateTo) {
   }
 }
 
-// Остатки по складам
+// Расходы на рекламу по артикулам (nmId) — для CPO по SKU
+// Используем /adv/v2/fullstats — статистика по кампаниям с разбивкой по товарам
+async function fetchAdSpendBySku(dateFrom, dateTo) {
+  try {
+    // Шаг 1: получаем список активных кампаний
+    const campResp = await axios.get(`${WB_ADV_BASE}/promotion/count`, {
+      headers: statHeaders(),
+      timeout: 10000,
+    });
+    const adverts = campResp.data?.adverts || [];
+    // Собираем id всех кампаний (статусы 4=активна, 11=на паузе, 9=завершена)
+    const ids = adverts
+      .flatMap(group => (group.advert_list || []).map(a => a.advertId))
+      .filter(Boolean)
+      .slice(0, 50); // API принимает до 50 за раз
+
+    if (!ids.length) return {};
+
+    await sleep(300);
+
+    // Шаг 2: fullstats по этим кампаниям
+    const statsResp = await axios.post(
+      `${WB_ADV_BASE_V2}/fullstats`,
+      ids.map(id => ({
+        id,
+        dates: [dateFrom.format("YYYY-MM-DD"), dateTo.format("YYYY-MM-DD")],
+      })),
+      { headers: statHeaders(), timeout: 20000 }
+    );
+
+    const campaigns = statsResp.data || [];
+    const skuAdSpend = {};
+
+    for (const camp of campaigns) {
+      for (const day of (camp.days || [])) {
+        for (const app of (day.apps || [])) {
+          for (const nm of (app.nm || [])) {
+            const nmId = String(nm.nmId);
+            skuAdSpend[nmId] = (skuAdSpend[nmId] || 0) + (nm.sum || 0);
+          }
+        }
+      }
+    }
+
+    return skuAdSpend; // { "12345678": 1500.5, ... }
+  } catch (e) {
+    console.error("[WB AdSpend by SKU] Ошибка:", e.message);
+    return {};
+  }
+}
+
 async function fetchStocks() {
   try {
     const resp = await axios.get(`${WB_STAT_BASE}/supplier/stocks`, {
@@ -135,20 +173,19 @@ async function fetchStocks() {
     });
     const items = resp.data || [];
 
-    // Группируем по складам
     const warehouseMap = {};
     for (const item of items) {
       const wh = item.warehouseName || "Основной";
       warehouseMap[wh] = (warehouseMap[wh] || 0) + (item.quantityFull || 0);
     }
 
-    // Топ товаров по остаткам
     const skuMap = {};
     for (const item of items) {
       const key = item.supplierArticle || item.nmId;
       if (!skuMap[key]) {
         skuMap[key] = {
           sku:           item.supplierArticle || String(item.nmId),
+          nmId:          String(item.nmId || ""),  // сохраняем nmId для матчинга с рекламой
           name:          item.subject || item.supplierArticle || String(item.nmId),
           qty:           0,
           daysCover:     item.daysOnSite || 0,
@@ -174,7 +211,16 @@ async function fetchStocks() {
   }
 }
 
-// Считаем выручку
+// Заказы по артикулам за период — для CPO знаменателя
+function calcOrdersBySku(orders) {
+  const skuOrders = {};
+  for (const o of orders) {
+    const key = o.supplierArticle || String(o.nmId || "");
+    if (key) skuOrders[key] = (skuOrders[key] || 0) + 1;
+  }
+  return skuOrders;
+}
+
 function calcRevenue(sales) {
   return sales.reduce((sum, s) => sum + (s.forPay || s.priceWithDisc || 0), 0);
 }
@@ -197,18 +243,29 @@ async function getWildberriesMetrics({ date } = {}) {
     const todayStart = now.startOf("day");
     const monthStart = now.startOf("month");
 
-    // Последовательные запросы с паузой — избегаем 429
-    const todaySales = await fetchSales(todayStart, now);
-    await sleep(500);
-    const todayOrders = await fetchOrders(todayStart, now);
-    await sleep(500);
-    const monthSales = await fetchSales(monthStart, now);
-    await sleep(500);
-    const monthOrders = await fetchOrders(monthStart, now);
-    await sleep(500);
-    const monthAdSpend = await fetchAdSpend(monthStart, now);
-    await sleep(500);
+    const todaySales   = await fetchSales(todayStart, now);   await sleep(500);
+    const todayOrders  = await fetchOrders(todayStart, now);  await sleep(500);
+    const monthSales   = await fetchSales(monthStart, now);   await sleep(500);
+    const monthOrders  = await fetchOrders(monthStart, now);  await sleep(500);
+    const monthAdSpend = await fetchAdSpend(monthStart, now); await sleep(500);
+
+    // Расходы по артикулам — за месяц (более репрезентативно чем за день)
+    const skuAdSpend   = await fetchAdSpendBySku(monthStart, now); await sleep(500);
+
     const { stocks, warehouses } = await fetchStocks();
+
+    // Заказы по артикулам за месяц — для CPO знаменателя
+    const skuOrdersMap = calcOrdersBySku(monthOrders);
+
+    // Добавляем в каждый stock: adSpend и orders за месяц → CPO
+    for (const s of stocks) {
+      const nmId   = s.nmId || s.sku;
+      const ad     = skuAdSpend[nmId]    || skuAdSpend[s.sku]    || 0;
+      const orders = skuOrdersMap[s.sku] || skuOrdersMap[nmId]   || 0;
+      s.monthAdSpend  = round(ad);
+      s.monthOrders   = orders;
+      s.cpo           = orders > 0 ? round(ad / orders) : null;
+    }
 
     const dayOfMonth       = now.date();
     const todayAdSpend     = dayOfMonth > 0 ? round(monthAdSpend / dayOfMonth) : 0;
@@ -234,6 +291,7 @@ async function getWildberriesMetrics({ date } = {}) {
         orders:   monthOrdersCount,
         adSpend:  monthAdSpend,
       },
+      skuAdSpend,
       stocks,
       warehouses,
       atRiskProducts: [],
