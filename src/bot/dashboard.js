@@ -131,7 +131,10 @@ function formatStatsMessage(snapshot, kpi) {
   return lines.join("\n");
 }
 
-// ── ДРР детальный отчёт ─────────────────────────────────────────────
+// ── ДРР детальный отчёт с разбивкой по артикулам ───────────────────
+// ДРР по артикулу = monthAdSpend / (monthOrders * avgPrice) — приближение
+// Точнее: если есть monthAdSpend и monthOrders → показываем CPO и долю рекламы
+// Сортируем по ДРР убывая — самые дорогие артикулы сверху
 function formatDrrMessage(snapshot) {
   const channels = snapshot.channels || [];
   const hasAnyApi = channels.some(c => c.source === "api");
@@ -150,16 +153,60 @@ function formatDrrMessage(snapshot) {
     const emoji  = isOzon ? "🔵" : "🟣";
     const t = channel.today || {};
     const m = channel.month || {};
+
+    // Общий ДРР
     const drrToday = calcDrr(t.adSpend, t.revenue);
     const drrMonth = calcDrr(m.adSpend, m.revenue);
-    const statusT = drrToday <= 10 ? "🟢" : drrToday <= 20 ? "🟡" : "🔴";
-    const statusM = drrMonth <= 10 ? "🟢" : drrMonth <= 20 ? "🟡" : "🔴";
+    const statusT  = drrToday <= 10 ? "🟢" : drrToday <= 20 ? "🟡" : "🔴";
+    const statusM  = drrMonth <= 10 ? "🟢" : drrMonth <= 20 ? "🟡" : "🔴";
 
     lines.push(`━━━━━━━━━━━━━━━━━━`);
     lines.push(`${emoji} <b>${label}</b>`);
-    lines.push(`Сегодня: <b>${drrToday.toFixed(1)}%</b> ${statusT} (реклама ${formatCompactMoney(t.adSpend)} / выручка ${formatCompactMoney(t.revenue)})`);
-    lines.push(`Месяц:   <b>${drrMonth.toFixed(1)}%</b> ${statusM} (реклама ${formatCompactMoney(m.adSpend)} / выручка ${formatCompactMoney(m.revenue)})`);
+    lines.push(`Сегодня: <b>${drrToday.toFixed(1)}%</b> ${statusT}  |  Месяц: <b>${drrMonth.toFixed(1)}%</b> ${statusM}`);
     lines.push(`Норма: 🟢 до 10%  🟡 10–20%  🔴 выше 20%`);
+    lines.push("");
+
+    // ДРР по артикулам
+    // monthAdSpend — расходы на рекламу по артикулу за месяц
+    // monthOrders  — заказы по артикулу за месяц
+    // Выручку по артикулу считаем как: общая выручка / общие заказы * заказы артикула
+    const stocks = (channel.stocks || []).filter(s => s.monthAdSpend > 0 && s.monthOrders > 0);
+
+    if (stocks.length > 0) {
+      // Средняя цена = выручка за месяц / заказы за месяц
+      const avgPrice = (m.orders > 0 && m.revenue > 0) ? m.revenue / m.orders : 0;
+
+      // Считаем ДРР по артикулу
+      const skuRows = stocks.map(s => {
+        const skuRevenue = avgPrice > 0 ? avgPrice * s.monthOrders : 0;
+        const drr = skuRevenue > 0 ? (s.monthAdSpend / skuRevenue * 100) : 0;
+        const cpo = Math.round(s.monthAdSpend / s.monthOrders);
+        return { ...s, drr, cpo, skuRevenue };
+      }).sort((a, b) => b.drr - a.drr); // худшие сверху
+
+      lines.push(`📋 <b>По артикулам (за месяц):</b>`);
+      lines.push(`<i>Норма ДРР ≤10%  ·  &lt;300₽ CPO — хорошо  ·  &gt;800₽ — дорого</i>`);
+      lines.push("");
+
+      for (const s of skuRows.slice(0, 10)) {
+        const drrIcon = s.drr <= 10 ? "🟢" : s.drr <= 20 ? "🟡" : "🔴";
+        const cpoIcon = s.cpo < 300 ? "🟢" : s.cpo < 800 ? "🟡" : "🔴";
+        const drrStr  = s.drr > 0 ? `ДРР ${s.drr.toFixed(1)}% ${drrIcon}` : "ДРР н/д";
+        const cpoStr  = `CPO ${formatCompactMoney(s.cpo)} ${cpoIcon}`;
+        lines.push(`<b>${s.name}</b> <i>(${s.sku})</i>`);
+        lines.push(`  ${drrStr}  ·  ${cpoStr}  ·  реклама ${formatCompactMoney(s.monthAdSpend)} / ${s.monthOrders} зак`);
+      }
+
+      // Артикулы без рекламы
+      const noAd = (channel.stocks || []).filter(s => !s.monthAdSpend || s.monthAdSpend === 0);
+      if (noAd.length > 0) {
+        lines.push("");
+        lines.push(`⚪ Без рекламы (${noAd.length} арт.): ${noAd.slice(0, 3).map(s => s.name).join(", ")}${noAd.length > 3 ? "..." : ""}`);
+      }
+    } else {
+      lines.push(`Данные по артикулам недоступны — нет рекламных расходов по SKU`);
+    }
+
     lines.push("");
   }
 
