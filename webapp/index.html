@@ -494,29 +494,22 @@ async function loadPlatformData(platform, forceRefresh) {
   el.innerHTML = `<div class="state-box"><div class="state-icon">⏳</div><p>Загружаю данные ${platform === 'ozon' ? 'Ozon' : 'Wildberries'}...</p></div>`;
   try {
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 10000);
-    const now = new Date();
-    const prevWeek  = new Date(now); prevWeek.setDate(now.getDate() - 7);
-    const prevMonth = new Date(now); prevMonth.setMonth(now.getMonth() - 1);
-    const fmtDate = d => d.toISOString().split('T')[0];
-    const [res, resWeek, resMonth] = await Promise.all([
-      fetch(`/api/data/${platform}`, { signal: controller.signal }),
-      fetch(`/api/data/${platform}?date=${fmtDate(prevWeek)}`).catch(() => null),
-      fetch(`/api/data/${platform}?date=${fmtDate(prevMonth)}`).catch(() => null),
-    ]);
+    const timer = setTimeout(() => controller.abort(), 30000);
+    // Только один запрос — сервер не поддерживает ?date= параметр
+    const res = await fetch(`/api/data/${platform}`, { signal: controller.signal });
     clearTimeout(timer);
     const data = await res.json();
     if (!res.ok || data.error) {
       el.innerHTML = `<div class="state-box"><div class="state-icon">🔑</div><p>${data.error || 'Ошибка загрузки'}</p><small>Перейдите в ⚙️ Настройки и введите API-ключи</small></div>`;
       return;
     }
-    data._prevWeek  = resWeek  && resWeek.ok  ? await resWeek.json()  : null;
-    data._prevMonth = resMonth && resMonth.ok ? await resMonth.json() : null;
+    data._prevWeek  = null;
+    data._prevMonth = null;
     const html = buildDashboard(data, platform);
     dataCache[platform] = html;
     el.innerHTML = html;
   } catch(e) {
-    const msg = e.name === 'AbortError' ? 'Сервер не отвечает (таймаут 10с)' : e.message;
+    const msg = e.name === 'AbortError' ? 'Сервер не отвечает (таймаут 30с)' : e.message;
     el.innerHTML = `<div class="state-box"><div class="state-icon">❌</div><p>Ошибка загрузки</p><small>${msg}</small><br><button onclick="refreshData('${platform}')" style="margin-top:12px;padding:8px 16px;background:var(--cyan,#599cff);border:none;border-radius:8px;color:#fff;cursor:pointer;font-family:inherit">🔄 Повторить</button></div>`;
   }
 }
