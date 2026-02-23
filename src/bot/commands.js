@@ -15,6 +15,15 @@ const {
 const { hasAccess, canManageUsers, canViewFinance, normalizeRole, roleLabel } = require("./roles");
 
 const KPI_KEYS = new Set(["revenue", "conversion", "ad_budget", "daily_orders"]);
+const KPI_LABELS = {
+  revenue:      "Выручка (мес)",
+  conversion:   "Конверсия %",
+  ad_budget:    "Рекл. бюджет (мес)",
+  daily_orders: "Заказы в день",
+};
+
+// Состояние диалога изменения KPI
+const kpiState = {};
 
 // Роли на русском для ввода пользователем
 const ROLE_ALIASES = {
@@ -109,7 +118,7 @@ function createMainKeyboard(userRole) {
 
   // Финансы — только admin и owner
   if (canViewFinance(userRole)) {
-    rows.push(["⚙️ Настройки KPI"]);
+    rows.push(["⚙️ Настройки KPI", "✏️ Изменить KPI"]);
   }
 
   // Управление сотрудниками — только owner
@@ -175,75 +184,64 @@ function registerCommands(bot, db) {
 
   // ════════════════════════════════════════════════════════════════
   // MIDDLEWARE мультишага — ПЕРВЫМ, до всех hears/command/start
-  // Перехватывает текст если есть активный шаг добавления/удаления
   // ════════════════════════════════════════════════════════════════
   bot.use(async (ctx, next) => {
     if (!ctx.message?.text) return next();
 
-    const ownerId = String(ctx.from?.id);
-    const state   = addUserState[ownerId];
-    const text    = ctx.message.text.trim();
+    const userId = String(ctx.from?.id);
+    const text   = ctx.message.text.trim();
+    const addSt  = addUserState[userId];
+    const kpiSt  = kpiState[userId];
 
-    if (!state) return next();
+    // Нет активного диалога — передаём дальше
+    if (!addSt && !kpiSt) return next();
 
-    // ── Отмена на любом шаге ─────────────────────────────────────
+    // ── Отмена на любом шаге любого диалога ──────────────────────
     if (text === "❌ Отмена") {
-      delete addUserState[ownerId];
-      const user = db.getUserByTelegramId(ownerId);
+      delete addUserState[userId];
+      delete kpiState[userId];
+      const user = db.getUserByTelegramId(userId);
       await ctx.reply("Отменено.", createMainKeyboard(user?.role));
       return;
     }
 
-    // ── Шаг: ожидаем ID для удаления ─────────────────────────────
-    if (state.step === "awaiting_remove_id") {
-      if (!/^\d+$/.test(text)) {
-        await ctx.reply("⛔ ID должен состоять только из цифр. Попробуйте ещё раз:");
-        return;
-      }
-      if (text === ownerId) {
-        await ctx.reply("⛔ Нельзя удалить самого себя.");
-        return;
-      }
-      delete addUserState[ownerId];
-      const removed = db.removeUser(text);
-      const user = db.getUserByTelegramId(ownerId);
-      await ctx.reply(
-        removed
-          ? `✅ Сотрудник <code>${text}</code> удалён.`
-          : `ℹ️ Сотрудник с ID <code>${text}</code> не найден.`,
-        { parse_mode: "HTML", ...createMainKeyboard(user?.role) }
-      );
-      return;
-    }
-
-    // ── Шаг 1: получаем Telegram ID ──────────────────────────────
-    if (state.step === "awaiting_id") {
-      if (!/^\d+$/.test(text)) {
-        await ctx.reply("⛔ ID должен состоять только из цифр. Попробуйте ещё раз:");
-        return;
-      }
-      addUserState[ownerId] = { step: "awaiting_role", telegramId: text };
-      await ctx.reply(
-        `Шаг 2 из 3: Выберите роль для сотрудника <code>${text}</code>:`,
-        {
-          parse_mode: "HTML",
-          ...Markup.keyboard([
-            ["руководитель", "администратор"],
-            ["менеджер"],
-            ["❌ Отмена"],
-          ]).resize().oneTime(),
+    // ════════════════════════════════════════════════════════════
+    // ДИАЛОГ: ДОБАВЛЕНИЕ/УДАЛЕНИЕ СОТРУДНИКА
+    // ════════════════════════════════════════════════════════════
+    if (addSt) {
+      // Шаг: ожидаем ID для удаления
+      if (addSt.step === "awaiting_remove_id") {
+        if (!/^\d+$/.test(text)) {
+          await ctx.reply("⛔ ID должен состоять только из цифр. Попробуйте ещё раз:");
+          return;
         }
-      );
-      return;
-    }
-
-    // ── Шаг 2: получаем роль ─────────────────────────────────────
-    if (state.step === "awaiting_role") {
-      const role = ROLE_ALIASES[text.toLowerCase()];
-      if (!role) {
+        if (text === userId) {
+          await ctx.reply("⛔ Нельзя удалить самого себя.");
+          return;
+        }
+        delete addUserState[userId];
+        const removed = db.removeUser(text);
+        const user = db.getUserByTelegramId(userId);
         await ctx.reply(
-          "⛔ Выберите роль из кнопок ниже:",
+          removed
+            ? `✅ Сотрудник <code>${text}</code> удалён.`
+            : `ℹ️ Сотрудник с ID <code>${text}</code> не найден.`,
+          { parse_mode: "HTML", ...createMainKeyboard(user?.role) }
+        );
+        return;
+      }
+
+      // Шаг 1: Telegram ID
+      if (addSt.step === "awaiting_id") {
+        if (!/^\d+$/.test(text)) {
+          await ctx.reply("⛔ ID должен состоять только из цифр. Попробуйте ещё раз:");
+          return;
+        }
+        addUserState[userId] = { step: "awaiting_role", telegramId: text };
+        await ctx.reply(
+          `Шаг 2 из 3: Выберите роль для сотрудника <code>${text}</code>:`,
           {
+            parse_mode: "HTML",
             ...Markup.keyboard([
               ["руководитель", "администратор"],
               ["менеджер"],
@@ -253,42 +251,135 @@ function registerCommands(bot, db) {
         );
         return;
       }
-      addUserState[ownerId] = { ...state, step: "awaiting_name", role };
-      await ctx.reply(
-        `Шаг 3 из 3: Введите имя сотрудника\n(или отправьте «-» чтобы пропустить):`,
-        Markup.removeKeyboard()
-      );
-      return;
+
+      // Шаг 2: роль
+      if (addSt.step === "awaiting_role") {
+        const role = ROLE_ALIASES[text.toLowerCase()];
+        if (!role) {
+          await ctx.reply("⛔ Выберите роль из кнопок ниже:", {
+            ...Markup.keyboard([
+              ["руководитель", "администратор"],
+              ["менеджер"],
+              ["❌ Отмена"],
+            ]).resize().oneTime(),
+          });
+          return;
+        }
+        addUserState[userId] = { ...addSt, step: "awaiting_name", role };
+        await ctx.reply(
+          `Шаг 3 из 3: Введите имя сотрудника\n(или отправьте «-» чтобы пропустить):`,
+          Markup.removeKeyboard()
+        );
+        return;
+      }
+
+      // Шаг 3: имя → сохраняем
+      if (addSt.step === "awaiting_name") {
+        const name = text === "-" ? null : text;
+        delete addUserState[userId];
+        try {
+          db.upsertUser({ telegramId: addSt.telegramId, role: addSt.role, name, addedBy: userId });
+          const user = db.getUserByTelegramId(userId);
+          await ctx.reply(
+            `✅ <b>Сотрудник добавлен</b>\n\n` +
+            `Имя: <b>${escapeHtml(name || "не указано")}</b>\n` +
+            `Роль: <b>${roleLabel(addSt.role)}</b>\n` +
+            `ID: <code>${addSt.telegramId}</code>`,
+            { parse_mode: "HTML", ...createMainKeyboard(user?.role) }
+          );
+        } catch (e) {
+          console.error("upsertUser error:", e);
+          await ctx.reply("⚠️ Не удалось сохранить сотрудника. Попробуйте ещё раз.");
+        }
+        return;
+      }
     }
 
-    // ── Шаг 3: получаем имя и сохраняем ──────────────────────────
-    if (state.step === "awaiting_name") {
-      const name = text === "-" ? null : text;
-      delete addUserState[ownerId];
-      try {
-        db.upsertUser({
-          telegramId: state.telegramId,
-          role:       state.role,
-          name,
-          addedBy:    ownerId,
-        });
-        const user = db.getUserByTelegramId(ownerId);
+    // ════════════════════════════════════════════════════════════
+    // ДИАЛОГ: ИЗМЕНЕНИЕ KPI
+    // ════════════════════════════════════════════════════════════
+    if (kpiSt) {
+      // Шаг 1: площадка
+      if (kpiSt.step === "kpi_awaiting_platform") {
+        const platform = text === "🔵 Ozon" ? "ozon" : text === "🟣 Wildberries" ? "wb" : null;
+        if (!platform) {
+          await ctx.reply("Выберите площадку из кнопок:", {
+            ...Markup.keyboard([["🔵 Ozon", "🟣 Wildberries"], ["❌ Отмена"]]).resize().oneTime(),
+          });
+          return;
+        }
+        kpiState[userId] = { step: "kpi_awaiting_field", platform };
         await ctx.reply(
-          `✅ <b>Сотрудник добавлен</b>\n\n` +
-          `Имя: <b>${escapeHtml(name || "не указано")}</b>\n` +
-          `Роль: <b>${roleLabel(state.role)}</b>\n` +
-          `ID: <code>${state.telegramId}</code>`,
+          `Какой показатель изменить для <b>${platform === "ozon" ? "Ozon" : "Wildberries"}</b>?`,
+          {
+            parse_mode: "HTML",
+            ...Markup.keyboard([
+              ["💰 Выручка", "📢 Рекл. бюджет"],
+              ["🔄 Конверсия", "📦 Заказы в день"],
+              ["❌ Отмена"],
+            ]).resize().oneTime(),
+          }
+        );
+        return;
+      }
+
+      // Шаг 2: поле
+      if (kpiSt.step === "kpi_awaiting_field") {
+        const fieldMap = {
+          "💰 выручка":      "revenue",
+          "📢 рекл. бюджет": "ad_budget",
+          "🔄 конверсия":    "conversion",
+          "📦 заказы в день":"daily_orders",
+        };
+        const field = fieldMap[text.toLowerCase()];
+        if (!field) {
+          await ctx.reply("Выберите показатель из кнопок:", {
+            ...Markup.keyboard([
+              ["💰 Выручка", "📢 Рекл. бюджет"],
+              ["🔄 Конверсия", "📦 Заказы в день"],
+              ["❌ Отмена"],
+            ]).resize().oneTime(),
+          });
+          return;
+        }
+        kpiState[userId] = { ...kpiSt, step: "kpi_awaiting_value", field };
+        const hint = field === "conversion"
+          ? " (например: 3.5)"
+          : field === "daily_orders"
+          ? " (например: 150)"
+          : " (например: 5000000)";
+        await ctx.reply(
+          `Введите новое значение для <b>${KPI_LABELS[field]}</b>${hint}:`,
+          { parse_mode: "HTML", ...Markup.removeKeyboard() }
+        );
+        return;
+      }
+
+      // Шаг 3: значение → сохраняем
+      if (kpiSt.step === "kpi_awaiting_value") {
+        const value = Number(text.replace(/[^\d.,]/g, "").replace(",", "."));
+        if (!Number.isFinite(value) || value <= 0) {
+          await ctx.reply("⛔ Введите корректное число больше нуля:");
+          return;
+        }
+        delete kpiState[userId];
+        db.setKpiValue(`${kpiSt.platform}_${kpiSt.field}`, value);
+        db.setKpiValue(kpiSt.field, value); // обратная совместимость
+        const user = db.getUserByTelegramId(userId);
+        const emoji = kpiSt.platform === "ozon" ? "🔵" : "🟣";
+        const platformLabel = kpiSt.platform === "ozon" ? "Ozon" : "Wildberries";
+        await ctx.reply(
+          `✅ <b>KPI обновлён</b>\n\n${emoji} ${platformLabel}\n` +
+          `${KPI_LABELS[kpiSt.field]}: <b>${value.toLocaleString("ru-RU")}</b>`,
           { parse_mode: "HTML", ...createMainKeyboard(user?.role) }
         );
-      } catch (e) {
-        console.error("upsertUser error:", e);
-        await ctx.reply("⚠️ Не удалось сохранить сотрудника. Попробуйте ещё раз.");
+        return;
       }
-      return;
     }
 
-    // Неизвестный шаг — сбрасываем
-    delete addUserState[ownerId];
+    // Неизвестный шаг — сбрасываем оба состояния
+    delete addUserState[userId];
+    delete kpiState[userId];
     return next();
   });
 
@@ -428,6 +519,23 @@ function registerCommands(bot, db) {
     const user = await requireRole(ctx, db, "admin");
     if (!user) return;
     await ctx.reply(formatSettingsMessage(db.getKpiSettings()), { parse_mode: "HTML" });
+  });
+
+  // ── Изменить KPI — пошаговый диалог по площадкам ─────────────────
+  bot.hears("✏️ Изменить KPI", async (ctx) => {
+    const user = await requireRole(ctx, db, "admin");
+    if (!user) return;
+    kpiState[String(ctx.from.id)] = { step: "kpi_awaiting_platform" };
+    await ctx.reply(
+      "✏️ <b>Изменение KPI</b>\n\nВыберите площадку:",
+      {
+        parse_mode: "HTML",
+        ...Markup.keyboard([
+          ["🔵 Ozon", "🟣 Wildberries"],
+          ["❌ Отмена"],
+        ]).resize().oneTime(),
+      }
+    );
   });
 
   // ── /setkpi (admin + owner) ───────────────────────────────────────
