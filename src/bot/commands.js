@@ -173,6 +173,125 @@ const addUserState = {};
 
 function registerCommands(bot, db) {
 
+  // ════════════════════════════════════════════════════════════════
+  // MIDDLEWARE мультишага — ПЕРВЫМ, до всех hears/command/start
+  // Перехватывает текст если есть активный шаг добавления/удаления
+  // ════════════════════════════════════════════════════════════════
+  bot.use(async (ctx, next) => {
+    if (!ctx.message?.text) return next();
+
+    const ownerId = String(ctx.from?.id);
+    const state   = addUserState[ownerId];
+    const text    = ctx.message.text.trim();
+
+    if (!state) return next();
+
+    // ── Отмена на любом шаге ─────────────────────────────────────
+    if (text === "❌ Отмена") {
+      delete addUserState[ownerId];
+      const user = db.getUserByTelegramId(ownerId);
+      await ctx.reply("Отменено.", createMainKeyboard(user?.role));
+      return;
+    }
+
+    // ── Шаг: ожидаем ID для удаления ─────────────────────────────
+    if (state.step === "awaiting_remove_id") {
+      if (!/^\d+$/.test(text)) {
+        await ctx.reply("⛔ ID должен состоять только из цифр. Попробуйте ещё раз:");
+        return;
+      }
+      if (text === ownerId) {
+        await ctx.reply("⛔ Нельзя удалить самого себя.");
+        return;
+      }
+      delete addUserState[ownerId];
+      const removed = db.removeUser(text);
+      const user = db.getUserByTelegramId(ownerId);
+      await ctx.reply(
+        removed
+          ? `✅ Сотрудник <code>${text}</code> удалён.`
+          : `ℹ️ Сотрудник с ID <code>${text}</code> не найден.`,
+        { parse_mode: "HTML", ...createMainKeyboard(user?.role) }
+      );
+      return;
+    }
+
+    // ── Шаг 1: получаем Telegram ID ──────────────────────────────
+    if (state.step === "awaiting_id") {
+      if (!/^\d+$/.test(text)) {
+        await ctx.reply("⛔ ID должен состоять только из цифр. Попробуйте ещё раз:");
+        return;
+      }
+      addUserState[ownerId] = { step: "awaiting_role", telegramId: text };
+      await ctx.reply(
+        `Шаг 2 из 3: Выберите роль для сотрудника <code>${text}</code>:`,
+        {
+          parse_mode: "HTML",
+          ...Markup.keyboard([
+            ["руководитель", "администратор"],
+            ["менеджер"],
+            ["❌ Отмена"],
+          ]).resize().oneTime(),
+        }
+      );
+      return;
+    }
+
+    // ── Шаг 2: получаем роль ─────────────────────────────────────
+    if (state.step === "awaiting_role") {
+      const role = ROLE_ALIASES[text.toLowerCase()];
+      if (!role) {
+        await ctx.reply(
+          "⛔ Выберите роль из кнопок ниже:",
+          {
+            ...Markup.keyboard([
+              ["руководитель", "администратор"],
+              ["менеджер"],
+              ["❌ Отмена"],
+            ]).resize().oneTime(),
+          }
+        );
+        return;
+      }
+      addUserState[ownerId] = { ...state, step: "awaiting_name", role };
+      await ctx.reply(
+        `Шаг 3 из 3: Введите имя сотрудника\n(или отправьте «-» чтобы пропустить):`,
+        Markup.removeKeyboard()
+      );
+      return;
+    }
+
+    // ── Шаг 3: получаем имя и сохраняем ──────────────────────────
+    if (state.step === "awaiting_name") {
+      const name = text === "-" ? null : text;
+      delete addUserState[ownerId];
+      try {
+        db.upsertUser({
+          telegramId: state.telegramId,
+          role:       state.role,
+          name,
+          addedBy:    ownerId,
+        });
+        const user = db.getUserByTelegramId(ownerId);
+        await ctx.reply(
+          `✅ <b>Сотрудник добавлен</b>\n\n` +
+          `Имя: <b>${escapeHtml(name || "не указано")}</b>\n` +
+          `Роль: <b>${roleLabel(state.role)}</b>\n` +
+          `ID: <code>${state.telegramId}</code>`,
+          { parse_mode: "HTML", ...createMainKeyboard(user?.role) }
+        );
+      } catch (e) {
+        console.error("upsertUser error:", e);
+        await ctx.reply("⚠️ Не удалось сохранить сотрудника. Попробуйте ещё раз.");
+      }
+      return;
+    }
+
+    // Неизвестный шаг — сбрасываем
+    delete addUserState[ownerId];
+    return next();
+  });
+
   // ── Меню Telegram ────────────────────────────────────────────────
   bot.telegram.setMyCommands([
     { command: "start",  description: "🚀 Главное меню" },
@@ -372,115 +491,6 @@ function registerCommands(bot, db) {
     const user = await requireRole(ctx, db, "owner");
     if (!user) return;
     await ctx.reply(formatUsers(db.listUsers()), { parse_mode: "HTML" });
-  });
-
-  // ── Обработка пошагового ввода ────────────────────────────────────
-  bot.on("text", async (ctx) => {
-    const ownerId = String(ctx.from.id);
-    const state   = addUserState[ownerId];
-    const text    = (ctx.message?.text || "").trim();
-
-    // Пропускаем если это команда или кнопка клавиатуры
-    if (text.startsWith("/") || !state) return;
-
-    // ── Шаг: ожидаем ID для удаления ─────────────────────────────
-    if (state.step === "awaiting_remove_id") {
-      delete addUserState[ownerId];
-      if (!/^\d+$/.test(text)) {
-        await ctx.reply("⛔ Неверный формат ID. Должны быть только цифры.");
-        return;
-      }
-      if (text === ownerId) {
-        await ctx.reply("⛔ Нельзя удалить самого себя.");
-        return;
-      }
-      const removed = db.removeUser(text);
-      if (removed) {
-        await ctx.reply(`✅ Сотрудник <code>${text}</code> удалён.`, { parse_mode: "HTML" });
-      } else {
-        await ctx.reply(`ℹ️ Сотрудник с ID <code>${text}</code> не найден.`, { parse_mode: "HTML" });
-      }
-      return;
-    }
-
-    // ── Шаг 1: получаем Telegram ID ──────────────────────────────
-    if (state.step === "awaiting_id") {
-      if (!/^\d+$/.test(text)) {
-        await ctx.reply("⛔ Неверный формат. ID должен состоять только из цифр. Попробуйте ещё раз:");
-        return;
-      }
-      addUserState[ownerId] = { step: "awaiting_role", telegramId: text };
-      await ctx.reply(
-        `Шаг 2 из 3: Выберите роль для сотрудника <code>${text}</code>:`,
-        {
-          parse_mode: "HTML",
-          ...Markup.keyboard([
-            ["руководитель", "администратор"],
-            ["менеджер"],
-            ["❌ Отмена"],
-          ]).resize().oneTime(),
-        }
-      );
-      return;
-    }
-
-    // ── Отмена ────────────────────────────────────────────────────
-    if (text === "❌ Отмена" && state) {
-      delete addUserState[ownerId];
-      const user = db.getUserByTelegramId(ownerId);
-      await ctx.reply("Отменено.", createMainKeyboard(user?.role));
-      return;
-    }
-
-    // ── Шаг 2: получаем роль ─────────────────────────────────────
-    if (state.step === "awaiting_role") {
-      const role = ROLE_ALIASES[text.toLowerCase()];
-      if (!role) {
-        await ctx.reply(
-          "⛔ Неизвестная роль. Выберите из кнопок: руководитель, администратор, менеджер",
-          {
-            ...Markup.keyboard([
-              ["руководитель", "администратор"],
-              ["менеджер"],
-              ["❌ Отмена"],
-            ]).resize().oneTime(),
-          }
-        );
-        return;
-      }
-      addUserState[ownerId] = { ...state, step: "awaiting_name", role };
-      await ctx.reply(
-        `Шаг 3 из 3: Введите имя сотрудника (или отправьте «-» чтобы пропустить):`,
-        Markup.removeKeyboard()
-      );
-      return;
-    }
-
-    // ── Шаг 3: получаем имя и сохраняем ──────────────────────────
-    if (state.step === "awaiting_name") {
-      const name = text === "-" ? null : text;
-      delete addUserState[ownerId];
-
-      db.upsertUser({
-        telegramId: state.telegramId,
-        role: state.role,
-        name,
-        addedBy: ownerId,
-      });
-
-      const user = db.getUserByTelegramId(ownerId);
-      await ctx.reply(
-        `✅ <b>Сотрудник добавлен</b>\n\n` +
-        `ID: <code>${state.telegramId}</code>\n` +
-        `Роль: <b>${roleLabel(state.role)}</b>\n` +
-        `Имя: <b>${escapeHtml(name || "не указано")}</b>`,
-        {
-          parse_mode: "HTML",
-          ...createMainKeyboard(user?.role),
-        }
-      );
-      return;
-    }
   });
 
   // ── /settings, /users совместимость ──────────────────────────────
