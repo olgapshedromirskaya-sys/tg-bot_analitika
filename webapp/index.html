@@ -772,7 +772,7 @@ function buildDashboard({ today, month, kpi, source, warehouses, stocks, atRiskP
       stocksHtml += `<div class="stock-item" style="flex-direction:column;align-items:stretch">
         <div style="display:flex;align-items:center;gap:10px">
           <div class="stock-indicator ${level}"></div>
-          <div class="stock-info"><div class="stock-name">${s.name}</div><div class="stock-meta">Арт. ${s.sku} · ${s.daysCover} дн · ${label}</div></div>
+          <div class="stock-info"><div class="stock-name">${s.name}</div><div class="stock-meta">Арт. ${s.sku} · ${s.daysCover} дн · ${label}${s.cpo != null ? ' · CPO: <span style="font-weight:700;color:' + (s.cpo < 300 ? 'var(--green,#4caf50)' : s.cpo < 800 ? 'var(--yellow,#f5c518)' : 'var(--orange,#ff8b57)') + '">' + (s.cpo >= 1000 ? Math.round(s.cpo/1000) + 'К' : Math.round(s.cpo)) + ' ₽</span>' : ''}</div></div>
           <div class="stock-qty">${fmtNum(s.qty)}</div>
         </div>${supplyHtml}</div>`;
     }
