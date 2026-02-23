@@ -42,12 +42,56 @@ function initDatabase() {
   db.exec(`
     CREATE TABLE IF NOT EXISTS users (
       telegram_id TEXT PRIMARY KEY,
-      role TEXT NOT NULL CHECK(role IN ('owner', 'manager', 'marketer', 'viewer')),
+      role TEXT NOT NULL CHECK(role IN ('owner', 'admin', 'manager')),
       name TEXT,
       added_by TEXT,
       created_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
   `);
+
+  // ── Миграция: обновляем CHECK constraint если БД уже существует ──
+  // SQLite не поддерживает ALTER TABLE ... MODIFY, поэтому пересоздаём
+  try {
+    const tableInfo = db.prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='users'").get();
+    const needsMigration = tableInfo && !tableInfo.sql.includes("'admin'");
+    if (needsMigration) {
+      db.exec(`
+        BEGIN;
+        -- Сохраняем данные
+        CREATE TABLE IF NOT EXISTS users_backup AS SELECT * FROM users;
+        -- Удаляем старую таблицу
+        DROP TABLE users;
+        -- Создаём новую с правильным CHECK
+        CREATE TABLE users (
+          telegram_id TEXT PRIMARY KEY,
+          role TEXT NOT NULL CHECK(role IN ('owner', 'admin', 'manager')),
+          name TEXT,
+          added_by TEXT,
+          created_at TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+        -- Возвращаем данные, конвертируя старые роли
+        INSERT INTO users (telegram_id, role, name, added_by, created_at)
+        SELECT
+          telegram_id,
+          CASE role
+            WHEN 'owner'    THEN 'owner'
+            WHEN 'admin'    THEN 'admin'
+            WHEN 'manager'  THEN 'manager'
+            WHEN 'marketer' THEN 'manager'
+            WHEN 'viewer'   THEN 'manager'
+            ELSE 'manager'
+          END,
+          name,
+          added_by,
+          created_at
+        FROM users_backup;
+        DROP TABLE users_backup;
+        COMMIT;
+      `);
+    }
+  } catch (migrationErr) {
+    console.error("[DB] Migration error:", migrationErr.message);
+  }
 
   db.exec(`
     CREATE TABLE IF NOT EXISTS kpi_settings (
@@ -133,10 +177,10 @@ function initDatabase() {
     FROM users
     ORDER BY
       CASE role
-        WHEN 'owner' THEN 4
-        WHEN 'manager' THEN 3
-        WHEN 'marketer' THEN 2
-        ELSE 1
+        WHEN 'owner'   THEN 3
+        WHEN 'admin'   THEN 2
+        WHEN 'manager' THEN 1
+        ELSE 0
       END DESC,
       datetime(created_at) ASC
   `);
