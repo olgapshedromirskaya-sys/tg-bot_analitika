@@ -1,7 +1,6 @@
 const axios = require("axios");
 const dayjs = require("dayjs");
 
-// ── Моковые данные (fallback) ─────────────────────────────────────
 function seededValue(seed, min, max) {
   const x = Math.sin(seed) * 10000;
   const fractional = x - Math.floor(x);
@@ -27,16 +26,15 @@ function buildMockOzonMetrics(date = dayjs()) {
       orders:   round(dailyOrders  * dayOfMonth * seededValue(daySeed + 21, 0.9,  1.15)),
       adSpend:  round(adSpend      * dayOfMonth * seededValue(daySeed + 23, 0.85, 1.1)),
     },
-    // skuAdSpend для демо
     skuAdSpend: {
       "OZ-111": round(adSpend * 0.50),
       "OZ-248": round(adSpend * 0.30),
       "OZ-335": round(adSpend * 0.20),
     },
     stocks: [
-      { sku: "OZ-111", name: "Куртка зимняя XL",       qty: round(seededValue(daySeed + 31, 12, 70)),  daysCover: round(seededValue(daySeed + 37, 2,  6)),  warehouseName: "Москва (FBO)",           orders: round(seededValue(daySeed + 71, 20, 60)) },
-      { sku: "OZ-248", name: "Термокружка 450мл",      qty: round(seededValue(daySeed + 41, 8,  120)), daysCover: round(seededValue(daySeed + 43, 8,  15)), warehouseName: "Санкт-Петербург (FBO)", orders: round(seededValue(daySeed + 73, 15, 50)) },
-      { sku: "OZ-335", name: "Рюкзак туристический",   qty: round(seededValue(daySeed + 45, 15, 80)),  daysCover: round(seededValue(daySeed + 47, 22, 40)), warehouseName: "Склад продавца (FBS)",  orders: round(seededValue(daySeed + 75, 8,  30)) },
+      { sku: "OZ-111", name: "Куртка зимняя XL",       qty: round(seededValue(daySeed + 31, 12, 70)),  daysCover: round(seededValue(daySeed + 37, 2,  6)),  warehouseName: "Москва (FBO)",          monthAdSpend: round(adSpend * 0.50), monthOrders: round(seededValue(daySeed + 71, 20, 60)), cpo: round(adSpend * 0.50 / round(seededValue(daySeed + 71, 20, 60))) },
+      { sku: "OZ-248", name: "Термокружка 450мл",      qty: round(seededValue(daySeed + 41, 8,  120)), daysCover: round(seededValue(daySeed + 43, 8,  15)), warehouseName: "Санкт-Петербург (FBO)", monthAdSpend: round(adSpend * 0.30), monthOrders: round(seededValue(daySeed + 73, 15, 50)), cpo: round(adSpend * 0.30 / round(seededValue(daySeed + 73, 15, 50))) },
+      { sku: "OZ-335", name: "Рюкзак туристический",   qty: round(seededValue(daySeed + 45, 15, 80)),  daysCover: round(seededValue(daySeed + 47, 22, 40)), warehouseName: "Склад продавца (FBS)",  monthAdSpend: round(adSpend * 0.20), monthOrders: round(seededValue(daySeed + 75, 8,  30)),  cpo: round(adSpend * 0.20 / round(seededValue(daySeed + 75, 8,  30))) },
     ],
     warehouses: [
       { name: "Москва (FBO)",          qty: round(seededValue(daySeed + 51, 100, 500)) },
@@ -45,14 +43,13 @@ function buildMockOzonMetrics(date = dayjs()) {
       { name: "Склад продавца (FBS)",  qty: round(seededValue(daySeed + 57, 20,  120)) },
     ],
     atRiskProducts: [
-      { name: "Куртка зимняя XL",     sku: "OZ-111", reason: "CTR упал за 24ч, продаж нет 3 дня",           trend: "down", revenueDelta: -41, ordersDelta: -35, ctrDelta: -28 },
-      { name: "Термокружка 450мл",    sku: "OZ-248", reason: "Остаток критичен — менее 7 дней покрытия",     trend: "down", revenueDelta: -15, ordersDelta: -19, ctrDelta: -9  },
-      { name: "Рюкзак туристический", sku: "OZ-335", reason: "Рост CTR и продаж за последние 7 дней",        trend: "up",   revenueDelta:  52, ordersDelta:  44, ctrDelta:  67 },
+      { name: "Куртка зимняя XL",     sku: "OZ-111", reason: "CTR упал за 24ч, продаж нет 3 дня",         trend: "down", revenueDelta: -41, ordersDelta: -35, ctrDelta: -28 },
+      { name: "Термокружка 450мл",    sku: "OZ-248", reason: "Остаток критичен — менее 7 дней покрытия",   trend: "down", revenueDelta: -15, ordersDelta: -19, ctrDelta: -9  },
+      { name: "Рюкзак туристический", sku: "OZ-335", reason: "Рост CTR и продаж за последние 7 дней",      trend: "up",   revenueDelta:  52, ordersDelta:  44, ctrDelta:  67 },
     ],
   };
 }
 
-// ── Реальный Ozon API ─────────────────────────────────────────────
 const OZON_BASE = "https://api-seller.ozon.ru";
 
 function ozonHeaders() {
@@ -63,7 +60,6 @@ function ozonHeaders() {
   };
 }
 
-// Аналитика продаж (суммарная)
 async function fetchOzonAnalytics(dateFrom, dateTo) {
   const resp = await axios.post(
     `${OZON_BASE}/v1/analytics/data`,
@@ -79,37 +75,7 @@ async function fetchOzonAnalytics(dateFrom, dateTo) {
   return resp.data?.result?.data || [];
 }
 
-// Аналитика по товарам — для заказов по артикулу
-async function fetchOzonAnalyticsBySku(dateFrom, dateTo) {
-  try {
-    const resp = await axios.post(
-      `${OZON_BASE}/v1/analytics/data`,
-      {
-        date_from: dateFrom.format("YYYY-MM-DD"),
-        date_to:   dateTo.format("YYYY-MM-DD"),
-        metrics:   ["ordered_units"],
-        dimension: ["sku"],
-        limit: 1000,
-      },
-      { headers: ozonHeaders(), timeout: 15000 }
-    );
-    const rows = resp.data?.result?.data || [];
-    // { "123456": 45, ... }
-    const skuOrders = {};
-    for (const row of rows) {
-      const sku = row.dimensions?.[0]?.id;
-      if (!sku) continue;
-      const orders = (row.metrics || []).find(m => m.key === "ordered_units")?.value || 0;
-      skuOrders[String(sku)] = orders;
-    }
-    return skuOrders;
-  } catch (e) {
-    console.error("[Ozon Analytics by SKU] Ошибка:", e.message);
-    return {};
-  }
-}
-
-// Расходы на рекламу — суммарные
+// Расходы суммарные — надёжный эндпоинт
 async function fetchOzonAdSpend(dateFrom, dateTo) {
   try {
     const resp = await axios.post(
@@ -117,14 +83,14 @@ async function fetchOzonAdSpend(dateFrom, dateTo) {
       {
         date_from: dateFrom.format("YYYY-MM-DD"),
         date_to:   dateTo.format("YYYY-MM-DD"),
-        metrics:   ["views", "clicks", "orders", "revenue", "expense"],
+        metrics:   ["expense"],
         dimension: ["day"],
       },
       { headers: ozonHeaders(), timeout: 15000 }
     );
     const rows = resp.data?.result?.data || [];
     return rows.reduce((sum, r) => {
-      const exp = r.metrics?.find(m => m.key === "expense");
+      const exp = (r.metrics || []).find(m => m.key === "expense");
       return sum + (exp?.value || 0);
     }, 0);
   } catch {
@@ -132,7 +98,7 @@ async function fetchOzonAdSpend(dateFrom, dateTo) {
   }
 }
 
-// Расходы на рекламу по артикулам — для CPO по SKU
+// Расходы по артикулам — отдельный безопасный запрос, не роняет всё при ошибке
 async function fetchOzonAdSpendBySku(dateFrom, dateTo) {
   try {
     const resp = await axios.post(
@@ -141,26 +107,28 @@ async function fetchOzonAdSpendBySku(dateFrom, dateTo) {
         date_from: dateFrom.format("YYYY-MM-DD"),
         date_to:   dateTo.format("YYYY-MM-DD"),
         metrics:   ["expense", "orders"],
-        dimension: ["sku"],   // разбивка по товарам
+        dimension: ["offer_id"],
       },
-      { headers: ozonHeaders(), timeout: 15000 }
+      { headers: ozonHeaders(), timeout: 10000 }
     );
     const rows = resp.data?.result?.data || [];
-    const skuAdSpend = {};
+    const skuAdSpend  = {};
+    const skuOrders   = {};
     for (const row of rows) {
       const sku = row.dimensions?.[0]?.id;
       if (!sku) continue;
       const expense = (row.metrics || []).find(m => m.key === "expense")?.value || 0;
-      skuAdSpend[String(sku)] = (skuAdSpend[String(sku)] || 0) + expense;
+      const orders  = (row.metrics || []).find(m => m.key === "orders")?.value  || 0;
+      skuAdSpend[sku] = (skuAdSpend[sku] || 0) + expense;
+      skuOrders[sku]  = (skuOrders[sku]  || 0) + orders;
     }
-    return skuAdSpend;
+    return { skuAdSpend, skuOrders };
   } catch (e) {
-    console.error("[Ozon AdSpend by SKU] Ошибка:", e.message);
-    return {};
+    console.error("[Ozon AdSpend by SKU] Ошибка (не критично):", e.message);
+    return { skuAdSpend: {}, skuOrders: {} };
   }
 }
 
-// Остатки на складах
 async function fetchOzonStocks() {
   try {
     const resp = await axios.post(
@@ -169,10 +137,8 @@ async function fetchOzonStocks() {
       { headers: ozonHeaders(), timeout: 15000 }
     );
     const items = resp.data?.result?.items || [];
-
     const warehouseMap = {};
     const stocks = [];
-
     for (const item of items) {
       for (const stock of (item.stocks || [])) {
         const wh = stock.warehouse_name || "Основной склад";
@@ -181,8 +147,7 @@ async function fetchOzonStocks() {
       const totalQty = (item.stocks || []).reduce((s, st) => s + (st.present || 0), 0);
       if (totalQty > 0) {
         stocks.push({
-          sku:          item.offer_id    || String(item.product_id),
-          productId:    String(item.product_id || ""),  // для матчинга с рекламой
+          sku:          item.offer_id || String(item.product_id),
           name:         item.name || item.offer_id,
           qty:          totalQty,
           daysCover:    0,
@@ -190,7 +155,6 @@ async function fetchOzonStocks() {
         });
       }
     }
-
     const warehouses = Object.entries(warehouseMap).map(([name, qty]) => ({ name, qty }));
     return { stocks: stocks.slice(0, 20), warehouses };
   } catch {
@@ -198,7 +162,6 @@ async function fetchOzonStocks() {
   }
 }
 
-// ── Главная функция ───────────────────────────────────────────────
 async function getOzonMetrics({ date } = {}) {
   const clientId = (process.env.OZON_CLIENT_ID || "").trim();
   const apiKey   = (process.env.OZON_API_KEY   || "").trim();
@@ -216,12 +179,17 @@ async function getOzonMetrics({ date } = {}) {
     const todayData    = await fetchOzonAnalytics(todayStart, now);
     const monthData    = await fetchOzonAnalytics(monthStart, now);
     const monthAdSpend = await fetchOzonAdSpend(monthStart, now);
-
-    // По артикулам — для CPO
-    const skuAdSpend  = await fetchOzonAdSpendBySku(monthStart, now);
-    const skuOrdersMap = await fetchOzonAnalyticsBySku(monthStart, now);
-
     const { stocks, warehouses } = await fetchOzonStocks();
+
+    // CPO по артикулам — безопасно, не роняет всё при ошибке
+    const { skuAdSpend, skuOrders } = await fetchOzonAdSpendBySku(monthStart, now);
+    for (const s of stocks) {
+      const ad     = skuAdSpend[s.sku] || 0;
+      const orders = skuOrders[s.sku]  || 0;
+      s.monthAdSpend = round(ad);
+      s.monthOrders  = orders;
+      s.cpo          = (ad > 0 && orders > 0) ? round(ad / orders) : null;
+    }
 
     function sumMetric(data, key) {
       return data.reduce((sum, row) => {
@@ -239,32 +207,13 @@ async function getOzonMetrics({ date } = {}) {
     const dayOfMonth   = now.date();
     const todayAdSpend = dayOfMonth > 0 ? round(monthAdSpend / dayOfMonth) : 0;
 
-    // Добавляем CPO в каждый товар
-    for (const s of stocks) {
-      const key    = s.productId || s.sku;
-      const ad     = skuAdSpend[key]   || skuAdSpend[s.sku]   || 0;
-      const orders = skuOrdersMap[key] || skuOrdersMap[s.sku] || 0;
-      s.monthAdSpend = round(ad);
-      s.monthOrders  = orders;
-      s.cpo          = orders > 0 ? round(ad / orders) : null;
-    }
-
     console.log(`[Ozon API] Сегодня: выручка=${todayRevenue}, заказы=${todayOrders}`);
 
     return {
       source:  "api",
       channel: "ozon",
-      today: {
-        revenue:    todayRevenue,
-        orders:     todayOrders,
-        conversion: todayConv,
-        adSpend:    todayAdSpend,
-      },
-      month: {
-        revenue:  monthRevenue,
-        orders:   monthOrders,
-        adSpend:  monthAdSpend,
-      },
+      today: { revenue: todayRevenue, orders: todayOrders, conversion: todayConv, adSpend: todayAdSpend },
+      month: { revenue: monthRevenue, orders: monthOrders, adSpend: monthAdSpend },
       skuAdSpend,
       stocks,
       warehouses,
@@ -272,18 +221,15 @@ async function getOzonMetrics({ date } = {}) {
     };
   } catch (error) {
     console.error("[Ozon API] Ошибка:", error.response?.status, error.message);
-
     if (error.response?.status === 401 || error.response?.status === 403) {
       return {
-        source: "error",
-        channel: "ozon",
+        source: "error", channel: "ozon",
         error: "Неверные ключи Ozon. Проверьте Client-ID и API-ключ в настройках.",
         today: { revenue: 0, orders: 0, conversion: 0, adSpend: 0 },
         month: { revenue: 0, orders: 0, adSpend: 0 },
         stocks: [], warehouses: [], atRiskProducts: [],
       };
     }
-
     console.log("[Ozon] Fallback на демо-данные");
     return buildMockOzonMetrics(date ? dayjs(date) : undefined);
   }
