@@ -4,16 +4,12 @@ const multer = require("multer");
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
 
-// Кэш данных — не ходим в API при каждом запросе
 const cache = {
   wb:   { data: null, updatedAt: 0 },
   ozon: { data: null, updatedAt: 0 },
 };
-const CACHE_TTL_MS = 15 * 60 * 1000; // 15 минут
+const CACHE_TTL_MS = 15 * 60 * 1000;
 
-// Расчёт чистой прибыли — отдельно для каждой площадки
-// commission и min_profitability — свои у каждой площадки
-// cost_percent — общая себестоимость
 function calcFinance(revenue, adSpend, kpi) {
   if (!revenue) return { cost: 0, commission: 0, adSpend: 0, netProfit: 0, margin: 0, isHealthy: false };
   const costPct    = Number(kpi.cost_percent      || 40);
@@ -31,29 +27,17 @@ function startWebAppServer({ db }) {
   const app = express();
 
   app.use(express.json());
+  app.use("/assets", express.static(path.join(__dirname, "../../webapp/assets")));
 
-  app.use(
-    "/assets",
-    express.static(path.join(__dirname, "../../webapp/assets"))
-  );
-
-  // ── Статус API-ключей ────────────────────────────────────────────
   app.get("/api/credentials/status", (req, res) => {
-    res.json({
-      ozon: db.hasCredentials("ozon"),
-      wb:   db.hasCredentials("wb"),
-    });
+    res.json({ ozon: db.hasCredentials("ozon"), wb: db.hasCredentials("wb") });
   });
 
-  // ── Сохранить API-ключи ──────────────────────────────────────────
   app.post("/api/credentials", (req, res) => {
     try {
       const { platform, apiKey, clientId } = req.body;
-      if (!platform || !apiKey) {
-        return res.status(400).json({ error: "Не указана платформа или ключ" });
-      }
+      if (!platform || !apiKey) return res.status(400).json({ error: "Не указана платформа или ключ" });
       db.saveApiCredentials({ platform, apiKey, clientId: clientId || "" });
-
       if (platform === "ozon") {
         process.env.OZON_API_KEY   = apiKey;
         process.env.OZON_CLIENT_ID = clientId || "";
@@ -61,15 +45,11 @@ function startWebAppServer({ db }) {
         process.env.WB_API_KEY   = apiKey;
         process.env.WB_API_TOKEN = apiKey;
       }
-
       cache[platform] = { data: null, updatedAt: 0 };
       res.json({ ok: true });
-    } catch (e) {
-      res.status(500).json({ error: e.message });
-    }
+    } catch (e) { res.status(500).json({ error: e.message }); }
   });
 
-  // ── KPI общий (обратная совместимость) ───────────────────────────
   app.get("/api/kpi", (req, res) => {
     try { res.json(db.getKpiSettings()); }
     catch (e) { res.status(500).json({ error: e.message }); }
@@ -78,84 +58,52 @@ function startWebAppServer({ db }) {
   app.post("/api/kpi", (req, res) => {
     try {
       const { key, value } = req.body;
-      if (!key || value === undefined) {
-        return res.status(400).json({ error: "Не указан ключ или значение" });
-      }
+      if (!key || value === undefined) return res.status(400).json({ error: "Не указан ключ или значение" });
       db.setKpiValue(key, Number(value));
       res.json({ ok: true });
-    } catch (e) {
-      res.status(500).json({ error: e.message });
-    }
+    } catch (e) { res.status(500).json({ error: e.message }); }
   });
 
-  // ── KPI по платформе: GET /api/kpi/ozon  или  /api/kpi/wb ────────
   app.get("/api/kpi/:platform", (req, res) => {
     try {
       const { platform } = req.params;
-      if (!["ozon", "wb"].includes(platform)) {
-        return res.status(400).json({ error: "Неизвестная платформа" });
-      }
+      if (!["ozon", "wb"].includes(platform)) return res.status(400).json({ error: "Неизвестная платформа" });
       res.json(db.getKpiByPlatform(platform));
-    } catch (e) {
-      res.status(500).json({ error: e.message });
-    }
+    } catch (e) { res.status(500).json({ error: e.message }); }
   });
 
-  // ── KPI по платформе: POST /api/kpi/ozon  или  /api/kpi/wb ───────
-  // Тело запроса: { revenue, conversion, ad_budget, daily_orders }
   app.post("/api/kpi/:platform", (req, res) => {
     try {
       const { platform } = req.params;
-      if (!["ozon", "wb"].includes(platform)) {
-        return res.status(400).json({ error: "Неизвестная платформа" });
-      }
+      if (!["ozon", "wb"].includes(platform)) return res.status(400).json({ error: "Неизвестная платформа" });
       const { revenue, conversion, ad_budget, daily_orders } = req.body;
       db.setKpiForPlatform(platform, { revenue, conversion, ad_budget, daily_orders });
-      // Сбрасываем кэш — данные изменились
       cache[platform] = { data: null, updatedAt: 0 };
       res.json({ ok: true });
-    } catch (e) {
-      res.status(500).json({ error: e.message });
-    }
+    } catch (e) { res.status(500).json({ error: e.message }); }
   });
 
-  // ── Финансовые настройки платформы ──────────────────────────────
-  // POST /api/finance/ozon или /api/finance/wb
-  // commission, min_profitability — раздельные для каждой площадки
-  // cost_percent — общая себестоимость (сохраняется без префикса)
   app.post("/api/finance/:platform", (req, res) => {
     try {
       const { platform } = req.params;
-      if (!["ozon", "wb"].includes(platform)) {
-        return res.status(400).json({ error: "Неизвестная платформа" });
-      }
+      if (!["ozon", "wb"].includes(platform)) return res.status(400).json({ error: "Неизвестная платформа" });
       const { commission, min_profitability, cost_percent } = req.body;
       db.setFinanceForPlatform(platform, { commission, min_profitability, cost_percent });
       cache[platform] = { data: null, updatedAt: 0 };
       res.json({ ok: true });
-    } catch (e) {
-      res.status(500).json({ error: e.message });
-    }
+    } catch (e) { res.status(500).json({ error: e.message }); }
   });
 
-  // ── Себестоимость: загрузка CSV ──────────────────────────────────
-  // Формат: артикул ; наименование ; себестоимость
-  // Общая для обеих площадок
   app.post("/api/costs/upload", upload.single("file"), (req, res) => {
     try {
       if (!req.file) return res.status(400).json({ error: "Файл не загружен" });
-
       const text  = req.file.buffer.toString("utf8").replace(/\r/g, "");
       const lines = text.split("\n").filter(l => l.trim());
       const sep   = lines[0].includes(";") ? ";" : ",";
-
-      // Пропускаем заголовок если первая колонка не число
       const startIdx = isNaN(lines[0].split(sep)[0].trim()) ? 1 : 0;
-
       db.deleteAllProductCosts();
       let imported = 0;
       const errors = [];
-
       for (let i = startIdx; i < lines.length; i++) {
         const parts = lines[i].split(sep).map(s => s.trim().replace(/^["']|["']$/g, ""));
         const sku     = parts[0];
@@ -167,11 +115,8 @@ function startWebAppServer({ db }) {
         db.upsertProductCost({ sku, name, cost });
         imported++;
       }
-
       res.json({ ok: true, imported, errors });
-    } catch (e) {
-      res.status(500).json({ error: e.message });
-    }
+    } catch (e) { res.status(500).json({ error: e.message }); }
   });
 
   app.get("/api/costs", (req, res) => {
@@ -184,19 +129,15 @@ function startWebAppServer({ db }) {
     catch (e) { res.status(500).json({ error: e.message }); }
   });
 
-  // ── Комиссии WB: загрузка официального Excel ─────────────────────
   app.post("/api/commissions/wb/upload", upload.single("file"), (req, res) => {
     try {
       if (!req.file) return res.status(400).json({ error: "Файл не загружен" });
-
       const XLSX  = require("xlsx");
       const wb    = XLSX.read(req.file.buffer, { type: "buffer" });
       const sheet = wb.Sheets[wb.SheetNames[0]];
       const rows  = XLSX.utils.sheet_to_json(sheet, { defval: "" });
-
       db.deleteCommissions("wb");
       let imported = 0;
-
       for (const row of rows) {
         const keys    = Object.keys(row);
         const catKey  = keys.find(k => /катег|наимен|предмет/i.test(k));
@@ -208,42 +149,27 @@ function startWebAppServer({ db }) {
         db.upsertCommission({ platform: "wb", category, rate });
         imported++;
       }
-
       res.json({ ok: true, imported });
-    } catch (e) {
-      res.status(500).json({ error: e.message });
-    }
+    } catch (e) { res.status(500).json({ error: e.message }); }
   });
 
-  // ── Комиссии Ozon: автозагрузка через API ─────────────────────────
   app.post("/api/commissions/ozon/fetch", async (req, res) => {
     try {
       const creds = db.getApiCredentials("ozon");
-      if (!creds || !creds.api_key) {
-        return res.status(400).json({ error: "Сначала добавьте API-ключи Ozon" });
-      }
-
+      if (!creds || !creds.api_key) return res.status(400).json({ error: "Сначала добавьте API-ключи Ozon" });
       const response = await fetch("https://api-seller.ozon.ru/v1/category/commission", {
         method: "POST",
-        headers: {
-          "Client-Id":    creds.client_id || "",
-          "Api-Key":      creds.api_key,
-          "Content-Type": "application/json",
-        },
+        headers: { "Client-Id": creds.client_id || "", "Api-Key": creds.api_key, "Content-Type": "application/json" },
         body: JSON.stringify({ category_id: [], type: "fbo" }),
       });
-
       if (!response.ok) {
         const err = await response.text();
         return res.status(400).json({ error: `Ozon API: ${response.status} — ${err}` });
       }
-
       const data  = await response.json();
       const items = data.result || data.items || [];
-
       db.deleteCommissions("ozon");
       let imported = 0;
-
       for (const item of items) {
         const category = item.category_name || item.name || String(item.category_id || "");
         const rate     = item.sales_percent || item.percent || item.commission_percent || 0;
@@ -251,37 +177,27 @@ function startWebAppServer({ db }) {
         db.upsertCommission({ platform: "ozon", category, rate: Number(rate) });
         imported++;
       }
-
       res.json({ ok: true, imported });
-    } catch (e) {
-      res.status(500).json({ error: e.message });
-    }
+    } catch (e) { res.status(500).json({ error: e.message }); }
   });
 
-  // ── Получить комиссии платформы ───────────────────────────────────
   app.get("/api/commissions/:platform", (req, res) => {
     try {
       const { platform } = req.params;
-      if (!["ozon", "wb"].includes(platform)) {
-        return res.status(400).json({ error: "Неизвестная платформа" });
-      }
+      if (!["ozon", "wb"].includes(platform)) return res.status(400).json({ error: "Неизвестная платформа" });
       res.json(db.getCommissions(platform));
-    } catch (e) {
-      res.status(500).json({ error: e.message });
-    }
+    } catch (e) { res.status(500).json({ error: e.message }); }
   });
 
-  // ── Данные WB (с кэшем 15 минут) ────────────────────────────────
+  // ── Данные WB ────────────────────────────────────────────────────
   app.get("/api/data/wb", async (req, res) => {
     try {
       const creds = db.getApiCredentials("wb");
-
       const now = Date.now();
       if (cache.wb.data && (now - cache.wb.updatedAt) < CACHE_TTL_MS) {
         console.log("[WB] Отдаю из кэша");
         return res.json(cache.wb.data);
       }
-
       if (creds) {
         process.env.WB_API_KEY   = creds.api_key;
         process.env.WB_API_TOKEN = creds.api_key;
@@ -289,25 +205,20 @@ function startWebAppServer({ db }) {
         process.env.WB_API_KEY   = "";
         process.env.WB_API_TOKEN = "";
       }
-
       delete require.cache[require.resolve("../api/wildberries")];
       const { getWildberriesMetrics } = require("../api/wildberries");
       const metrics = await getWildberriesMetrics();
-
       const kpi = typeof db.getKpiByPlatform === "function"
-        ? db.getKpiByPlatform("wb")
-        : db.getKpiSettings();
-
-      // Средняя комиссия из загруженных категорий WB, иначе запасной %
+        ? db.getKpiByPlatform("wb") : db.getKpiSettings();
       const avgComm = db.getAvgCommission("wb");
       const finKpi  = { ...kpi, commission: avgComm ?? kpi.commission };
-
       const result = {
         today:          metrics.today          || null,
         month:          metrics.month          || null,
         stocks:         metrics.stocks         || [],
         warehouses:     metrics.warehouses     || [],
         atRiskProducts: metrics.atRiskProducts || [],
+        redemption:     metrics.redemption     || null,  // ← выкуп%
         kpi,
         finance: {
           today: calcFinance(metrics.today?.revenue || 0, metrics.today?.adSpend || 0, finKpi),
@@ -316,28 +227,22 @@ function startWebAppServer({ db }) {
         source:   metrics.source || "unknown",
         cachedAt: new Date().toISOString(),
       };
-
       if (metrics.source !== "error") {
         cache.wb = { data: result, updatedAt: now };
       }
-
       res.json(result);
-    } catch (e) {
-      res.status(500).json({ error: e.message });
-    }
+    } catch (e) { res.status(500).json({ error: e.message }); }
   });
 
-  // ── Данные Ozon (с кэшем 15 минут) ──────────────────────────────
+  // ── Данные Ozon ──────────────────────────────────────────────────
   app.get("/api/data/ozon", async (req, res) => {
     try {
       const creds = db.getApiCredentials("ozon");
-
       const now = Date.now();
       if (cache.ozon.data && (now - cache.ozon.updatedAt) < CACHE_TTL_MS) {
         console.log("[Ozon] Отдаю из кэша");
         return res.json(cache.ozon.data);
       }
-
       if (creds) {
         process.env.OZON_API_KEY   = creds.api_key;
         process.env.OZON_CLIENT_ID = creds.client_id || "";
@@ -345,25 +250,20 @@ function startWebAppServer({ db }) {
         process.env.OZON_API_KEY   = "";
         process.env.OZON_CLIENT_ID = "";
       }
-
       delete require.cache[require.resolve("../api/ozon")];
       const { getOzonMetrics } = require("../api/ozon");
       const metrics = await getOzonMetrics();
-
       const kpi = typeof db.getKpiByPlatform === "function"
-        ? db.getKpiByPlatform("ozon")
-        : db.getKpiSettings();
-
-      // Средняя комиссия из загруженных категорий Ozon, иначе запасной %
+        ? db.getKpiByPlatform("ozon") : db.getKpiSettings();
       const avgComm = db.getAvgCommission("ozon");
       const finKpi  = { ...kpi, commission: avgComm ?? kpi.commission };
-
       const result = {
         today:          metrics.today          || null,
         month:          metrics.month          || null,
         stocks:         metrics.stocks         || [],
         warehouses:     metrics.warehouses     || [],
         atRiskProducts: metrics.atRiskProducts || [],
+        redemption:     metrics.redemption     || null,  // ← выкуп%
         kpi,
         finance: {
           today: calcFinance(metrics.today?.revenue || 0, metrics.today?.adSpend || 0, finKpi),
@@ -372,24 +272,17 @@ function startWebAppServer({ db }) {
         source:   metrics.source || "unknown",
         cachedAt: new Date().toISOString(),
       };
-
       if (metrics.source !== "error") {
         cache.ozon = { data: result, updatedAt: now };
       }
-
       res.json(result);
-    } catch (e) {
-      res.status(500).json({ error: e.message });
-    }
+    } catch (e) { res.status(500).json({ error: e.message }); }
   });
 
-  // ── Удалить API-ключи ───────────────────────────────────────────
   app.delete("/api/credentials/:platform", (req, res) => {
     try {
       const { platform } = req.params;
-      if (!['ozon','wb'].includes(platform)) {
-        return res.status(400).json({ error: 'Неизвестная платформа' });
-      }
+      if (!['ozon','wb'].includes(platform)) return res.status(400).json({ error: 'Неизвестная платформа' });
       db.deleteApiCredentials(platform);
       cache[platform] = { data: null, updatedAt: 0 };
       if (platform === 'ozon') {
@@ -400,12 +293,9 @@ function startWebAppServer({ db }) {
         process.env.WB_API_TOKEN = '';
       }
       res.json({ ok: true });
-    } catch (e) {
-      res.status(500).json({ error: e.message });
-    }
+    } catch (e) { res.status(500).json({ error: e.message }); }
   });
 
-  // ── Главная страница ─────────────────────────────────────────────
   app.get("*", (req, res) => {
     res.sendFile(path.join(__dirname, "../../webapp/index.html"));
   });
