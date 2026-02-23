@@ -514,12 +514,30 @@ function formatStocksMessage(snapshot, kpi) {
 }
 
 function formatSettingsMessage(kpi) {
+  function fmtMoney(v) { return `₽${Math.round(Number(v || 0)).toLocaleString("ru-RU")}`; }
+
+  function platformBlock(prefix, label, emoji) {
+    const revenue      = kpi[`${prefix}_revenue`]      ?? kpi.revenue      ?? 0;
+    const conversion   = kpi[`${prefix}_conversion`]   ?? kpi.conversion   ?? 0;
+    const ad_budget    = kpi[`${prefix}_ad_budget`]    ?? kpi.ad_budget    ?? 0;
+    const daily_orders = kpi[`${prefix}_daily_orders`] ?? kpi.daily_orders ?? 0;
+    return [
+      `${emoji} <b>${label}</b>`,
+      `  💰 Выручка (мес): <b>${fmtMoney(revenue)}</b>`,
+      `  🔄 Конверсия: <b>${Number(conversion).toFixed(2)}%</b>`,
+      `  📢 Рекл. бюджет (мес): <b>${fmtMoney(ad_budget)}</b>`,
+      `  📦 Заказы (день): <b>${Math.round(daily_orders)}</b>`,
+    ].join("\n");
+  }
+
   return [
-    "⚙️ <b>Текущие KPI</b>",
-    `• Выручка (мес): <b>${formatMoney(kpi.revenue)}</b>`,
-    `• Конверсия: <b>${Number(kpi.conversion).toFixed(2)}%</b>`,
-    `• Рекламный бюджет (мес): <b>${formatMoney(kpi.ad_budget)}</b>`,
-    `• Заказы (день): <b>${Math.round(kpi.daily_orders)}</b>`,
+    "⚙️ <b>Настройки KPI</b>",
+    "",
+    platformBlock("ozon", "Ozon", "🔵"),
+    "",
+    platformBlock("wb", "Wildberries", "🟣"),
+    "",
+    "<i>Чтобы изменить — нажмите «⚙️ Изменить KPI»</i>",
   ].join("\n");
 }
 
