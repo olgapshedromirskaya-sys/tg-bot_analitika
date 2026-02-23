@@ -614,7 +614,7 @@ function buildCpoCard(t, stocks) {
         <div style="font-size:16px;font-weight:800;color:${cpoColor(s.cpo)};flex-shrink:0">${cpoIcon(s.cpo)} ${fmtRub(s.cpo)}</div>
       </div>`).join('');
 
-    return \`
+    return `
       <div class="section-title">🎯 CPO — стоимость одного заказа по артикулам</div>
       <div style="background:var(--bg-card-strong,#151929);border:1px solid var(--line);border-radius:14px;overflow:hidden;margin-bottom:12px">
         <div style="display:flex;justify-content:flex-end;gap:12px;padding:8px 12px;font-size:11px;color:var(--text-soft);border-bottom:1px solid var(--line)">
@@ -623,14 +623,14 @@ function buildCpoCard(t, stocks) {
           <span style="color:var(--orange,#ff8b57)">🔴 &gt;800 ₽</span>
         </div>
         \${rows}
-      </div>\`;
+      </div>`;
   }
 
   // Fallback — общий CPO если нет данных по артикулам
   if (!generalCpo) return '';
   const color = cpoColor(generalCpo);
   const icon  = cpoIcon(generalCpo);
-  return \`
+  return `
     <div class="kpi-card" style="margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;gap:12px">
       <div>
         <div class="kpi-label">🎯 CPO — стоимость одного заказа</div>
@@ -642,7 +642,7 @@ function buildCpoCard(t, stocks) {
         <div style="color:var(--yellow,#f5c518)">🟡 300–800 ₽ — норма</div>
         <div style="color:var(--orange,#ff8b57)">🔴 выше 800 ₽ — дорого</div>
       </div>
-    </div>\`;
+    </div>`;
 }
 
 function buildFinanceCard(finance) {
