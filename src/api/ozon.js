@@ -23,40 +23,31 @@ function buildMockOzonMetrics(date = dayjs()) {
     channel: "ozon",
     today: { revenue: dailyRevenue, orders: dailyOrders, conversion, adSpend },
     month: {
-      revenue:  round(dailyRevenue * dayOfMonth * seededValue(daySeed + 19, 0.9, 1.2)),
-      orders:   round(dailyOrders  * dayOfMonth * seededValue(daySeed + 21, 0.9, 1.15)),
+      revenue:  round(dailyRevenue * dayOfMonth * seededValue(daySeed + 19, 0.9,  1.2)),
+      orders:   round(dailyOrders  * dayOfMonth * seededValue(daySeed + 21, 0.9,  1.15)),
       adSpend:  round(adSpend      * dayOfMonth * seededValue(daySeed + 23, 0.85, 1.1)),
     },
+    // skuAdSpend для демо
+    skuAdSpend: {
+      "OZ-111": round(adSpend * 0.50),
+      "OZ-248": round(adSpend * 0.30),
+      "OZ-335": round(adSpend * 0.20),
+    },
     stocks: [
-      { sku: "OZ-111", name: "Куртка зимняя XL",   qty: round(seededValue(daySeed + 31, 12, 70)),  daysCover: round(seededValue(daySeed + 37, 2, 6)),  warehouseName: "Москва (FBO)" },
-      { sku: "OZ-248", name: "Термокружка 450мл",  qty: round(seededValue(daySeed + 41, 8, 120)),  daysCover: round(seededValue(daySeed + 43, 8, 15)), warehouseName: "Санкт-Петербург (FBO)" },
-      { sku: "OZ-335", name: "Рюкзак туристический", qty: round(seededValue(daySeed + 45, 15, 80)), daysCover: round(seededValue(daySeed + 47, 22, 40)), warehouseName: "Склад продавца (FBS)" },
+      { sku: "OZ-111", name: "Куртка зимняя XL",       qty: round(seededValue(daySeed + 31, 12, 70)),  daysCover: round(seededValue(daySeed + 37, 2,  6)),  warehouseName: "Москва (FBO)",           orders: round(seededValue(daySeed + 71, 20, 60)) },
+      { sku: "OZ-248", name: "Термокружка 450мл",      qty: round(seededValue(daySeed + 41, 8,  120)), daysCover: round(seededValue(daySeed + 43, 8,  15)), warehouseName: "Санкт-Петербург (FBO)", orders: round(seededValue(daySeed + 73, 15, 50)) },
+      { sku: "OZ-335", name: "Рюкзак туристический",   qty: round(seededValue(daySeed + 45, 15, 80)),  daysCover: round(seededValue(daySeed + 47, 22, 40)), warehouseName: "Склад продавца (FBS)",  orders: round(seededValue(daySeed + 75, 8,  30)) },
     ],
     warehouses: [
       { name: "Москва (FBO)",          qty: round(seededValue(daySeed + 51, 100, 500)) },
-      { name: "Санкт-Петербург (FBO)", qty: round(seededValue(daySeed + 53, 50, 300)) },
-      { name: "Екатеринбург (FBO)",    qty: round(seededValue(daySeed + 55, 30, 200)) },
-      { name: "Склад продавца (FBS)",  qty: round(seededValue(daySeed + 57, 20, 120)) },
+      { name: "Санкт-Петербург (FBO)", qty: round(seededValue(daySeed + 53, 50,  300)) },
+      { name: "Екатеринбург (FBO)",    qty: round(seededValue(daySeed + 55, 30,  200)) },
+      { name: "Склад продавца (FBS)",  qty: round(seededValue(daySeed + 57, 20,  120)) },
     ],
     atRiskProducts: [
-      {
-        name: "Куртка зимняя XL", sku: "OZ-111",
-        reason: "CTR упал за 24ч, продаж нет 3 дня",
-        trend: "down",
-        revenueDelta: -41, ordersDelta: -35, ctrDelta: -28,
-      },
-      {
-        name: "Термокружка 450мл", sku: "OZ-248",
-        reason: "Остаток критичен — менее 7 дней покрытия",
-        trend: "down",
-        revenueDelta: -15, ordersDelta: -19, ctrDelta: -9,
-      },
-      {
-        name: "Рюкзак туристический", sku: "OZ-335",
-        reason: "Рост CTR и продаж за последние 7 дней",
-        trend: "up",
-        revenueDelta: 52, ordersDelta: 44, ctrDelta: 67,
-      },
+      { name: "Куртка зимняя XL",     sku: "OZ-111", reason: "CTR упал за 24ч, продаж нет 3 дня",           trend: "down", revenueDelta: -41, ordersDelta: -35, ctrDelta: -28 },
+      { name: "Термокружка 450мл",    sku: "OZ-248", reason: "Остаток критичен — менее 7 дней покрытия",     trend: "down", revenueDelta: -15, ordersDelta: -19, ctrDelta: -9  },
+      { name: "Рюкзак туристический", sku: "OZ-335", reason: "Рост CTR и продаж за последние 7 дней",        trend: "up",   revenueDelta:  52, ordersDelta:  44, ctrDelta:  67 },
     ],
   };
 }
@@ -66,21 +57,21 @@ const OZON_BASE = "https://api-seller.ozon.ru";
 
 function ozonHeaders() {
   return {
-    "Client-Id": process.env.OZON_CLIENT_ID || "",
-    "Api-Key":   process.env.OZON_API_KEY   || "",
+    "Client-Id":    process.env.OZON_CLIENT_ID || "",
+    "Api-Key":      process.env.OZON_API_KEY   || "",
     "Content-Type": "application/json",
   };
 }
 
-// Аналитика продаж
+// Аналитика продаж (суммарная)
 async function fetchOzonAnalytics(dateFrom, dateTo) {
   const resp = await axios.post(
     `${OZON_BASE}/v1/analytics/data`,
     {
-      date_from:  dateFrom.format("YYYY-MM-DD"),
-      date_to:    dateTo.format("YYYY-MM-DD"),
-      metrics:    ["revenue", "ordered_units", "session_view_pdp", "conv_tocart_pdp"],
-      dimension:  ["day"],
+      date_from: dateFrom.format("YYYY-MM-DD"),
+      date_to:   dateTo.format("YYYY-MM-DD"),
+      metrics:   ["revenue", "ordered_units", "session_view_pdp", "conv_tocart_pdp"],
+      dimension: ["day"],
       limit: 1000,
     },
     { headers: ozonHeaders(), timeout: 15000 }
@@ -88,7 +79,37 @@ async function fetchOzonAnalytics(dateFrom, dateTo) {
   return resp.data?.result?.data || [];
 }
 
-// Расходы на рекламу
+// Аналитика по товарам — для заказов по артикулу
+async function fetchOzonAnalyticsBySku(dateFrom, dateTo) {
+  try {
+    const resp = await axios.post(
+      `${OZON_BASE}/v1/analytics/data`,
+      {
+        date_from: dateFrom.format("YYYY-MM-DD"),
+        date_to:   dateTo.format("YYYY-MM-DD"),
+        metrics:   ["ordered_units"],
+        dimension: ["sku"],
+        limit: 1000,
+      },
+      { headers: ozonHeaders(), timeout: 15000 }
+    );
+    const rows = resp.data?.result?.data || [];
+    // { "123456": 45, ... }
+    const skuOrders = {};
+    for (const row of rows) {
+      const sku = row.dimensions?.[0]?.id;
+      if (!sku) continue;
+      const orders = (row.metrics || []).find(m => m.key === "ordered_units")?.value || 0;
+      skuOrders[String(sku)] = orders;
+    }
+    return skuOrders;
+  } catch (e) {
+    console.error("[Ozon Analytics by SKU] Ошибка:", e.message);
+    return {};
+  }
+}
+
+// Расходы на рекламу — суммарные
 async function fetchOzonAdSpend(dateFrom, dateTo) {
   try {
     const resp = await axios.post(
@@ -111,6 +132,34 @@ async function fetchOzonAdSpend(dateFrom, dateTo) {
   }
 }
 
+// Расходы на рекламу по артикулам — для CPO по SKU
+async function fetchOzonAdSpendBySku(dateFrom, dateTo) {
+  try {
+    const resp = await axios.post(
+      `${OZON_BASE}/v1/statistics/campaign/product/report`,
+      {
+        date_from: dateFrom.format("YYYY-MM-DD"),
+        date_to:   dateTo.format("YYYY-MM-DD"),
+        metrics:   ["expense", "orders"],
+        dimension: ["sku"],   // разбивка по товарам
+      },
+      { headers: ozonHeaders(), timeout: 15000 }
+    );
+    const rows = resp.data?.result?.data || [];
+    const skuAdSpend = {};
+    for (const row of rows) {
+      const sku = row.dimensions?.[0]?.id;
+      if (!sku) continue;
+      const expense = (row.metrics || []).find(m => m.key === "expense")?.value || 0;
+      skuAdSpend[String(sku)] = (skuAdSpend[String(sku)] || 0) + expense;
+    }
+    return skuAdSpend;
+  } catch (e) {
+    console.error("[Ozon AdSpend by SKU] Ошибка:", e.message);
+    return {};
+  }
+}
+
 // Остатки на складах
 async function fetchOzonStocks() {
   try {
@@ -121,7 +170,6 @@ async function fetchOzonStocks() {
     );
     const items = resp.data?.result?.items || [];
 
-    // Группируем по складам
     const warehouseMap = {};
     const stocks = [];
 
@@ -133,10 +181,11 @@ async function fetchOzonStocks() {
       const totalQty = (item.stocks || []).reduce((s, st) => s + (st.present || 0), 0);
       if (totalQty > 0) {
         stocks.push({
-          sku:  item.offer_id || String(item.product_id),
-          name: item.name || item.offer_id,
-          qty:  totalQty,
-          daysCover: 0, // Ozon не отдаёт daysCover напрямую
+          sku:          item.offer_id    || String(item.product_id),
+          productId:    String(item.product_id || ""),  // для матчинга с рекламой
+          name:         item.name || item.offer_id,
+          qty:          totalQty,
+          daysCover:    0,
           warehouseName: Object.keys(warehouseMap)[0] || "Склад",
         });
       }
@@ -154,7 +203,7 @@ async function getOzonMetrics({ date } = {}) {
   const clientId = (process.env.OZON_CLIENT_ID || "").trim();
   const apiKey   = (process.env.OZON_API_KEY   || "").trim();
 
-  if (!clientId || !apiKey || clientId === "" || apiKey === "") {
+  if (!clientId || !apiKey) {
     console.log("[Ozon] Нет ключей, возвращаю демо-данные");
     return buildMockOzonMetrics(date ? dayjs(date) : undefined);
   }
@@ -164,13 +213,16 @@ async function getOzonMetrics({ date } = {}) {
     const todayStart = now.startOf("day");
     const monthStart = now.startOf("month");
 
-    // Последовательные запросы чтобы не получить 429
-    const todayData = await fetchOzonAnalytics(todayStart, now);
-    const monthData = await fetchOzonAnalytics(monthStart, now);
+    const todayData    = await fetchOzonAnalytics(todayStart, now);
+    const monthData    = await fetchOzonAnalytics(monthStart, now);
     const monthAdSpend = await fetchOzonAdSpend(monthStart, now);
+
+    // По артикулам — для CPO
+    const skuAdSpend  = await fetchOzonAdSpendBySku(monthStart, now);
+    const skuOrdersMap = await fetchOzonAnalyticsBySku(monthStart, now);
+
     const { stocks, warehouses } = await fetchOzonStocks();
 
-    // Суммируем метрики за сегодня
     function sumMetric(data, key) {
       return data.reduce((sum, row) => {
         const m = (row.metrics || []).find(m => m.key === key);
@@ -182,12 +234,20 @@ async function getOzonMetrics({ date } = {}) {
     const todayOrders  = round(sumMetric(todayData, "ordered_units"));
     const todayViews   = sumMetric(todayData, "session_view_pdp");
     const todayConv    = todayViews > 0 ? round((todayOrders / todayViews) * 100, 1) : 0;
-
     const monthRevenue = round(sumMetric(monthData, "revenue"));
     const monthOrders  = round(sumMetric(monthData, "ordered_units"));
-
     const dayOfMonth   = now.date();
     const todayAdSpend = dayOfMonth > 0 ? round(monthAdSpend / dayOfMonth) : 0;
+
+    // Добавляем CPO в каждый товар
+    for (const s of stocks) {
+      const key    = s.productId || s.sku;
+      const ad     = skuAdSpend[key]   || skuAdSpend[s.sku]   || 0;
+      const orders = skuOrdersMap[key] || skuOrdersMap[s.sku] || 0;
+      s.monthAdSpend = round(ad);
+      s.monthOrders  = orders;
+      s.cpo          = orders > 0 ? round(ad / orders) : null;
+    }
 
     console.log(`[Ozon API] Сегодня: выручка=${todayRevenue}, заказы=${todayOrders}`);
 
@@ -205,6 +265,7 @@ async function getOzonMetrics({ date } = {}) {
         orders:   monthOrders,
         adSpend:  monthAdSpend,
       },
+      skuAdSpend,
       stocks,
       warehouses,
       atRiskProducts: [],
