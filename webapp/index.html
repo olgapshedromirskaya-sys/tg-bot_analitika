@@ -276,7 +276,9 @@ const DEMO_DATA={
       today:{netProfit:20200,margin:23.1,isHealthy:true},
       month:{netProfit:287000,margin:23.1,isHealthy:true,cost:496000,commission:186000,adSpend:271000}
     },
-    redemption:{avg:88,bad:[]},
+    redemption:{avg:88,bad:[
+      {name:'Лосины женские S',sku:'OZ-112',orders:38,sales:31,rate:82},
+    ]},
     stocks:[
       {name:'Лосины женские S',sku:'OZ-112',qty:94,daysCover:12,monthAdSpend:9800,monthOrders:28,cpo:350},
       {name:'Рюкзак городской 22л',sku:'OZ-334',qty:142,daysCover:32,monthAdSpend:7200,monthOrders:31,cpo:232},
@@ -473,6 +475,7 @@ function buildCompareBlocks(month,prevWeek,prevMonth){
           <div style="display:flex;justify-content:space-between"><span>💰 Выручка</span>${arrow(wRevD,false)}</div>
           <div style="display:flex;justify-content:space-between"><span>📦 Заказы</span>${arrow(wOrdD,false)}</div>
           <div style="display:flex;justify-content:space-between;align-items:center"><span>📊 ДРР</span><span style="text-align:right">${drrSpan(wDrrNow,wDrrPrev)}</span></div>
+          <div style="display:flex;justify-content:flex-end;font-size:10px;color:var(--text-soft);margin-top:-3px">текущий&nbsp;·&nbsp;изменение</div>
         </div>
       </div>
       <div class="bar-card" style="background:var(--card2,rgba(255,255,255,0.04))">
@@ -481,6 +484,7 @@ function buildCompareBlocks(month,prevWeek,prevMonth){
           <div style="display:flex;justify-content:space-between"><span>💰 Выручка</span>${arrow(mRevD,false)}</div>
           <div style="display:flex;justify-content:space-between"><span>📦 Заказы</span>${arrow(mOrdD,false)}</div>
           <div style="display:flex;justify-content:space-between;align-items:center"><span>📊 ДРР</span><span style="text-align:right">${drrSpan(mDrrNow,mDrrPrev)}</span></div>
+          <div style="display:flex;justify-content:flex-end;font-size:10px;color:var(--text-soft);margin-top:-3px">текущий&nbsp;·&nbsp;изменение</div>
         </div>
       </div>
     </div>`;
@@ -562,7 +566,15 @@ function buildRedemptionCard(redemption,platform){
       <div style="font-weight:800;color:${c};flex-shrink:0;margin-left:10px">${ic} ${s.rate}%</div></div>`;
   }).join('');
   const alertH=bad.length>0?`<div style="margin:8px 12px 0;background:rgba(255,139,87,0.1);border:1px solid rgba(255,139,87,0.3);border-radius:10px;padding:8px 12px;font-size:12px;color:var(--orange,#ff8b57);font-weight:600">⚠️ ${bad.length} ${bad.length===1?'артикул':'артикула'} с выкупом ниже нормы (${TH}%) — возможны проблемы с размерной сеткой, фото или описанием</div>`:'';
-  const okH=bad.length===0?`<div style="padding:10px 14px;font-size:12px;color:var(--green,#4caf50);font-weight:600">✅ Все артикулы в норме — выкуп выше ${TH}%</div>`:'';
+  let okH='';
+  if(bad.length===0){
+    if(avg>=TH)
+      okH=`<div style="padding:10px 14px;font-size:12px;color:var(--green,#4caf50);font-weight:600">✅ Все артикулы в норме — выкуп выше ${TH}%</div>`;
+    else if(avg>=TH-10)
+      okH=`<div style="padding:10px 14px;font-size:12px;color:var(--yellow,#f5c518);font-weight:600">🟡 Средний выкуп ${avg}% — ниже нормы (${TH}%), проверьте артикулы</div>`;
+    else
+      okH=`<div style="padding:10px 14px;font-size:12px;color:var(--orange,#ff8b57);font-weight:600">🔴 Средний выкуп ${avg}% — проблема, нужна проверка</div>`;
+  }
   return `<div class="section-title">🛍️ Выкуп товаров</div>
     <div style="background:var(--bg-card-strong,#151929);border:1px solid var(--line);border-radius:14px;overflow:hidden;margin-bottom:12px">
       <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-bottom:1px solid var(--line)">
