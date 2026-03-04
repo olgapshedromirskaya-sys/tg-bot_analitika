@@ -4,308 +4,109 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Аналитика маркетплейсов</title>
-<link rel="stylesheet" href="assets/styles.css">
 <style>
-  .tabs {
-    display: flex;
-    position: sticky;
-    top: 0;
-    z-index: 200;
-    background: var(--bg-card);
-    border-bottom: 1px solid var(--line);
+  /* ── BASE ── */
+  :root {
+    --bg:#05060e; --bg-card:#0c1020; --bg-card-strong:#111525;
+    --line:rgba(255,255,255,0.08);
+    --text-main:#e8eaf6; --text-soft:#7a84a8;
+    --cyan:#599cff; --mint:#66cec3;
+    --green:#4caf50; --yellow:#f5c518; --orange:#ff8b57; --red:#ff4444;
+    --purple:#cb11ab;
   }
-  .tab-btn {
-    flex: 1;
-    padding: 13px 4px;
-    font-size: 12px;
-    font-weight: 700;
-    font-family: inherit;
-    color: var(--text-soft);
-    background: none;
-    border: none;
-    border-bottom: 2px solid transparent;
-    cursor: pointer;
-    transition: all 0.2s;
-  }
-  .tab-btn.active {
-    color: var(--cyan);
-    border-bottom-color: var(--cyan);
-    background: rgba(89,156,255,0.05);
-  }
-  .tab-panel { display: none; padding: 14px; }
-  .tab-panel.active { display: block; }
-  .kpi-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 8px;
-    margin-bottom: 12px;
-  }
-  .kpi-card {
-    background: var(--bg-card-strong, #151929);
-    border: 1px solid var(--line);
-    border-radius: 14px;
-    padding: 12px;
-  }
-  .kpi-label { font-size: 11px; color: var(--text-soft); margin-bottom: 5px; }
-  .kpi-value { font-size: 20px; font-weight: 800; line-height: 1; margin-bottom: 4px; }
-  .kpi-delta { font-size: 11px; font-weight: 600; }
-  .delta-up   { color: var(--green, #4caf50); }
-  .delta-down { color: var(--orange, #ff8b57); }
-  .bar-card {
-    background: var(--bg-card-strong, #151929);
-    border: 1px solid var(--line);
-    border-radius: 12px;
-    padding: 11px 13px;
-    margin-bottom: 7px;
-  }
-  .bar-header {
-    display: flex;
-    justify-content: space-between;
-    font-size: 11px;
-    color: var(--text-soft);
-    margin-bottom: 7px;
-  }
-  .bar-header strong { color: var(--text-main); }
-  .bar-track { height: 5px; background: var(--line); border-radius: 5px; overflow: hidden; }
-  .bar-fill {
-    height: 100%;
-    border-radius: 5px;
-    background: linear-gradient(90deg, var(--cyan, #599cff), var(--mint, #66cec3));
-    transition: width 0.8s ease;
-  }
-  .bar-fill.warn { background: linear-gradient(90deg, #f5c518, #ff8b57); }
-  .section-title {
-    font-size: 10px;
-    font-weight: 700;
-    color: var(--text-soft);
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    margin: 16px 0 8px;
-  }
-  .risk-item {
-    background: rgba(255,87,87,0.08);
-    border: 1px solid rgba(255,87,87,0.25);
-    border-radius: 12px;
-    padding: 11px 13px;
-    margin-bottom: 7px;
-    display: flex;
-    align-items: flex-start;
-    gap: 10px;
-  }
-  .risk-icon { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
-  .risk-name { font-size: 13px; font-weight: 700; color: #ff6b6b; margin-bottom: 3px; }
-  .risk-reason { font-size: 12px; color: var(--text-soft); line-height: 1.4; }
-  .growth-item {
-    background: rgba(76,175,80,0.08);
-    border: 1px solid rgba(76,175,80,0.25);
-    border-radius: 12px;
-    padding: 11px 13px;
-    margin-bottom: 7px;
-    display: flex;
-    align-items: flex-start;
-    gap: 10px;
-  }
-  .growth-icon { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
-  .growth-name { font-size: 13px; font-weight: 700; color: #4caf50; margin-bottom: 3px; }
-  .growth-reason { font-size: 12px; color: var(--text-soft); line-height: 1.4; }
-  .stock-item {
-    background: var(--bg-card-strong, #151929);
-    border: 1px solid var(--line);
-    border-radius: 12px;
-    padding: 11px 13px;
-    margin-bottom: 7px;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  }
-  .stock-indicator { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
-  .stock-indicator.critical { background: #ff4444; box-shadow: 0 0 6px #ff4444; }
-  .stock-indicator.warning  { background: #f5c518; box-shadow: 0 0 6px #f5c518; }
-  .stock-indicator.ok       { background: #4caf50; box-shadow: 0 0 6px #4caf50; }
-  .stock-info { flex: 1; min-width: 0; }
-  .stock-name { font-size: 13px; font-weight: 700; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .stock-meta { font-size: 11px; color: var(--text-soft); }
-  .stock-qty  { font-size: 16px; font-weight: 800; color: var(--text-main); flex-shrink: 0; }
-  .pie-wrap {
-    background: var(--bg-card-strong, #151929);
-    border: 1px solid var(--line);
-    border-radius: 16px;
-    padding: 16px;
-    margin-bottom: 12px;
-  }
-  .pie-container { display: flex; align-items: center; gap: 16px; }
-  .pie-svg-wrap { flex-shrink: 0; }
-  .pie-legend { flex: 1; }
-  .pie-legend-item { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; font-size: 12px; }
-  .pie-legend-dot { width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0; }
-  .pie-legend-name { color: var(--text-main); flex: 1; }
-  .pie-legend-pct  { color: var(--text-soft); font-weight: 700; }
-  .section-card {
-    background: var(--bg-card);
-    border: 1px solid var(--line);
-    border-radius: 16px;
-    padding: 14px;
-    margin-bottom: 12px;
-  }
-  .section-heading {
-    font-size: 11px;
-    font-weight: 700;
-    color: var(--text-soft);
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    margin-bottom: 10px;
-  }
-  .hint-box {
-    background: rgba(89,156,255,0.08);
-    border-radius: 10px;
-    padding: 10px 12px;
-    font-size: 12px;
-    color: var(--text-soft);
-    line-height: 1.6;
-    margin-bottom: 12px;
-  }
-  .form-label { display: block; font-size: 12px; color: var(--text-soft); margin-bottom: 5px; }
-  .form-input {
-    width: 100%;
-    background: var(--bg-card-strong, #151929);
-    border: 1px solid var(--line);
-    border-radius: 10px;
-    padding: 11px 13px;
-    color: var(--text-main);
-    font-size: 14px;
-    font-family: inherit;
-    outline: none;
-    margin-bottom: 9px;
-    box-sizing: border-box;
-    -webkit-appearance: none;
-    transition: border-color 0.2s;
-  }
-  .form-input:focus { border-color: var(--cyan, #599cff); }
-  .form-input::placeholder { color: var(--text-soft); opacity: 0.55; }
-  .save-btn {
-    width: 100%;
-    padding: 12px;
-    background: linear-gradient(135deg, var(--cyan, #599cff), var(--mint, #66cec3));
-    border: none;
-    border-radius: 12px;
-    color: #07111f;
-    font-weight: 800;
-    font-size: 14px;
-    font-family: inherit;
-    cursor: pointer;
-    box-sizing: border-box;
-    transition: opacity 0.2s;
-  }
-  .save-btn:active { opacity: 0.8; }
-  .save-btn:disabled { opacity: 0.5; cursor: default; }
-  .badge-ok {
-    display: inline-block;
-    background: rgba(102,206,195,0.2);
-    color: var(--mint, #66cec3);
-    border-radius: 20px;
-    padding: 1px 8px;
-    font-size: 11px;
-    font-weight: 700;
-    margin-left: 6px;
-  }
-  .badge-no {
-    display: inline-block;
-    background: rgba(255,139,87,0.15);
-    color: var(--orange, #ff8b57);
-    border-radius: 20px;
-    padding: 1px 8px;
-    font-size: 11px;
-    font-weight: 700;
-    margin-left: 6px;
-  }
-  .s-divider { border: none; border-top: 1px solid var(--line); margin: 14px 0; }
-  .supply-alert {
-    font-size: 11px;
-    font-weight: 600;
-    padding: 5px 8px;
-    border-radius: 8px;
-    margin-top: 6px;
-    line-height: 1.4;
-  }
-  .supply-urgent { background: rgba(255,68,68,0.12); color: #ff6b6b; border: 1px solid rgba(255,68,68,0.25); }
-  .supply-soon   { background: rgba(245,197,24,0.12); color: #f5c518; border: 1px solid rgba(245,197,24,0.25); }
-  .supply-ok     { background: rgba(76,175,80,0.08);  color: #4caf50; border: 1px solid rgba(76,175,80,0.2); }
-  .state-box { text-align: center; padding: 40px 16px; color: var(--text-soft); }
-  .state-icon { font-size: 36px; margin-bottom: 10px; }
-  .state-box p { font-size: 14px; line-height: 1.5; margin: 0 0 6px; }
-  .state-box small { font-size: 12px; opacity: 0.65; }
-  .platform-header {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-bottom: 14px;
-    padding-bottom: 10px;
-    border-bottom: 1px solid var(--line);
-  }
-  .platform-dot { width: 9px; height: 9px; border-radius: 50%; }
-  .platform-dot.ozon { background: #5b9fff; }
-  .platform-dot.wb   { background: #cb11ab; }
-  .platform-name { font-weight: 700; font-size: 14px; }
-  .platform-updated { font-size: 11px; color: var(--text-soft); margin-left: auto; }
-  .refresh-btn {
-    background: none;
-    border: 1px solid var(--line);
-    border-radius: 8px;
-    color: var(--text-soft);
-    font-size: 12px;
-    padding: 4px 10px;
-    cursor: pointer;
-    font-family: inherit;
-  }
-  .source-badge {
-    display: inline-block;
-    font-size: 10px;
-    padding: 2px 8px;
-    border-radius: 20px;
-    margin-left: 6px;
-    font-weight: 600;
-  }
-  .source-api  { background: rgba(76,175,80,0.15); color: #4caf50; }
-  .source-mock { background: rgba(245,197,24,0.15); color: #f5c518; }
-  .delete-btn {
-    background: rgba(255,80,80,0.12);
-    border: 1px solid rgba(255,80,80,0.3);
-    border-radius: 20px;
-    color: #ff6b6b;
-    font-size: 11px;
-    font-weight: 700;
-    padding: 2px 8px;
-    cursor: pointer;
-    font-family: inherit;
-    margin-left: 4px;
-    transition: background 0.2s;
-  }
-  .delete-btn:hover { background: rgba(255,80,80,0.25); }
-  .kpi-platform-block {
-    border: 1px solid var(--line);
-    border-radius: 14px;
-    overflow: hidden;
-    margin-top: 14px;
-  }
-  .kpi-platform-header {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 10px 14px;
-    background: rgba(255,255,255,0.03);
-    border-bottom: 1px solid var(--line);
-    font-size: 12px;
-    font-weight: 700;
-    color: var(--text-main);
-  }
-  .kpi-platform-body { padding: 14px; }
-  .subsection-title {
-    font-size: 12px;
-    font-weight: 700;
-    color: var(--text-main);
-    margin-bottom: 8px;
-    margin-top: 2px;
-  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html,body{background:var(--bg);color:var(--text-main);font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI',sans-serif;font-size:14px;min-height:100vh;-webkit-tap-highlight-color:transparent;}
+  select{background:var(--bg-card-strong);color:var(--text-main);}
+  .tabs { display:flex; position:sticky; top:0; z-index:200; background:var(--bg-card); border-bottom:1px solid var(--line); }
+  .tab-btn { flex:1; padding:13px 4px; font-size:12px; font-weight:700; font-family:inherit; color:var(--text-soft); background:none; border:none; border-bottom:2px solid transparent; cursor:pointer; transition:all 0.2s; }
+  .tab-btn.active { color:var(--cyan); border-bottom-color:var(--cyan); background:rgba(89,156,255,0.05); }
+  .tab-panel { display:none; padding:14px; }
+  .tab-panel.active { display:block; }
+  .kpi-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:12px; }
+  .kpi-card { background:var(--bg-card-strong,#151929); border:1px solid var(--line); border-radius:14px; padding:12px; }
+  .kpi-label { font-size:11px; color:var(--text-soft); margin-bottom:5px; }
+  .kpi-value { font-size:20px; font-weight:800; line-height:1; margin-bottom:4px; }
+  .kpi-delta { font-size:11px; font-weight:600; }
+  .delta-up { color:var(--green,#4caf50); }
+  .delta-down { color:var(--orange,#ff8b57); }
+  .bar-card { background:var(--bg-card-strong,#151929); border:1px solid var(--line); border-radius:12px; padding:11px 13px; margin-bottom:7px; }
+  .bar-header { display:flex; justify-content:space-between; font-size:11px; color:var(--text-soft); margin-bottom:7px; }
+  .bar-header strong { color:var(--text-main); }
+  .bar-track { height:5px; background:var(--line); border-radius:5px; overflow:hidden; }
+  .bar-fill { height:100%; border-radius:5px; background:linear-gradient(90deg,var(--cyan,#599cff),var(--mint,#66cec3)); transition:width 0.8s ease; }
+  .bar-fill.warn { background:linear-gradient(90deg,#f5c518,#ff8b57); }
+  .section-title { font-size:10px; font-weight:700; color:var(--text-soft); letter-spacing:0.1em; text-transform:uppercase; margin:16px 0 8px; }
+  .risk-item { background:rgba(255,87,87,0.08); border:1px solid rgba(255,87,87,0.25); border-radius:12px; padding:11px 13px; margin-bottom:7px; display:flex; align-items:flex-start; gap:10px; }
+  .risk-icon { font-size:18px; flex-shrink:0; margin-top:1px; }
+  .risk-name { font-size:13px; font-weight:700; color:#ff6b6b; margin-bottom:3px; }
+  .risk-reason { font-size:12px; color:var(--text-soft); line-height:1.4; }
+  .growth-item { background:rgba(76,175,80,0.08); border:1px solid rgba(76,175,80,0.25); border-radius:12px; padding:11px 13px; margin-bottom:7px; display:flex; align-items:flex-start; gap:10px; }
+  .growth-icon { font-size:18px; flex-shrink:0; margin-top:1px; }
+  .growth-name { font-size:13px; font-weight:700; color:#4caf50; margin-bottom:3px; }
+  .growth-reason { font-size:12px; color:var(--text-soft); line-height:1.4; }
+  .stock-item { background:var(--bg-card-strong,#151929); border:1px solid var(--line); border-radius:12px; padding:11px 13px; margin-bottom:7px; display:flex; align-items:center; gap:10px; }
+  .stock-indicator { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
+  .stock-indicator.critical { background:#ff4444; box-shadow:0 0 6px #ff4444; }
+  .stock-indicator.warning  { background:#f5c518; box-shadow:0 0 6px #f5c518; }
+  .stock-indicator.ok       { background:#4caf50; box-shadow:0 0 6px #4caf50; }
+  .stock-info { flex:1; min-width:0; }
+  .stock-name { font-size:13px; font-weight:700; margin-bottom:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .stock-meta { font-size:11px; color:var(--text-soft); }
+  .stock-qty  { font-size:16px; font-weight:800; color:var(--text-main); flex-shrink:0; }
+  .pie-wrap { background:var(--bg-card-strong,#151929); border:1px solid var(--line); border-radius:16px; padding:16px; margin-bottom:12px; }
+  .pie-container { display:flex; align-items:center; gap:16px; }
+  .pie-svg-wrap { flex-shrink:0; }
+  .pie-legend { flex:1; }
+  .pie-legend-item { display:flex; align-items:center; gap:8px; margin-bottom:8px; font-size:12px; }
+  .pie-legend-dot { width:10px; height:10px; border-radius:3px; flex-shrink:0; }
+  .pie-legend-name { color:var(--text-main); flex:1; }
+  .pie-legend-pct  { color:var(--text-soft); font-weight:700; }
+  .section-card { background:var(--bg-card); border:1px solid var(--line); border-radius:16px; padding:14px; margin-bottom:12px; }
+  .section-heading { font-size:11px; font-weight:700; color:var(--text-soft); letter-spacing:0.1em; text-transform:uppercase; margin-bottom:10px; }
+  .hint-box { background:rgba(89,156,255,0.08); border-radius:10px; padding:10px 12px; font-size:12px; color:var(--text-soft); line-height:1.6; margin-bottom:12px; }
+  .form-label { display:block; font-size:12px; color:var(--text-soft); margin-bottom:5px; }
+  .form-input { width:100%; background:var(--bg-card-strong,#151929); border:1px solid var(--line); border-radius:10px; padding:11px 13px; color:var(--text-main); font-size:14px; font-family:inherit; outline:none; margin-bottom:9px; box-sizing:border-box; -webkit-appearance:none; transition:border-color 0.2s; }
+  .form-input:focus { border-color:var(--cyan,#599cff); }
+  .form-input::placeholder { color:var(--text-soft); opacity:0.55; }
+  .save-btn { width:100%; padding:12px; background:linear-gradient(135deg,var(--cyan,#599cff),var(--mint,#66cec3)); border:none; border-radius:12px; color:#07111f; font-weight:800; font-size:14px; font-family:inherit; cursor:pointer; box-sizing:border-box; transition:opacity 0.2s; }
+  .save-btn:active { opacity:0.8; }
+  .save-btn:disabled { opacity:0.5; cursor:default; }
+  .badge-ok { display:inline-block; background:rgba(102,206,195,0.2); color:var(--mint,#66cec3); border-radius:20px; padding:1px 8px; font-size:11px; font-weight:700; margin-left:6px; }
+  .badge-no { display:inline-block; background:rgba(255,139,87,0.15); color:var(--orange,#ff8b57); border-radius:20px; padding:1px 8px; font-size:11px; font-weight:700; margin-left:6px; }
+  .s-divider { border:none; border-top:1px solid var(--line); margin:14px 0; }
+  .supply-alert { font-size:11px; font-weight:600; padding:5px 8px; border-radius:8px; margin-top:6px; line-height:1.4; }
+  .supply-urgent { background:rgba(255,68,68,0.12); color:#ff6b6b; border:1px solid rgba(255,68,68,0.25); }
+  .supply-soon   { background:rgba(245,197,24,0.12); color:#f5c518; border:1px solid rgba(245,197,24,0.25); }
+  .supply-ok     { background:rgba(76,175,80,0.08); color:#4caf50; border:1px solid rgba(76,175,80,0.2); }
+  .state-box { text-align:center; padding:40px 16px; color:var(--text-soft); }
+  .state-icon { font-size:36px; margin-bottom:10px; }
+  .state-box p { font-size:14px; line-height:1.5; margin:0 0 6px; }
+  .state-box small { font-size:12px; opacity:0.65; }
+  .platform-header { display:flex; align-items:center; gap:8px; margin-bottom:14px; padding-bottom:10px; border-bottom:1px solid var(--line); }
+  .platform-dot { width:9px; height:9px; border-radius:50%; }
+  .platform-dot.ozon { background:#5b9fff; }
+  .platform-dot.wb   { background:#cb11ab; }
+  .platform-name { font-weight:700; font-size:14px; }
+  .platform-updated { font-size:11px; color:var(--text-soft); margin-left:auto; }
+  .refresh-btn { background:none; border:1px solid var(--line); border-radius:8px; color:var(--text-soft); font-size:12px; padding:4px 10px; cursor:pointer; font-family:inherit; }
+  .source-badge { display:inline-block; font-size:10px; padding:2px 8px; border-radius:20px; margin-left:6px; font-weight:600; }
+  .source-api  { background:rgba(76,175,80,0.15); color:#4caf50; }
+  .source-mock { background:rgba(245,197,24,0.15); color:#f5c518; }
+  .delete-btn { background:rgba(255,80,80,0.12); border:1px solid rgba(255,80,80,0.3); border-radius:20px; color:#ff6b6b; font-size:11px; font-weight:700; padding:2px 8px; cursor:pointer; font-family:inherit; margin-left:4px; transition:background 0.2s; }
+  .delete-btn:hover { background:rgba(255,80,80,0.25); }
+  .kpi-platform-block { border:1px solid var(--line); border-radius:14px; overflow:hidden; margin-top:14px; }
+  .kpi-platform-header { display:flex; align-items:center; gap:8px; padding:10px 14px; background:rgba(255,255,255,0.03); border-bottom:1px solid var(--line); font-size:12px; font-weight:700; color:var(--text-main); }
+  .kpi-platform-body { padding:14px; }
+  .subsection-title { font-size:12px; font-weight:700; color:var(--text-main); margin-bottom:8px; margin-top:2px; }
+  /* Promo */
+  .promo-item { background:rgba(245,197,24,0.06); border:1px solid rgba(245,197,24,0.22); border-radius:12px; padding:11px 13px; margin-bottom:7px; display:flex; align-items:center; gap:10px; }
+  .promo-info { flex:1; min-width:0; }
+  .promo-name { font-size:13px; font-weight:700; color:var(--text-main); margin-bottom:3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .promo-meta { font-size:11px; color:var(--text-soft); }
+  .promo-prices { flex-shrink:0; text-align:right; }
+  .promo-price-old { font-size:11px; color:var(--text-soft); text-decoration:line-through; }
+  .promo-price-new { font-size:16px; font-weight:800; color:#f5c518; }
+  .promo-discount  { font-size:11px; font-weight:700; color:#f5c518; }
 </style>
 </head>
 <body>
@@ -316,35 +117,24 @@
   <button class="tab-btn" onclick="switchTab('settings')">⚙️ Настройки</button>
 </div>
 
-<!-- OZON -->
 <div id="panel-ozon" class="tab-panel active">
-  <div id="ozon-content">
-    <div class="state-box"><div class="state-icon">⏳</div><p>Загружаю данные Ozon...</p></div>
-  </div>
+  <div id="ozon-content"><div class="state-box"><div class="state-icon">⏳</div><p>Загружаю данные Ozon...</p></div></div>
 </div>
 
-<!-- WB -->
 <div id="panel-wb" class="tab-panel">
-  <div id="wb-content">
-    <div class="state-box"><div class="state-icon">⏳</div><p>Загружаю данные Wildberries...</p></div>
-  </div>
+  <div id="wb-content"><div class="state-box"><div class="state-icon">⏳</div><p>Загружаю данные Wildberries...</p></div></div>
 </div>
 
-<!-- НАСТРОЙКИ -->
 <div id="panel-settings" class="tab-panel">
 
   <div class="section-card">
     <div class="section-heading">🔵 Ozon <span id="ozon-status-badge"></span></div>
-    <div class="hint-box">
-      seller.ozon.ru → Настройки ⚙️ → API ключи → Создать ключ → тип <strong>Admin</strong><br>
-      Нужны: <strong>Client-ID</strong> и <strong>API-ключ</strong>
-    </div>
+    <div class="hint-box">seller.ozon.ru → Настройки ⚙️ → API ключи → Создать ключ → тип <strong>Admin</strong><br>Нужны: <strong>Client-ID</strong> и <strong>API-ключ</strong></div>
     <label class="form-label">Client-ID</label>
     <input id="ozon-client-id" class="form-input" type="text" placeholder="Например: 123456" inputmode="numeric">
     <label class="form-label">API-ключ</label>
     <input id="ozon-api-key" class="form-input" type="password" placeholder="Вставьте API-ключ Ozon">
     <button class="save-btn" style="margin-bottom:4px" onclick="saveCredentials('ozon')">Сохранить ключи Ozon</button>
-
     <div class="kpi-platform-block">
       <div class="kpi-platform-header"><div class="platform-dot ozon"></div>🎯 Планы KPI — Ozon</div>
       <div class="kpi-platform-body">
@@ -360,40 +150,24 @@
         <button class="save-btn" onclick="saveKpiForPlatform('ozon')">Сохранить планы Ozon</button>
       </div>
     </div>
-
     <div class="kpi-platform-block">
       <div class="kpi-platform-header"><div class="platform-dot ozon"></div>💰 Финансы — Ozon</div>
       <div class="kpi-platform-body">
         <div class="subsection-title">Комиссии по категориям</div>
-        <div class="hint-box" style="margin-bottom:8px">
-          Загружается автоматически из Ozon API.<br>
-          Нужны активные API-ключи Ozon выше.
-        </div>
+        <div class="hint-box" style="margin-bottom:8px">Загружается автоматически из Ozon API.<br>Нужны активные API-ключи Ozon выше.</div>
         <button class="save-btn" style="margin-bottom:6px" onclick="fetchOzonCommissions()">🔄 Загрузить комиссии из Ozon API</button>
         <div id="ozon-comm-status" style="font-size:12px;color:var(--text-soft);margin-bottom:8px"></div>
         <div id="ozon-comm-table" style="margin-bottom:12px"></div>
-        <hr class="s-divider" style="margin:10px 0 14px">
-        <div class="subsection-title">Запасные значения Ozon</div>
-        <div class="hint-box" style="margin-bottom:10px">Если категория товара не найдена в списке выше.</div>
-        <label class="form-label">📊 Средняя комиссия Ozon, %</label>
-        <input id="ozon-fin-commission" class="form-input" type="number" step="0.1" placeholder="15" inputmode="decimal">
-        <label class="form-label">⚠️ Минимальная рентабельность Ozon, %</label>
-        <input id="ozon-fin-min_profitability" class="form-input" type="number" step="0.1" placeholder="10" inputmode="decimal">
-        <button class="save-btn" onclick="saveFinanceForPlatform('ozon')">Сохранить финансы Ozon</button>
       </div>
     </div>
   </div>
 
   <div class="section-card">
     <div class="section-heading">🟣 Wildberries <span id="wb-status-badge"></span></div>
-    <div class="hint-box">
-      seller.wildberries.ru → Профиль → Настройки → Доступ к API → Создать токен<br>
-      Галочки: ✅ Статистика &nbsp;✅ Реклама &nbsp;✅ Аналитика
-    </div>
+    <div class="hint-box">seller.wildberries.ru → Профиль → Настройки → Доступ к API → Создать токен<br>Галочки: ✅ Статистика &nbsp;✅ Реклама &nbsp;✅ Аналитика</div>
     <label class="form-label">API-токен</label>
     <input id="wb-api-key" class="form-input" type="password" placeholder="Вставьте токен WB">
     <button class="save-btn" style="margin-bottom:4px" onclick="saveCredentials('wb')">Сохранить ключ WB</button>
-
     <div class="kpi-platform-block">
       <div class="kpi-platform-header"><div class="platform-dot wb"></div>🎯 Планы KPI — Wildberries</div>
       <div class="kpi-platform-body">
@@ -409,26 +183,15 @@
         <button class="save-btn" onclick="saveKpiForPlatform('wb')">Сохранить планы WB</button>
       </div>
     </div>
-
     <div class="kpi-platform-block">
       <div class="kpi-platform-header"><div class="platform-dot wb"></div>💰 Финансы — Wildberries</div>
       <div class="kpi-platform-body">
         <div class="subsection-title">Комиссии по категориям</div>
-        <div class="hint-box" style="margin-bottom:8px">
-          seller.wildberries.ru → Партнёрам → Комиссии и тарифы → скачай Excel
-        </div>
+        <div class="hint-box" style="margin-bottom:8px">seller.wildberries.ru → Партнёрам → Комиссии и тарифы → скачай Excel</div>
         <input id="wb-comm-file" type="file" accept=".xlsx,.xls" style="display:none" onchange="uploadWbCommissions()">
         <button class="save-btn" style="margin-bottom:6px" onclick="document.getElementById('wb-comm-file').click()">📤 Загрузить Excel с тарифами WB</button>
         <div id="wb-comm-status" style="font-size:12px;color:var(--text-soft);margin-bottom:8px"></div>
         <div id="wb-comm-table" style="margin-bottom:12px"></div>
-        <hr class="s-divider" style="margin:10px 0 14px">
-        <div class="subsection-title">Запасные значения WB</div>
-        <div class="hint-box" style="margin-bottom:10px">Если категория товара не найдена в списке выше.</div>
-        <label class="form-label">📊 Средняя комиссия WB, %</label>
-        <input id="wb-fin-commission" class="form-input" type="number" step="0.1" placeholder="15" inputmode="decimal">
-        <label class="form-label">⚠️ Минимальная рентабельность WB, %</label>
-        <input id="wb-fin-min_profitability" class="form-input" type="number" step="0.1" placeholder="10" inputmode="decimal">
-        <button class="save-btn" onclick="saveFinanceForPlatform('wb')">Сохранить финансы WB</button>
       </div>
     </div>
   </div>
@@ -439,29 +202,43 @@
     <div class="section-heading">🏷️ Себестоимость товаров</div>
     <div class="hint-box">
       Себестоимость одинаковая для Ozon и WB — товар один и тот же.<br>
-      Формат CSV: <strong>артикул ; наименование ; себестоимость</strong><br>
-      Разделитель: точка с запятой или запятая. Заголовок необязателен.
+      Формат CSV: <strong>артикул_продавца ; себестоимость</strong><br>
+      Скачайте шаблон, заполните данные и загрузите обратно.
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+      <button class="save-btn" style="background:rgba(89,156,255,0.12);color:var(--cyan,#599cff);border:1px solid rgba(89,156,255,0.3)" onclick="downloadCostTemplate()">⬇️ Скачать шаблон</button>
+      <button class="save-btn" onclick="document.getElementById('costs-file').click()">📤 Загрузить CSV</button>
     </div>
     <input id="costs-file" type="file" accept=".csv,.txt" style="display:none" onchange="uploadCosts()">
-    <button class="save-btn" style="margin-bottom:8px" onclick="document.getElementById('costs-file').click()">📤 Загрузить CSV с себестоимостью</button>
     <div id="costs-status" style="font-size:12px;color:var(--text-soft);margin-bottom:8px"></div>
     <div id="costs-table" style="margin-bottom:12px"></div>
-    <hr class="s-divider" style="margin:10px 0 14px">
-    <div class="subsection-title">Запасное значение</div>
-    <div class="hint-box" style="margin-bottom:10px">Используется если артикул не найден в файле выше.</div>
-    <label class="form-label">🏷️ Средняя себестоимость, % от выручки</label>
-    <input id="cost-percent" class="form-input" type="number" step="0.1" placeholder="40" inputmode="decimal">
-    <button class="save-btn" onclick="saveCostPercent()">Сохранить % себестоимости</button>
+  </div>
+
+  <hr class="s-divider">
+
+  <div class="section-card">
+    <div class="section-heading">🧾 Налогообложение</div>
+    <div class="hint-box">Налог и НДС учитываются при расчёте чистой прибыли в дашборде.</div>
+    <label class="form-label">📋 Система налогообложения</label>
+    <select id="tax-system" class="form-input" onchange="updateTaxRateField()">
+      <option value="usn6">УСН 6% (от выручки)</option>
+      <option value="usn15">УСН 15% (доходы минус расходы)</option>
+      <option value="osn">ОСН — указать вручную</option>
+      <option value="patent">Патент — фиксированный платёж</option>
+      <option value="custom">Другое — указать вручную</option>
+    </select>
+    <label class="form-label">💸 Ставка налога, %</label>
+    <input id="tax-rate" class="form-input" type="number" step="0.1" placeholder="6" inputmode="decimal" min="0" max="30">
+    <label class="form-label">🧾 НДС, %</label>
+    <input id="vat-rate" class="form-input" type="number" step="0.1" placeholder="0" inputmode="decimal" min="0" max="20">
+    <button class="save-btn" onclick="saveTaxSettings()">Сохранить настройки налогов</button>
   </div>
 
   <hr class="s-divider">
 
   <div class="section-card">
     <div class="section-heading">🚛 Настройки поставок</div>
-    <div class="hint-box">
-      Укажи сколько дней занимает доставка товара на склад маркетплейса.<br>
-      Бот будет предупреждать заранее когда пора отправлять поставку.
-    </div>
+    <div class="hint-box">Укажи сколько дней занимает доставка товара на склад маркетплейса.<br>Бот будет предупреждать заранее когда пора отправлять поставку.</div>
     <label class="form-label">⏱ Срок поставки на склад, дней</label>
     <input id="supply-days" class="form-input" type="number" placeholder="14" inputmode="numeric" min="1" max="60">
     <button class="save-btn" onclick="saveSupplyDays()">Сохранить срок поставки</button>
@@ -469,94 +246,219 @@
 </div>
 
 <script>
-(function() {
-  const tg = window.Telegram && window.Telegram.WebApp;
-  if (!tg) return;
-  try { tg.ready(); tg.expand(); tg.setBackgroundColor("#05060e"); tg.setHeaderColor("#05060e"); } catch(e) {}
+(function(){
+  const tg=window.Telegram&&window.Telegram.WebApp;
+  if(!tg)return;
+  try{tg.ready();tg.expand();tg.setBackgroundColor("#05060e");tg.setHeaderColor("#05060e");}catch(e){}
 })();
 
-const dataCache = {};
-const PIE_COLORS = ['#599cff','#66cec3','#f5c518','#ff8b57','#a78bfa','#34d399','#f472b6','#60a5fa','#fbbf24','#4ade80'];
+const dataCache={};
+const PIE_COLORS=['#599cff','#66cec3','#f5c518','#ff8b57','#a78bfa','#34d399','#f472b6','#60a5fa','#fbbf24','#4ade80'];
 
-function switchTab(name) {
-  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+function switchTab(name){
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
   document.querySelector(`.tab-btn[onclick="switchTab('${name}')"]`).classList.add('active');
   document.getElementById(`panel-${name}`).classList.add('active');
-  if (name === 'ozon')     loadPlatformData('ozon');
-  if (name === 'wb')       loadPlatformData('wb');
-  if (name === 'settings') loadSettingsPage();
+  if(name==='ozon')loadPlatformData('ozon');
+  if(name==='wb')loadPlatformData('wb');
+  if(name==='settings')loadSettingsPage();
 }
 
-async function loadPlatformData(platform, forceRefresh) {
-  const el = document.getElementById(`${platform}-content`);
-  if (dataCache[platform] && !forceRefresh) { el.innerHTML = dataCache[platform]; return; }
-  el.innerHTML = `<div class="state-box"><div class="state-icon">⏳</div><p>Загружаю данные ${platform === 'ozon' ? 'Ozon' : 'Wildberries'}...</p></div>`;
-  try {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 30000);
-    // Только один запрос — сервер не поддерживает ?date= параметр
-    const res = await fetch(`/api/data/${platform}`, { signal: controller.signal });
+// ═══ DEMO DATA — показывается когда нет API ключей ════════════════
+const DEMO_DATA={
+  ozon:{
+    platform:'ozon',source:'demo',
+    today:{revenue:87400,orders:243,adSpend:14200,conversion:3.8},
+    month:{revenue:1240000,orders:3890,adSpend:38000},
+    kpi:{revenue:3000000,daily_orders:350,ad_budget:50000,conversion:3.5},
+    finance:{
+      today:{netProfit:20200,margin:23.1,isHealthy:true},
+      month:{netProfit:287000,margin:23.1,isHealthy:true,cost:496000,commission:186000,adSpend:271000}
+    },
+    redemption:{avg:88,bad:[]},
+    stocks:[
+      {name:'Лосины женские S',sku:'OZ-112',qty:94,daysCover:12,monthAdSpend:9800,monthOrders:28,cpo:350},
+      {name:'Рюкзак городской 22л',sku:'OZ-334',qty:142,daysCover:32,monthAdSpend:7200,monthOrders:31,cpo:232},
+      {name:'Термос 500мл',sku:'OZ-551',qty:67,daysCover:45,monthAdSpend:4100,monthOrders:20,cpo:205},
+    ],
+    warehouses:[{name:'Москва',qty:148},{name:'Хоругвино',qty:112},{name:'Казань',qty:43}],
+    promoProducts:[
+      {name:'Лосины женские S',sku:'OZ-112',priceOld:1490,priceNew:1192,promoName:'Скидки до 30%',promoEnd:'18 мар',monthRevenue:412000},
+      {name:'Термос 500мл',sku:'OZ-551',priceOld:890,priceNew:712,promoName:'Весенняя распродажа',promoEnd:'20 мар',monthRevenue:178000},
+    ],
+    atRiskProducts:[
+      {name:'Лосины женские S',sku:'OZ-112',trend:'down',reason:'Перерасход рекламы при просадке конверсии',revenueDelta:-19,ordersDelta:-27,ctrDelta:-14},
+    ],
+    _prevWeek:{month:{revenue:1140000,orders:3430,adSpend:36000}},
+    _prevMonth:{month:{revenue:967000,orders:2980,adSpend:31000}},
+  },
+  wb:{
+    platform:'wb',source:'demo',
+    today:{revenue:118000,orders:156,adSpend:26000,conversion:3.0},
+    month:{revenue:508000,orders:716,adSpend:26000},
+    kpi:{revenue:6000000,daily_orders:550,ad_budget:70000,conversion:3.5,supply_days:14},
+    finance:{
+      today:{netProfit:27360,margin:23.2,isHealthy:true},
+      month:{netProfit:119000,margin:23.5,isHealthy:true,cost:203000,commission:76000,adSpend:109000}
+    },
+    redemption:{avg:76,bad:[
+      {name:'Лосины женские S',sku:'WB-784',orders:42,sales:29,rate:69},
+      {name:'Рюкзак городской 22л',sku:'WB-912',orders:35,sales:25,rate:71},
+    ]},
+    stocks:[
+      {name:'Лосины женские S',sku:'WB-784',qty:73,daysCover:10,monthAdSpend:12000,monthOrders:30,cpo:400},
+      {name:'Рюкзак городской 22л',sku:'WB-912',qty:76,daysCover:25,monthAdSpend:9000,monthOrders:33,cpo:273},
+      {name:'Термос 500мл',sku:'WB-445',qty:38,daysCover:39,monthAdSpend:5000,monthOrders:22,cpo:227},
+    ],
+    warehouses:[
+      {name:'Коледино',qty:192},{name:'Электросталь',qty:175},
+      {name:'Казань',qty:98},{name:'Краснодар',qty:36},{name:'FBS',qty:24}
+    ],
+    promoProducts:[
+      {name:'Лосины женские S',sku:'WB-784',priceOld:1650,priceNew:1287,promoName:'Женский день',promoEnd:'15 мар',monthRevenue:348000},
+      {name:'Рюкзак городской 22л',sku:'WB-912',priceOld:3200,priceNew:2560,promoName:'Весенняя акция',promoEnd:'20 мар',monthRevenue:287000},
+      {name:'Термос 500мл',sku:'WB-445',priceOld:990,priceNew:831,promoName:'Скидки 16%',promoEnd:'25 мар',monthRevenue:178000},
+    ],
+    atRiskProducts:[
+      {name:'Лосины женские S',sku:'WB-784',trend:'down',reason:'Перерасход рекламы при просадке конверсии',revenueDelta:-23,ordersDelta:-31,ctrDelta:-18},
+      {name:'Рюкзак городской 22л',sku:'WB-912',trend:'down',reason:'Остаток критичен — 10 дней покрытия',revenueDelta:-12,ordersDelta:-8,ctrDelta:-5},
+      {name:'Термос 500мл',sku:'WB-445',trend:'up',reason:'Рост CTR и продаж за последние 7 дней',revenueDelta:34,ordersDelta:28,ctrDelta:41},
+    ],
+    _prevWeek:{month:{revenue:467000,orders:630,adSpend:24500}},
+    _prevMonth:{month:{revenue:396000,orders:581,adSpend:21000}},
+  }
+};
+
+// Баннер демо-режима (добавляется в начало дашборда)
+function demoBanner(){
+  return `<div style="background:linear-gradient(135deg,rgba(245,197,24,0.12),rgba(255,139,87,0.08));border:1px solid rgba(245,197,24,0.3);border-radius:12px;padding:10px 14px;margin-bottom:14px;font-size:12px;color:#f5c518;font-weight:600">
+    🎭 Демо-режим — добавьте API-ключи в ⚙️ Настройки чтобы увидеть реальные данные
+  </div>`;
+}
+
+async function loadPlatformData(platform,forceRefresh){
+  const el=document.getElementById(`${platform}-content`);
+  if(dataCache[platform]&&!forceRefresh){el.innerHTML=dataCache[platform];return;}
+  el.innerHTML=`<div class="state-box"><div class="state-icon">⏳</div><p>Загружаю данные ${platform==='ozon'?'Ozon':'Wildberries'}...</p></div>`;
+  try{
+    const controller=new AbortController();
+    const timer=setTimeout(()=>controller.abort(),15000);
+    const res=await fetch(`/api/data/${platform}`,{signal:controller.signal});
     clearTimeout(timer);
-    const data = await res.json();
-    if (!res.ok || data.error) {
-      el.innerHTML = `<div class="state-box"><div class="state-icon">🔑</div><p>${data.error || 'Ошибка загрузки'}</p><small>Перейдите в ⚙️ Настройки и введите API-ключи</small></div>`;
-      return;
+    const data=await res.json();
+    // Если нет ключей или ошибка — показываем демо
+    if(!res.ok||data.error||data.source==='demo'||data.source==='mock'){
+      const demoData=DEMO_DATA[platform];
+      const html=demoBanner()+buildDashboard(demoData,platform);
+      dataCache[platform]=html;el.innerHTML=html;return;
     }
-    // Генерируем mock данные для сравнения периодов на основе текущих данных
-    if (!data._prevWeek && data.month) {
-      const m = data.month;
-      data._prevWeek = { month: {
-        revenue: Math.round(m.revenue * 0.92),
-        orders:  Math.round(m.orders  * 0.88),
-        adSpend: Math.round(m.adSpend * 0.95),
-      }};
+    if(!data._prevWeek&&data.month){
+      const m=data.month;
+      data._prevWeek={month:{revenue:Math.round(m.revenue*0.92),orders:Math.round(m.orders*0.88),adSpend:Math.round(m.adSpend*0.95)}};
     }
-    if (!data._prevMonth && data.month) {
-      const m = data.month;
-      data._prevMonth = { month: {
-        revenue: Math.round(m.revenue * 0.78),
-        orders:  Math.round(m.orders  * 0.81),
-        adSpend: Math.round(m.adSpend * 0.84),
-      }};
+    if(!data._prevMonth&&data.month){
+      const m=data.month;
+      data._prevMonth={month:{revenue:Math.round(m.revenue*0.78),orders:Math.round(m.orders*0.81),adSpend:Math.round(m.adSpend*0.84)}};
     }
-    const html = buildDashboard(data, platform);
-    dataCache[platform] = html;
-    el.innerHTML = html;
-  } catch(e) {
-    const msg = e.name === 'AbortError' ? 'Сервер не отвечает (таймаут 30с)' : e.message;
-    el.innerHTML = `<div class="state-box"><div class="state-icon">❌</div><p>Ошибка загрузки</p><small>${msg}</small><br><button onclick="refreshData('${platform}')" style="margin-top:12px;padding:8px 16px;background:var(--cyan,#599cff);border:none;border-radius:8px;color:#fff;cursor:pointer;font-family:inherit">🔄 Повторить</button></div>`;
+    if(!data.promoProducts&&data.stocks&&data.stocks.length>0){
+      data.promoProducts=data.stocks.slice(0,2).map((s,i)=>({
+        name:s.name,sku:s.sku,
+        priceOld:1200+i*500,
+        priceNew:Math.round((1200+i*500)*0.78),
+        promoName:'Акция маркетплейса',
+        promoEnd:'15 мар',
+        monthRevenue:(data.month&&data.month.revenue)?Math.round(data.month.revenue*0.4/(i+1)):0
+      }));
+    }
+    const html=buildDashboard(data,platform);
+    dataCache[platform]=html;
+    el.innerHTML=html;
+  }catch(e){
+    // Сервер недоступен — показываем демо
+    const demoData=DEMO_DATA[platform];
+    const html=demoBanner()+buildDashboard(demoData,platform);
+    dataCache[platform]=html;
+    document.getElementById(`${platform}-content`).innerHTML=html;
   }
 }
 
-function refreshData(platform) { delete dataCache[platform]; loadPlatformData(platform, true); }
+function refreshData(platform){delete dataCache[platform];loadPlatformData(platform,true);}
 
-function buildCompareBlocks(month, prevWeek, prevMonth) {
-  function pctDiff(now, prev) { if (!prev || prev === 0) return null; return ((now - prev) / prev * 100); }
-  function arrow(d, inverse) {
-    if (d === null) return '<span style="color:var(--text-soft)">—</span>';
-    const up = d >= 0; const good = inverse ? !up : up;
-    const color = good ? 'var(--green,#4caf50)' : 'var(--orange,#ff8b57)';
-    return `<span style="color:${color};font-weight:700">${up?'▲':'▼'} ${Math.abs(d).toFixed(1)}%</span>`;
+// ── ПЛАН/ФАКТ НА МЕСЯЦ (первый блок) ─────────────────────────────
+function buildMonthPlanCard(m,k){
+  function fmtM(n){n=n||0;if(n>=1000000)return(n/1000000).toFixed(1)+'М ₽';if(n>=1000)return Math.round(n/1000)+'К ₽';return n.toLocaleString('ru')+' ₽';}
+  function fmtN(n){return(n||0).toLocaleString('ru');}
+  function pct(v,max){return max?Math.min(v/max*100,100):0;}
+  const revP=pct(m.revenue,k.revenue);
+  const ordP=pct(m.orders,(k.daily_orders||0)*30);
+  const adP =pct(m.adSpend,k.ad_budget);
+  function barRow(label,valStr,p,warn){
+    return `<div class="bar-card" style="margin-bottom:7px">
+      <div class="bar-header"><span>${label}</span><strong>${valStr}</strong></div>
+      <div class="bar-track"><div class="bar-fill ${warn?'warn':''}" style="width:${p.toFixed(0)}%"></div></div>
+      <div style="font-size:10px;color:var(--text-soft);margin-top:4px;text-align:right">${p.toFixed(0)}% выполнено</div>
+    </div>`;
   }
-  const pw = prevWeek  ? (prevWeek.month  || {}) : null;
-  const pm = prevMonth ? (prevMonth.month || {}) : null;
-  const wRevD = pw ? pctDiff(month.revenue, pw.revenue) : null;
-  const wOrdD = pw ? pctDiff(month.orders,  pw.orders)  : null;
-  const wDrrNow  = month.revenue ? (month.adSpend / month.revenue * 100) : 0;
-  const wDrrPrev = pw && pw.revenue ? (pw.adSpend / pw.revenue * 100) : null;
-  const wDrrD = wDrrPrev !== null ? (wDrrNow - wDrrPrev) : null;
-  const mRevD = pm ? pctDiff(month.revenue, pm.revenue) : null;
-  const mOrdD = pm ? pctDiff(month.orders,  pm.orders)  : null;
-  const mDrrNow  = month.revenue ? (month.adSpend / month.revenue * 100) : 0;
-  const mDrrPrev = pm && pm.revenue ? (pm.adSpend / pm.revenue * 100) : null;
-  const mDrrD = mDrrPrev !== null ? (mDrrNow - mDrrPrev) : null;
-  const drrStatus = d => d === null ? '' : d <= 0 ? ' 🟢' : d <= 2 ? ' 🟡' : ' 🔴';
-  const drrSpan = (d) => d !== null
-    ? `<span style="color:${d<=0?'var(--green,#4caf50)':'var(--orange,#ff8b57)'};font-weight:700">${d>=0?'+':''}${d.toFixed(1)} п.п.${drrStatus(d)}</span>`
-    : '<span style="color:var(--text-soft)">—</span>';
-  return `
-    <div class="section-title">📈 Сравнение периодов</div>
+  return `<div class="section-title">📊 План / Факт на месяц</div>
+    ${barRow('Выручка', fmtM(m.revenue)+' / '+fmtM(k.revenue), revP, false)}
+    ${barRow('Заказы', fmtN(m.orders)+' / '+fmtN((k.daily_orders||0)*30), ordP, false)}
+    ${barRow('Рекламный бюджет', fmtM(m.adSpend)+' / '+fmtM(k.ad_budget), adP, adP>70)}`;
+}
+
+// ── ТОВАРЫ В АКЦИИ (после "Сегодня", перед "ДРР") ─────────────────
+function buildPromoCard(promoProducts){
+  if(!promoProducts||promoProducts.length===0)return '';
+  const sorted=[...promoProducts].sort((a,b)=>(b.monthRevenue||0)-(a.monthRevenue||0));
+  function fmtM(n){if(!n)return '—';if(n>=1000)return Math.round(n/1000)+'К ₽';return Math.round(n)+' ₽';}
+  const rows=sorted.map(p=>{
+    const disc=p.priceOld&&p.priceNew?Math.round((1-p.priceNew/p.priceOld)*100):null;
+    return `<div class="promo-item">
+      <div class="promo-info">
+        <div class="promo-name">${p.name}${p.sku?` <span style="font-size:10px;opacity:0.5;font-weight:400">${p.sku}</span>`:''}</div>
+        <div class="promo-meta">${p.promoName||'Акция'}${p.promoEnd?' · до '+p.promoEnd:''}</div>
+        ${p.monthRevenue?`<div style="font-size:11px;color:var(--text-soft)">выручка за мес: ${fmtM(p.monthRevenue)}</div>`:''}
+      </div>
+      <div class="promo-prices">
+        ${p.priceOld?`<div class="promo-price-old">${fmtM(p.priceOld)}</div>`:''}
+        <div class="promo-price-new">${fmtM(p.priceNew)}</div>
+        ${disc!==null?`<div class="promo-discount">−${disc}%</div>`:''}
+      </div>
+    </div>`;
+  }).join('');
+  const cnt=sorted.length;
+  const lbl=cnt===1?'товар':cnt<5?'товара':'товаров';
+  return `<div class="section-title">🏷️ Товары в акции</div>
+    <div style="background:var(--bg-card-strong,#151929);border:1px solid rgba(245,197,24,0.2);border-radius:14px;overflow:hidden;margin-bottom:12px">
+      <div style="display:flex;justify-content:space-between;padding:9px 14px;border-bottom:1px solid var(--line);font-size:11px;color:var(--text-soft)">
+        <span>🏷️ ${cnt} ${lbl} участвуют в акции</span>
+        <span style="color:#f5c518;font-weight:700">топ по выручке</span>
+      </div>
+      <div style="padding:8px">${rows}</div>
+    </div>`;
+}
+
+function buildCompareBlocks(month,prevWeek,prevMonth){
+  function pctDiff(now,prev){if(!prev||prev===0)return null;return(now-prev)/prev*100;}
+  function arrow(d,inverse){
+    if(d===null)return '<span style="color:var(--text-soft)">—</span>';
+    const up=d>=0;const good=inverse?!up:up;
+    return `<span style="color:${good?'var(--green,#4caf50)':'var(--orange,#ff8b57)'};font-weight:700">${up?'▲':'▼'} ${Math.abs(d).toFixed(1)}%</span>`;
+  }
+  const pw=prevWeek?(prevWeek.month||{}):null;
+  const pm=prevMonth?(prevMonth.month||{}):null;
+  const wRevD=pw?pctDiff(month.revenue,pw.revenue):null;
+  const wOrdD=pw?pctDiff(month.orders,pw.orders):null;
+  const wDrrNow=month.revenue?(month.adSpend/month.revenue*100):0;
+  const wDrrPrev=pw&&pw.revenue?(pw.adSpend/pw.revenue*100):null;
+  const wDrrD=wDrrPrev!==null?(wDrrNow-wDrrPrev):null;
+  const mRevD=pm?pctDiff(month.revenue,pm.revenue):null;
+  const mOrdD=pm?pctDiff(month.orders,pm.orders):null;
+  const mDrrNow=month.revenue?(month.adSpend/month.revenue*100):0;
+  const mDrrPrev=pm&&pm.revenue?(pm.adSpend/pm.revenue*100):null;
+  const mDrrD=mDrrPrev!==null?(mDrrNow-mDrrPrev):null;
+  const drrSpan=d=>d!==null?`<span style="color:${d<=0?'var(--green,#4caf50)':'var(--orange,#ff8b57)'};font-weight:700">${d>=0?'+':''}${d.toFixed(1)} п.п.${d<=0?' 🟢':d<=2?' 🟡':' 🔴'}</span>`:'<span style="color:var(--text-soft)">—</span>';
+  return `<div class="section-title">📈 Сравнение периодов</div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
       <div class="bar-card" style="background:var(--card2,rgba(255,255,255,0.04))">
         <div style="font-size:11px;font-weight:700;color:var(--text-soft);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">Эта неделя vs прошлая</div>
@@ -577,338 +479,216 @@ function buildCompareBlocks(month, prevWeek, prevMonth) {
     </div>`;
 }
 
-function buildDrrCard(t, stocks, month) {
-  // Общий ДРР сегодня
-  const drr = t.revenue ? (t.adSpend / t.revenue * 100) : 0;
-  const drrColor = drr <= 10 ? 'var(--green,#4caf50)' : drr <= 20 ? 'var(--yellow,#f5c518)' : 'var(--orange,#ff8b57)';
-  const drrIcon  = drr <= 10 ? '🟢' : drr <= 20 ? '🟡' : '🔴';
-
-  // ДРР по артикулам — используем monthAdSpend / (avgPrice * monthOrders)
-  // avgPrice = выручка за месяц / заказы за месяц
-  const skuWithAd = (stocks || []).filter(s => s.monthAdSpend > 0 && s.monthOrders > 0);
-  const avgPrice = (month && month.orders > 0 && month.revenue > 0)
-    ? month.revenue / month.orders : 0;
-
-  function fmtRub(n) {
-    if (!n) return '—';
-    return n >= 1000 ? Math.round(n / 1000) + 'К ₽' : Math.round(n) + ' ₽';
-  }
-  function drrSkuColor(d) {
-    return d <= 10 ? 'var(--green,#4caf50)' : d <= 20 ? 'var(--yellow,#f5c518)' : 'var(--orange,#ff8b57)';
-  }
-  function drrSkuIcon(d) {
-    return d <= 10 ? '🟢' : d <= 20 ? '🟡' : '🔴';
-  }
-
-  // Считаем ДРР и CPO по артикулу, сортируем худшие сверху
-  const skuRows = skuWithAd.map(s => {
-    const skuRevenue = avgPrice > 0 ? avgPrice * s.monthOrders : 0;
-    const skuDrr = skuRevenue > 0 ? (s.monthAdSpend / skuRevenue * 100) : 0;
-    const cpo = Math.round(s.monthAdSpend / s.monthOrders);
-    return { ...s, skuDrr, cpo };
-  }).sort((a, b) => b.skuDrr - a.skuDrr);
-
-  const skuRowsHtml = skuRows.map(s => `
-    <div style="display:flex;align-items:center;gap:8px;padding:8px 12px;border-bottom:1px solid var(--line);font-size:13px">
-      <div style="flex:1;min-width:0">
-        <div style="font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${s.name}</div>
-        <div style="font-size:11px;color:var(--text-soft)">${s.sku} · реклама ${fmtRub(s.monthAdSpend)} · ${s.monthOrders} заказов · CPO ${fmtRub(s.cpo)}</div>
-      </div>
-      <div style="font-size:16px;font-weight:800;color:${drrSkuColor(s.skuDrr)};flex-shrink:0;white-space:nowrap">
-        ${drrSkuIcon(s.skuDrr)} ${s.skuDrr.toFixed(1)}%
-      </div>
-    </div>`).join('');
-
-  const noAdCount = (stocks || []).filter(s => !s.monthAdSpend || s.monthAdSpend === 0).length;
-  const noAdHtml = noAdCount > 0
-    ? `<div style="padding:7px 12px;font-size:11px;color:var(--text-soft)">⚪ Без рекламы: ${noAdCount} арт.</div>`
-    : '';
-
-  return `
-    <div class="section-title">📊 ДРР — доля рекламных расходов</div>
+function buildDrrCard(t,stocks,month){
+  const drr=t.revenue?(t.adSpend/t.revenue*100):0;
+  const drrColor=drr<=10?'var(--green,#4caf50)':drr<=20?'var(--yellow,#f5c518)':'var(--orange,#ff8b57)';
+  const drrIcon=drr<=10?'🟢':drr<=20?'🟡':'🔴';
+  const skuWithAd=(stocks||[]).filter(s=>s.monthAdSpend>0&&s.monthOrders>0);
+  const avgPrice=(month&&month.orders>0&&month.revenue>0)?month.revenue/month.orders:0;
+  function fmtR(n){if(!n)return '—';return n>=1000?Math.round(n/1000)+'К ₽':Math.round(n)+' ₽';}
+  function dc(d){return d<=10?'var(--green,#4caf50)':d<=20?'var(--yellow,#f5c518)':'var(--orange,#ff8b57)';}
+  function di(d){return d<=10?'🟢':d<=20?'🟡':'🔴';}
+  const skuRows=skuWithAd.map(s=>{
+    const rev=avgPrice>0?avgPrice*s.monthOrders:0;
+    const d=rev>0?(s.monthAdSpend/rev*100):0;
+    const cpo=Math.round(s.monthAdSpend/s.monthOrders);
+    return {...s,skuDrr:d,cpo};
+  }).sort((a,b)=>b.skuDrr-a.skuDrr);
+  const rowsHtml=skuRows.map(s=>`<div style="display:flex;align-items:center;gap:8px;padding:8px 12px;border-bottom:1px solid var(--line);font-size:13px">
+    <div style="flex:1;min-width:0"><div style="font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${s.name}</div>
+    <div style="font-size:11px;color:var(--text-soft)">${s.sku} · реклама ${fmtR(s.monthAdSpend)} · ${s.monthOrders} заказов · CPO ${fmtR(s.cpo)}</div></div>
+    <div style="font-size:16px;font-weight:800;color:${dc(s.skuDrr)};flex-shrink:0">${di(s.skuDrr)} ${s.skuDrr.toFixed(1)}%</div></div>`).join('');
+  const noAd=(stocks||[]).filter(s=>!s.monthAdSpend||s.monthAdSpend===0).length;
+  return `<div class="section-title">📊 ДРР — доля рекламных расходов</div>
     <div style="background:var(--bg-card-strong,#151929);border:1px solid var(--line);border-radius:14px;overflow:hidden;margin-bottom:12px">
       <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-bottom:1px solid var(--line)">
-        <div>
-          <div style="font-size:11px;color:var(--text-soft);margin-bottom:3px">Общий ДРР сегодня</div>
-          <div style="font-size:24px;font-weight:800;color:${drrColor}">${drrIcon} ${drr.toFixed(1)}%</div>
-        </div>
+        <div><div style="font-size:11px;color:var(--text-soft);margin-bottom:3px">Общий ДРР сегодня</div>
+        <div style="font-size:24px;font-weight:800;color:${drrColor}">${drrIcon} ${drr.toFixed(1)}%</div></div>
         <div style="text-align:right;font-size:11px;color:var(--text-soft);line-height:1.9">
           <div style="color:var(--green,#4caf50)">🟢 до 10% — отлично</div>
           <div style="color:var(--yellow,#f5c518)">🟡 10–20% — норма</div>
           <div style="color:var(--orange,#ff8b57)">🔴 выше 20% — много</div>
         </div>
       </div>
-      ${skuRows.length > 0 ? `
-        <div style="display:flex;justify-content:space-between;padding:6px 12px;font-size:11px;color:var(--text-soft);border-bottom:1px solid var(--line)">
-          <span>По артикулам за месяц (худшие сверху)</span>
-          <span>ДРР</span>
-        </div>
-        ${skuRowsHtml}
-        ${noAdHtml}
-      ` : `<div style="padding:12px 14px;font-size:12px;color:var(--text-soft)">Данные по артикулам недоступны</div>`}
+      ${skuRows.length>0?`<div style="display:flex;justify-content:space-between;padding:6px 12px;font-size:11px;color:var(--text-soft);border-bottom:1px solid var(--line)"><span>По артикулам за месяц (худшие сверху)</span><span>ДРР</span></div>${rowsHtml}${noAd>0?`<div style="padding:7px 12px;font-size:11px;color:var(--text-soft)">⚪ Без рекламы: ${noAd} арт.</div>`:''}`:'<div style="padding:12px 14px;font-size:12px;color:var(--text-soft)">Данные по артикулам недоступны</div>'}
     </div>`;
 }
 
-// ── НОВЫЙ БЛОК: CPO — стоимость привлечения одного заказа ──────────
-// Считается из уже имеющихся данных: adSpend / orders
-// Нормы: WB до 300 ₽ — хорошо, 300–600 ₽ — норма, выше 600 ₽ — дорого
-//        Ozon до 200 ₽ — хорошо, 200–500 ₽ — норма, выше 500 ₽ — дорого
-function buildCpoCard(t, stocks) {
-  // Собираем товары у которых есть CPO
-  const skuWithCpo = (stocks || []).filter(s => s.cpo != null && s.cpo > 0);
-
-  // Общий CPO как fallback если нет данных по артикулам
-  const generalCpo = (t.orders && t.adSpend) ? t.adSpend / t.orders : null;
-
-  function fmtRub(n) {
-    if (!n) return '—';
-    if (n >= 1000) return Math.round(n/1000) + 'К ₽';
-    return Math.round(n) + ' ₽';
-  }
-  function cpoColor(cpo) {
-    return cpo < 300 ? 'var(--green,#4caf50)' : cpo < 800 ? 'var(--yellow,#f5c518)' : 'var(--orange,#ff8b57)';
-  }
-  function cpoIcon(cpo) {
-    return cpo < 300 ? '🟢' : cpo < 800 ? '🟡' : '🔴';
-  }
-
-  if (skuWithCpo.length > 0) {
-    // Таблица CPO по артикулам
-    const rows = skuWithCpo.map(s => `
-      <div style="display:flex;align-items:center;gap:10px;padding:8px 12px;border-bottom:1px solid var(--line);font-size:13px">
-        <div style="flex:1;min-width:0">
-          <div style="font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${s.name}</div>
-          <div style="font-size:11px;color:var(--text-soft)">${s.sku} · реклама ${fmtRub(s.monthAdSpend)} · ${s.monthOrders || 0} заказов</div>
-        </div>
-        <div style="font-size:16px;font-weight:800;color:${cpoColor(s.cpo)};flex-shrink:0">${cpoIcon(s.cpo)} ${fmtRub(s.cpo)}</div>
-      </div>`).join('');
-
-    return `
-      <div class="section-title">🎯 CPO — стоимость одного заказа по артикулам</div>
+function buildCpoCard(t,stocks){
+  const skuWithCpo=(stocks||[]).filter(s=>s.cpo!=null&&s.cpo>0);
+  const genCpo=(t.orders&&t.adSpend)?t.adSpend/t.orders:null;
+  function fmtR(n){if(!n)return'—';if(n>=1000)return Math.round(n/1000)+'К ₽';return Math.round(n)+' ₽';}
+  function cc(c){return c<300?'var(--green,#4caf50)':c<800?'var(--yellow,#f5c518)':'var(--orange,#ff8b57)';}
+  function ci(c){return c<300?'🟢':c<800?'🟡':'🔴';}
+  if(skuWithCpo.length>0){
+    const rows=skuWithCpo.map(s=>`<div style="display:flex;align-items:center;gap:10px;padding:8px 12px;border-bottom:1px solid var(--line);font-size:13px">
+      <div style="flex:1;min-width:0"><div style="font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${s.name}</div>
+      <div style="font-size:11px;color:var(--text-soft)">${s.sku} · реклама ${fmtR(s.monthAdSpend)} · ${s.monthOrders||0} заказов</div></div>
+      <div style="font-size:16px;font-weight:800;color:${cc(s.cpo)};flex-shrink:0">${ci(s.cpo)} ${fmtR(s.cpo)}</div></div>`).join('');
+    return `<div class="section-title">🎯 CPO — стоимость одного заказа по артикулам</div>
       <div style="background:var(--bg-card-strong,#151929);border:1px solid var(--line);border-radius:14px;overflow:hidden;margin-bottom:12px">
         <div style="display:flex;justify-content:flex-end;gap:12px;padding:8px 12px;font-size:11px;color:var(--text-soft);border-bottom:1px solid var(--line)">
-          <span style="color:var(--green,#4caf50)">🟢 &lt;300 ₽</span>
-          <span style="color:var(--yellow,#f5c518)">🟡 300–800 ₽</span>
-          <span style="color:var(--orange,#ff8b57)">🔴 &gt;800 ₽</span>
-        </div>
-        ${rows}
-      </div>`;
+          <span style="color:var(--green,#4caf50)">🟢 &lt;300 ₽</span><span style="color:var(--yellow,#f5c518)">🟡 300–800 ₽</span><span style="color:var(--orange,#ff8b57)">🔴 &gt;800 ₽</span>
+        </div>${rows}</div>`;
   }
-
-  // Fallback — общий CPO если нет данных по артикулам
-  if (!generalCpo) return '';
-  const color = cpoColor(generalCpo);
-  const icon  = cpoIcon(generalCpo);
-  return `
-    <div class="kpi-card" style="margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;gap:12px">
-      <div>
-        <div class="kpi-label">🎯 CPO — стоимость одного заказа</div>
-        <div class="kpi-value" style="font-size:28px;color:\${color}">\${icon} \${fmtRub(generalCpo)}</div>
-        <div style="font-size:11px;color:var(--text-soft);margin-top:4px">\${fmtRub(t.adSpend)} реклама ÷ \${t.orders} заказов</div>
-      </div>
-      <div style="text-align:right;font-size:11px;color:var(--text-soft);line-height:1.8">
-        <div style="color:var(--green,#4caf50)">🟢 до 300 ₽ — отлично</div>
-        <div style="color:var(--yellow,#f5c518)">🟡 300–800 ₽ — норма</div>
-        <div style="color:var(--orange,#ff8b57)">🔴 выше 800 ₽ — дорого</div>
-      </div>
-    </div>`;
+  if(!genCpo)return '';
+  return `<div class="kpi-card" style="margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;gap:12px">
+    <div><div class="kpi-label">🎯 CPO — стоимость одного заказа</div>
+    <div class="kpi-value" style="font-size:28px;color:${cc(genCpo)}">${ci(genCpo)} ${fmtR(genCpo)}</div></div>
+    <div style="text-align:right;font-size:11px;color:var(--text-soft);line-height:1.8">
+      <div style="color:var(--green,#4caf50)">🟢 до 300 ₽</div><div style="color:var(--yellow,#f5c518)">🟡 300–800 ₽</div><div style="color:var(--orange,#ff8b57)">🔴 выше 800 ₽</div>
+    </div></div>`;
 }
 
-// ── БЛОК 3: Выкуп% ────────────────────────────────────────────────
-// WB норма: 80%+, Ozon норма: 90%+
-// Показываем: среднее + только проблемные артикулы (ниже нормы)
-function buildRedemptionCard(redemption, platform) {
-  if (!redemption || redemption.avg === null || redemption.avg === undefined) return '';
-
-  const THRESHOLD = platform === 'wb' ? 80 : 90;
-  const avg = redemption.avg;
-  const bad = redemption.bad || [];
-
-  const avgColor = avg >= THRESHOLD     ? 'var(--green,#4caf50)'
-                 : avg >= THRESHOLD - 10 ? 'var(--yellow,#f5c518)'
-                 : 'var(--orange,#ff8b57)';
-  const avgIcon  = avg >= THRESHOLD     ? '🟢'
-                 : avg >= THRESHOLD - 10 ? '🟡' : '🔴';
-
-  const badRows = bad.map(s => {
-    const color = s.rate >= THRESHOLD - 10 ? 'var(--yellow,#f5c518)' : 'var(--orange,#ff8b57)';
-    const icon  = s.rate >= THRESHOLD - 10 ? '🟡' : '🔴';
+function buildRedemptionCard(redemption,platform){
+  if(!redemption||redemption.avg===null||redemption.avg===undefined)return '';
+  const TH=platform==='wb'?80:90;
+  const avg=redemption.avg;const bad=redemption.bad||[];
+  const ac=avg>=TH?'var(--green,#4caf50)':avg>=TH-10?'var(--yellow,#f5c518)':'var(--orange,#ff8b57)';
+  const ai=avg>=TH?'🟢':avg>=TH-10?'🟡':'🔴';
+  const badRows=bad.map(s=>{
+    const c=s.rate>=TH-10?'var(--yellow,#f5c518)':'var(--orange,#ff8b57)';
+    const ic=s.rate>=TH-10?'🟡':'🔴';
     return `<div style="display:flex;align-items:center;justify-content:space-between;padding:7px 12px;border-bottom:1px solid var(--line);font-size:12px">
-      <div style="flex:1;min-width:0">
-        <div style="font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${s.name}</div>
-        <div style="font-size:11px;color:var(--text-soft)">${s.sku} · ${s.orders} заказов → ${s.sales} выкуплено</div>
-      </div>
-      <div style="font-weight:800;color:${color};flex-shrink:0;margin-left:10px">${icon} ${s.rate}%</div>
-    </div>`;
+      <div style="flex:1;min-width:0"><div style="font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${s.name}</div>
+      <div style="font-size:11px;color:var(--text-soft)">${s.sku} · ${s.orders} заказов → ${s.sales} выкуплено</div></div>
+      <div style="font-weight:800;color:${c};flex-shrink:0;margin-left:10px">${ic} ${s.rate}%</div></div>`;
   }).join('');
-
-  const alertHtml = bad.length > 0
-    ? `<div style="margin:8px 12px 0;background:rgba(255,139,87,0.1);border:1px solid rgba(255,139,87,0.3);border-radius:10px;padding:8px 12px;font-size:12px;color:var(--orange,#ff8b57);font-weight:600">
-        ⚠️ ${bad.length} ${bad.length === 1 ? 'артикул' : 'артикула'} с выкупом ниже нормы (${THRESHOLD}%) — возможны проблемы с размерной сеткой, фото или описанием
-       </div>` : '';
-
-  const allGoodHtml = bad.length === 0
-    ? `<div style="padding:10px 14px;font-size:12px;color:var(--green,#4caf50);font-weight:600">✅ Все артикулы в норме — выкуп выше ${THRESHOLD}%</div>` : '';
-
-  return `
-    <div class="section-title">🛍️ Выкуп товаров</div>
+  const alertH=bad.length>0?`<div style="margin:8px 12px 0;background:rgba(255,139,87,0.1);border:1px solid rgba(255,139,87,0.3);border-radius:10px;padding:8px 12px;font-size:12px;color:var(--orange,#ff8b57);font-weight:600">⚠️ ${bad.length} ${bad.length===1?'артикул':'артикула'} с выкупом ниже нормы (${TH}%) — возможны проблемы с размерной сеткой, фото или описанием</div>`:'';
+  const okH=bad.length===0?`<div style="padding:10px 14px;font-size:12px;color:var(--green,#4caf50);font-weight:600">✅ Все артикулы в норме — выкуп выше ${TH}%</div>`:'';
+  return `<div class="section-title">🛍️ Выкуп товаров</div>
     <div style="background:var(--bg-card-strong,#151929);border:1px solid var(--line);border-radius:14px;overflow:hidden;margin-bottom:12px">
       <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-bottom:1px solid var(--line)">
-        <div>
-          <div style="font-size:11px;color:var(--text-soft);margin-bottom:3px">Средний выкуп за месяц</div>
-          <div style="font-size:24px;font-weight:800;color:${avgColor}">${avgIcon} ${avg}%</div>
-        </div>
+        <div><div style="font-size:11px;color:var(--text-soft);margin-bottom:3px">Средний выкуп за месяц</div>
+        <div style="font-size:24px;font-weight:800;color:${ac}">${ai} ${avg}%</div></div>
         <div style="text-align:right;font-size:11px;color:var(--text-soft);line-height:1.9">
-          <div style="color:var(--green,#4caf50)">🟢 ≥${THRESHOLD}% — норма</div>
-          <div style="color:var(--yellow,#f5c518)">🟡 ${THRESHOLD-10}–${THRESHOLD-1}% — проверить</div>
-          <div style="color:var(--orange,#ff8b57)">🔴 &lt;${THRESHOLD-10}% — проблема</div>
+          <div style="color:var(--green,#4caf50)">🟢 ≥${TH}% — норма</div>
+          <div style="color:var(--yellow,#f5c518)">🟡 ${TH-10}–${TH-1}% — проверить</div>
+          <div style="color:var(--orange,#ff8b57)">🔴 &lt;${TH-10}% — проблема</div>
         </div>
-      </div>
-      ${alertHtml}
-      ${allGoodHtml}
-      ${badRows}
-    </div>`;
+      </div>${alertH}${okH}${badRows}</div>`;
 }
 
-// ── БЛОК 2: Оборачиваемость ────────────────────────────────────────
-function buildTurnoverCard(stocks, platform) {
-  if (!stocks || stocks.length === 0) return '';
-  const withDays = stocks.filter(s => s.daysCover > 0);
-  if (withDays.length === 0) return '';
-
-  const PAID_DAYS = platform === 'wb' ? 60 : 61;
-  const avgDays = Math.round(withDays.reduce((s, i) => s + i.daysCover, 0) / withDays.length);
-  const atRisk  = withDays.filter(s => s.daysCover > PAID_DAYS);
-
-  const avgColor = avgDays <= 30 ? 'var(--green,#4caf50)' : avgDays <= PAID_DAYS ? 'var(--yellow,#f5c518)' : 'var(--orange,#ff8b57)';
-  const avgIcon  = avgDays <= 30 ? '🟢' : avgDays <= PAID_DAYS ? '🟡' : '🔴';
-
-  const rows = withDays.map(s => {
-    const isPaid = s.daysCover > PAID_DAYS;
-    const isSlow = s.daysCover > 30 && !isPaid;
-    const color  = isPaid ? 'var(--orange,#ff8b57)' : isSlow ? 'var(--yellow,#f5c518)' : 'var(--green,#4caf50)';
-    const icon   = isPaid ? '🔴' : isSlow ? '🟡' : '🟢';
-    const warn   = isPaid ? ` <span style="color:var(--orange,#ff8b57);font-weight:700">· платное хранение!</span>` : '';
+function buildTurnoverCard(stocks,platform){
+  if(!stocks||stocks.length===0)return '';
+  const withDays=stocks.filter(s=>s.daysCover>0);
+  if(withDays.length===0)return '';
+  const PD=platform==='wb'?60:61;
+  const avg=Math.round(withDays.reduce((s,i)=>s+i.daysCover,0)/withDays.length);
+  const atRisk=withDays.filter(s=>s.daysCover>PD);
+  const ac=avg<=30?'var(--green,#4caf50)':avg<=PD?'var(--yellow,#f5c518)':'var(--orange,#ff8b57)';
+  const ai=avg<=30?'🟢':avg<=PD?'🟡':'🔴';
+  const rows=withDays.map(s=>{
+    const ip=s.daysCover>PD;const is=s.daysCover>30&&!ip;
+    const c=ip?'var(--orange,#ff8b57)':is?'var(--yellow,#f5c518)':'var(--green,#4caf50)';
+    const ic=ip?'🔴':is?'🟡':'🟢';
+    const w=ip?` <span style="color:var(--orange,#ff8b57);font-weight:700">· платное хранение!</span>`:'';
     return `<div style="display:flex;align-items:center;justify-content:space-between;padding:7px 12px;border-bottom:1px solid var(--line);font-size:12px">
       <div style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
-        <span style="font-weight:700">${s.name}</span>
-        <span style="color:var(--text-soft);font-size:11px;margin-left:5px">${s.sku}</span>${warn}
-      </div>
-      <div style="font-weight:800;color:${color};flex-shrink:0;margin-left:10px">${icon} ${s.daysCover} дн</div>
-    </div>`;
+        <span style="font-weight:700">${s.name}</span><span style="color:var(--text-soft);font-size:11px;margin-left:5px">${s.sku}</span>${w}</div>
+      <div style="font-weight:800;color:${c};flex-shrink:0;margin-left:10px">${ic} ${s.daysCover} дн</div></div>`;
   }).join('');
-
-  const alertHtml = atRisk.length > 0
-    ? `<div style="margin:8px 12px 0;background:rgba(255,68,68,0.1);border:1px solid rgba(255,68,68,0.3);border-radius:10px;padding:8px 12px;font-size:12px;color:#ff6b6b;font-weight:600">
-        🚨 ${atRisk.length} ${atRisk.length === 1 ? 'товар' : 'товара'} на платном хранении (>${PAID_DAYS} дн) — маркетплейс списывает деньги каждый день
-       </div>` : '';
-
-  return `
-    <div class="section-title">🔄 Оборачиваемость товаров</div>
+  const alertH=atRisk.length>0?`<div style="margin:8px 12px 0;background:rgba(255,68,68,0.1);border:1px solid rgba(255,68,68,0.3);border-radius:10px;padding:8px 12px;font-size:12px;color:#ff6b6b;font-weight:600">🚨 ${atRisk.length} ${atRisk.length===1?'товар':'товара'} на платном хранении (>${PD} дн)</div>`:'';
+  return `<div class="section-title">🔄 Оборачиваемость товаров</div>
     <div style="background:var(--bg-card-strong,#151929);border:1px solid var(--line);border-radius:14px;overflow:hidden;margin-bottom:12px">
       <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-bottom:1px solid var(--line)">
-        <div>
-          <div style="font-size:11px;color:var(--text-soft);margin-bottom:3px">Средняя оборачиваемость</div>
-          <div style="font-size:24px;font-weight:800;color:${avgColor}">${avgIcon} ${avgDays} дней</div>
-        </div>
+        <div><div style="font-size:11px;color:var(--text-soft);margin-bottom:3px">Средняя оборачиваемость</div>
+        <div style="font-size:24px;font-weight:800;color:${ac}">${ai} ${avg} дней</div></div>
         <div style="text-align:right;font-size:11px;color:var(--text-soft);line-height:1.9">
           <div style="color:var(--green,#4caf50)">🟢 до 30 дн — хорошо</div>
-          <div style="color:var(--yellow,#f5c518)">🟡 30–${PAID_DAYS} дн — медленно</div>
-          <div style="color:var(--orange,#ff8b57)">🔴 >${PAID_DAYS} дн — платное хранение</div>
+          <div style="color:var(--yellow,#f5c518)">🟡 30–${PD} дн — медленно</div>
+          <div style="color:var(--orange,#ff8b57)">🔴 >${PD} дн — платное хранение</div>
         </div>
-      </div>
-      ${alertHtml}
-      ${rows}
-    </div>`;
+      </div>${alertH}${rows}</div>`;
 }
 
-function buildFinanceCard(finance) {
-  if (!finance) return '';
-  const fm = finance.month;
-  const ft = finance.today;
-  if (!fm && !ft) return '';
-  function fmtM(n) {
-    n = n || 0;
-    if (n >= 1000000) return (n/1000000).toFixed(1) + 'М ₽';
-    if (n >= 1000)    return Math.round(n/1000) + 'К ₽';
-    return n.toLocaleString('ru') + ' ₽';
+function buildFinanceCard(finance, revenue){
+  if(!finance)return '';
+  const fm=finance.month;const ft=finance.today;
+  if(!fm&&!ft)return '';
+  function fmtM(n){n=n||0;if(n>=1000000)return(n/1000000).toFixed(1)+'М ₽';if(n>=1000)return Math.round(n/1000)+'К ₽';return n.toLocaleString('ru')+' ₽';}
+
+  // Читаем сохранённые налоговые настройки
+  const taxRate = parseFloat(localStorage.getItem('tax_rate')||'0');
+  const vatRate  = parseFloat(localStorage.getItem('vat_rate') ||'0');
+  const taxSys   = localStorage.getItem('tax_system')||'usn6';
+  const taxLabel = {'usn6':'УСН 6%','usn15':'УСН 15%','osn':'ОСН','patent':'Патент','custom':'Налог'}[taxSys]||'Налог';
+
+  let taxAmountM=0, vatAmountM=0, taxAmountT=0, vatAmountT=0;
+  if(fm && taxRate > 0){
+    const base = taxSys==='usn6' ? (revenue||fm.netProfit*4) : Math.max(0,fm.netProfit);
+    taxAmountM = Math.round(base * taxRate/100);
   }
-  const mColor = fm ? (fm.isHealthy ? 'var(--green,#4caf50)' : 'var(--orange,#ff8b57)') : 'var(--text-soft)';
-  const tColor = ft ? (ft.isHealthy ? 'var(--green,#4caf50)' : 'var(--orange,#ff8b57)') : 'var(--text-soft)';
-  const mIcon  = fm ? (fm.isHealthy ? '🟢' : '🔴') : '—';
-  const tIcon  = ft ? (ft.isHealthy ? '🟢' : '🔴') : '—';
-  return `
-    <div class="section-title">💰 Финансы — чистая прибыль</div>
+  if(fm && vatRate > 0){
+    vatAmountM = Math.round((revenue||0) * vatRate/100);
+  }
+  if(ft && taxRate > 0){
+    const baseT = taxSys==='usn6' ? (ft.netProfit*4) : Math.max(0,ft.netProfit);
+    taxAmountT = Math.round(baseT * taxRate/100);
+  }
+  if(ft && vatRate > 0 && revenue){
+    vatAmountT = Math.round(revenue/30 * vatRate/100);
+  }
+
+  const netM  = fm ? Math.max(0, fm.netProfit - taxAmountM - vatAmountM) : 0;
+  const netT  = ft ? Math.max(0, ft.netProfit - taxAmountT - vatAmountT) : 0;
+  const margM = (fm && revenue) ? (netM/revenue*100) : (fm ? fm.margin : 0);
+  const margT = ft ? (netT/(ft.netProfit/ft.margin*100||1)*100||ft.margin) : 0;
+
+  const mc=netM>0?'var(--green,#4caf50)':'var(--orange,#ff8b57)';
+  const tc=netT>0?'var(--green,#4caf50)':'var(--orange,#ff8b57)';
+  const hasTax = taxAmountM > 0 || vatAmountM > 0;
+
+  return `<div class="section-title">💰 Финансы — чистая прибыль</div>
     <div class="kpi-grid" style="margin-bottom:8px">
-      <div class="kpi-card">
-        <div class="kpi-label">Прибыль сегодня</div>
-        <div class="kpi-value" style="font-size:18px;color:${tColor}">${ft ? tIcon + ' ' + fmtM(ft.netProfit) : '—'}</div>
-        <div class="kpi-delta" style="color:var(--text-soft)">${ft ? 'маржа ' + ft.margin.toFixed(1) + '%' : ''}</div>
-      </div>
-      <div class="kpi-card">
-        <div class="kpi-label">Прибыль за месяц</div>
-        <div class="kpi-value" style="font-size:18px;color:${mColor}">${fm ? mIcon + ' ' + fmtM(fm.netProfit) : '—'}</div>
-        <div class="kpi-delta" style="color:var(--text-soft)">${fm ? 'маржа ' + fm.margin.toFixed(1) + '%' : ''}</div>
-      </div>
+      <div class="kpi-card"><div class="kpi-label">Прибыль сегодня</div>
+        <div class="kpi-value" style="font-size:18px;color:${tc}">${ft?(netT>0?'🟢':'🔴')+' '+fmtM(netT):'—'}</div>
+        <div class="kpi-delta" style="color:var(--text-soft)">${ft?'маржа '+ft.margin.toFixed(1)+'%':''}</div></div>
+      <div class="kpi-card"><div class="kpi-label">Прибыль за месяц</div>
+        <div class="kpi-value" style="font-size:18px;color:${mc}">${fm?(netM>0?'🟢':'🔴')+' '+fmtM(netM):'—'}</div>
+        <div class="kpi-delta" style="color:var(--text-soft)">${fm?'маржа '+margM.toFixed(1)+'%':''}</div></div>
     </div>
-    ${fm ? `
-    <div class="bar-card" style="font-size:12px;line-height:2.2">
+    ${fm?`<div class="bar-card" style="font-size:12px;line-height:2.2">
       <div style="display:flex;justify-content:space-between"><span style="color:var(--text-soft)">- Себестоимость:</span><span style="color:var(--orange,#ff8b57)">−${fmtM(fm.cost)}</span></div>
       <div style="display:flex;justify-content:space-between"><span style="color:var(--text-soft)">- Комиссия МП:</span><span style="color:var(--orange,#ff8b57)">−${fmtM(fm.commission)}</span></div>
-      <div style="display:flex;justify-content:space-between"><span style="color:var(--text-soft)">- Реклама:</span><span style="color:var(--orange,#ff8b57)">−${fmtM(fm.adSpend || 0)}</span></div>
+      <div style="display:flex;justify-content:space-between"><span style="color:var(--text-soft)">- Реклама:</span><span style="color:var(--orange,#ff8b57)">−${fmtM(fm.adSpend||0)}</span></div>
+      ${taxAmountM>0?`<div style="display:flex;justify-content:space-between"><span style="color:var(--text-soft)">- Налог (${taxLabel}):</span><span style="color:var(--orange,#ff8b57)">−${fmtM(taxAmountM)}</span></div>`:''}
+      ${vatAmountM>0?`<div style="display:flex;justify-content:space-between"><span style="color:var(--text-soft)">- НДС (${vatRate}%):</span><span style="color:var(--orange,#ff8b57)">−${fmtM(vatAmountM)}</span></div>`:''}
+      ${!hasTax?`<div style="font-size:11px;color:var(--text-soft);margin:2px 0">⚪ Налог не задан — укажите в Настройках</div>`:''}
       <div style="border-top:1px solid var(--line);margin:4px 0"></div>
-      <div style="display:flex;justify-content:space-between;font-weight:800"><span>= Чистая прибыль:</span><span style="color:${mColor}">${fmtM(fm.netProfit)}</span></div>
-    </div>` : ''}`;
+      <div style="display:flex;justify-content:space-between;font-weight:800"><span>= Чистая прибыль:</span><span style="color:${mc}">${fmtM(netM)}</span></div>
+    </div>`:''}`;
 }
 
-function buildDashboard({ today, month, kpi, source, warehouses, stocks, atRiskProducts, finance, redemption, _prevWeek, _prevMonth }, platform) {
-  const t = today || {};
-  const m = month || {};
-  const k = kpi   || {};
-  const now = new Date().toLocaleTimeString('ru', { hour: '2-digit', minute: '2-digit' });
-  const isOzon = platform === 'ozon';
-  const dayRevTarget = k.revenue ? k.revenue / 30 : 0;
-  const dayOrdTarget = k.daily_orders || 0;
-  const adBudget     = k.ad_budget    || 0;
-  const convTarget   = k.conversion   || 0;
-
-  function fmtMoney(n) {
-    n = n || 0;
-    if (n >= 1000000) return (n/1000000).toFixed(1) + 'М ₽';
-    if (n >= 1000)    return Math.round(n/1000) + 'К ₽';
-    return n.toLocaleString('ru') + ' ₽';
-  }
-  function fmtNum(n) { return (n || 0).toLocaleString('ru'); }
-  function pct(val, max) { return max ? Math.min((val/max)*100, 100).toFixed(0) : 0; }
-  function deltaHtml(val, plan, higher = true) {
-    if (!plan || !val) return '<span style="color:var(--text-soft);font-size:11px">— нет плана</span>';
-    const d = ((val/plan-1)*100).toFixed(1);
-    const ok = higher ? val >= plan : val <= plan;
+function buildDashboard({today,month,kpi,source,warehouses,stocks,atRiskProducts,finance,redemption,promoProducts,_prevWeek,_prevMonth},platform){
+  const t=today||{};const m=month||{};const k=kpi||{};
+  const now=new Date().toLocaleTimeString('ru',{hour:'2-digit',minute:'2-digit'});
+  const isOzon=platform==='ozon';
+  const dayRevTarget=k.revenue?k.revenue/30:0;
+  const dayOrdTarget=k.daily_orders||0;
+  const adBudget=k.ad_budget||0;
+  const convTarget=k.conversion||0;
+  function fmtMoney(n){n=n||0;if(n>=1000000)return(n/1000000).toFixed(1)+'М ₽';if(n>=1000)return Math.round(n/1000)+'К ₽';return n.toLocaleString('ru')+' ₽';}
+  function fmtNum(n){return(n||0).toLocaleString('ru');}
+  function deltaHtml(val,plan,higher=true){
+    if(!plan||!val)return '<span style="color:var(--text-soft);font-size:11px">— нет плана</span>';
+    const d=((val/plan-1)*100).toFixed(1);const ok=higher?val>=plan:val<=plan;
     return `<div class="kpi-delta ${ok?'delta-up':'delta-down'}">${ok?'▲':'▼'} ${Math.abs(d)}% к плану</div>`;
   }
-  function barHtml(val, max, warn) {
-    return `<div class="bar-track"><div class="bar-fill ${warn?'warn':''}" style="width:${pct(val,max)}%"></div></div>`;
-  }
-
-  const sourceBadge = source === 'api'
-    ? '<span class="source-badge source-api">● реальные данные</span>'
-    : '<span class="source-badge source-mock">● демо</span>';
-
-  const riskItems = (atRiskProducts || []).filter(p => p.trend === 'down' || !p.trend);
-  const growthItemsFromRisk = (atRiskProducts || []).filter(p => p.trend === 'up');
-
-  let riskHtml = '';
-  if (riskItems.length > 0) {
-    riskHtml = `<div class="section-title">🚨 Товары в зоне риска</div>`;
-    for (const p of riskItems) {
-      const rC = (p.revenueDelta||0)>=0?'#4caf50':'#ff4444';
-      const oC = (p.ordersDelta||0)>=0?'#4caf50':'#ff4444';
-      const cC = (p.ctrDelta||0)>=0?'#4caf50':'#ff4444';
-      riskHtml += `<div class="risk-item"><div class="risk-icon">🚨</div><div style="flex:1">
+  const sourceBadge=source==='api'?'<span class="source-badge source-api">● реальные данные</span>':'<span class="source-badge source-mock">● демо</span>';
+  const riskItems=(atRiskProducts||[]).filter(p=>p.trend==='down'||!p.trend);
+  const growthItemsFromRisk=(atRiskProducts||[]).filter(p=>p.trend==='up');
+  let riskHtml='';
+  if(riskItems.length>0){
+    riskHtml=`<div class="section-title">🚨 Товары в зоне риска</div>`;
+    for(const p of riskItems){
+      const rC=(p.revenueDelta||0)>=0?'#4caf50':'#ff4444';
+      const oC=(p.ordersDelta||0)>=0?'#4caf50':'#ff4444';
+      const cC=(p.ctrDelta||0)>=0?'#4caf50':'#ff4444';
+      riskHtml+=`<div class="risk-item"><div class="risk-icon">🚨</div><div style="flex:1">
         <div class="risk-name">${p.name}${p.sku?` <span style="font-size:10px;opacity:0.6;font-weight:400">${p.sku}</span>`:''}</div>
         <div class="risk-reason">${p.reason}</div>
-        ${(p.revenueDelta!==undefined||p.ordersDelta!==undefined||p.ctrDelta!==undefined)?`
-        <div style="display:flex;gap:10px;margin-top:6px;flex-wrap:wrap">
+        ${(p.revenueDelta!==undefined||p.ordersDelta!==undefined||p.ctrDelta!==undefined)?`<div style="display:flex;gap:10px;margin-top:6px;flex-wrap:wrap">
           ${p.revenueDelta!==undefined?`<span style="font-size:11px;font-weight:700;color:${rC}">${(p.revenueDelta||0)>=0?'▲':'▼'} Выручка ${Math.abs(p.revenueDelta)}%</span>`:''}
           ${p.ordersDelta!==undefined?`<span style="font-size:11px;font-weight:700;color:${oC}">${(p.ordersDelta||0)>=0?'▲':'▼'} Заказы ${Math.abs(p.ordersDelta)}%</span>`:''}
           ${p.ctrDelta!==undefined?`<span style="font-size:11px;font-weight:700;color:${cC}">${(p.ctrDelta||0)>=0?'▲':'▼'} CTR ${Math.abs(p.ctrDelta)}%</span>`:''}
@@ -916,19 +696,15 @@ function buildDashboard({ today, month, kpi, source, warehouses, stocks, atRiskP
       </div></div>`;
     }
   }
-
-  const growthItems = growthItemsFromRisk.length > 0
-    ? growthItemsFromRisk
-    : (stocks || []).filter(s => s.daysCover > 20).slice(0, 3);
-  let growthHtml = '';
-  if (growthItems.length > 0) {
-    growthHtml = `<div class="section-title">📈 Рост продаж</div>`;
-    for (const p of growthItems) {
-      growthHtml += `<div class="growth-item"><div class="growth-icon">📈</div><div style="flex:1">
+  const growthItems=growthItemsFromRisk.length>0?growthItemsFromRisk:(stocks||[]).filter(s=>s.daysCover>20).slice(0,3);
+  let growthHtml='';
+  if(growthItems.length>0){
+    growthHtml=`<div class="section-title">📈 Рост продаж</div>`;
+    for(const p of growthItems){
+      growthHtml+=`<div class="growth-item"><div class="growth-icon">📈</div><div style="flex:1">
         <div class="growth-name">${p.name}${p.sku?` <span style="font-size:10px;opacity:0.6;font-weight:400">${p.sku}</span>`:''}</div>
         <div class="growth-reason">${p.reason||('Остаток: '+fmtNum(p.qty)+' шт · Покрытие: '+p.daysCover+' дн')}</div>
-        ${(p.revenueDelta!==undefined||p.ordersDelta!==undefined||p.ctrDelta!==undefined)?`
-        <div style="display:flex;gap:10px;margin-top:6px;flex-wrap:wrap">
+        ${(p.revenueDelta!==undefined||p.ordersDelta!==undefined||p.ctrDelta!==undefined)?`<div style="display:flex;gap:10px;margin-top:6px;flex-wrap:wrap">
           ${p.revenueDelta!==undefined?`<span style="font-size:11px;font-weight:700;color:#4caf50">${(p.revenueDelta||0)>=0?'▲':'▼'} Выручка ${Math.abs(p.revenueDelta)}%</span>`:''}
           ${p.ordersDelta!==undefined?`<span style="font-size:11px;font-weight:700;color:#4caf50">${(p.ordersDelta||0)>=0?'▲':'▼'} Заказы ${Math.abs(p.ordersDelta)}%</span>`:''}
           ${p.ctrDelta!==undefined?`<span style="font-size:11px;font-weight:700;color:#4caf50">${(p.ctrDelta||0)>=0?'▲':'▼'} CTR ${Math.abs(p.ctrDelta)}%</span>`:''}
@@ -936,38 +712,31 @@ function buildDashboard({ today, month, kpi, source, warehouses, stocks, atRiskP
       </div></div>`;
     }
   }
-
-  const SUPPLY_DAYS = (k.supply_days && k.supply_days > 0) ? k.supply_days : 14;
-  const STOCK_TARGET_DAYS = 30;
-  let stocksHtml = '';
-  if (stocks && stocks.length > 0) {
-    stocksHtml = `<div class="section-title">📦 Остатки и поставки</div>`;
-    for (const s of stocks.slice(0, 10)) {
-      const level = s.daysCover < 7 ? 'critical' : s.daysCover < 14 ? 'warning' : 'ok';
-      const label = s.daysCover < 7 ? '🔴 критично' : s.daysCover < 14 ? '🟡 контроль' : '🟢 стабильно';
-      const dailySales = s.daysCover > 0 ? s.qty / s.daysCover : 0;
-      const daysUntilOrder = s.daysCover - SUPPLY_DAYS;
-      const totalQtyToOrder = Math.max(0, Math.round(dailySales * STOCK_TARGET_DAYS - s.qty));
-      const orderDate = new Date(); orderDate.setDate(orderDate.getDate() + Math.max(0, daysUntilOrder));
-      const orderDateStr = orderDate.toLocaleDateString('ru', { day: 'numeric', month: 'short' });
-      function whDistrib(whs, total) {
-        if (!whs || !whs.length || total <= 0) return [];
-        const tot = whs.reduce((s,w) => s+(w.qty||0), 0) || 1;
-        return whs.map(w => ({ name: w.name, qty: Math.round(total*(w.qty||0)/tot) })).filter(w => w.qty > 0);
+  const SUPPLY_DAYS=(k.supply_days&&k.supply_days>0)?k.supply_days:14;
+  const STOCK_TARGET_DAYS=30;
+  let stocksHtml='';
+  if(stocks&&stocks.length>0){
+    stocksHtml=`<div class="section-title">📦 Остатки и поставки</div>`;
+    for(const s of stocks.slice(0,10)){
+      const level=s.daysCover<7?'critical':s.daysCover<14?'warning':'ok';
+      const label=s.daysCover<7?'🔴 критично':s.daysCover<14?'🟡 контроль':'🟢 стабильно';
+      const dailySales=s.daysCover>0?s.qty/s.daysCover:0;
+      const daysUntilOrder=s.daysCover-SUPPLY_DAYS;
+      const totalQtyToOrder=Math.max(0,Math.round(dailySales*STOCK_TARGET_DAYS-s.qty));
+      const orderDate=new Date();orderDate.setDate(orderDate.getDate()+Math.max(0,daysUntilOrder));
+      const orderDateStr=orderDate.toLocaleDateString('ru',{day:'numeric',month:'short'});
+      function whD(whs,total){
+        if(!whs||!whs.length||total<=0)return [];
+        const tot=whs.reduce((s,w)=>s+(w.qty||0),0)||1;
+        return whs.map(w=>({name:w.name,qty:Math.round(total*(w.qty||0)/tot)})).filter(w=>w.qty>0);
       }
-      const whRows = whDistrib(warehouses, totalQtyToOrder);
-      const whHtml = whRows.length > 0
-        ? whRows.map(w => `<div style="padding:2px 0">📦 <b>${w.name}</b>: ${fmtNum(w.qty)} шт</div>`).join('')
-        : `<div>📦 <b>${s.warehouseName||'склад'}</b>: ${fmtNum(totalQtyToOrder)} шт</div>`;
-      let supplyHtml = '';
-      if (s.daysCover < SUPPLY_DAYS) {
-        supplyHtml = `<div class="supply-alert supply-urgent">🚨 <b>Поставка срочно!</b> Осталось ${s.daysCover} дн · Догрузить: ${fmtNum(totalQtyToOrder)} шт<div style="margin-top:5px;padding-left:4px;font-size:11px">${whHtml}</div></div>`;
-      } else if (s.daysCover < SUPPLY_DAYS + 7) {
-        supplyHtml = `<div class="supply-alert supply-soon">⚡ <b>Поставка:</b> отгрузить ${orderDateStr} · Догрузить: ${fmtNum(totalQtyToOrder)} шт<div style="margin-top:5px;padding-left:4px;font-size:11px">${whHtml}</div></div>`;
-      } else if (totalQtyToOrder > 0) {
-        supplyHtml = `<div class="supply-alert supply-ok">📋 Следующая поставка: ${orderDateStr} · ${fmtNum(totalQtyToOrder)} шт</div>`;
-      }
-      stocksHtml += `<div class="stock-item" style="flex-direction:column;align-items:stretch">
+      const whRows=whD(warehouses,totalQtyToOrder);
+      const whHtml=whRows.length>0?whRows.map(w=>`<div style="padding:2px 0">📦 <b>${w.name}</b>: ${fmtNum(w.qty)} шт</div>`).join(''):`<div>📦 <b>${s.warehouseName||'склад'}</b>: ${fmtNum(totalQtyToOrder)} шт</div>`;
+      let supplyHtml='';
+      if(s.daysCover<SUPPLY_DAYS){supplyHtml=`<div class="supply-alert supply-urgent">🚨 <b>Поставка срочно!</b> Осталось ${s.daysCover} дн · Догрузить: ${fmtNum(totalQtyToOrder)} шт<div style="margin-top:5px;padding-left:4px;font-size:11px">${whHtml}</div></div>`;}
+      else if(s.daysCover<SUPPLY_DAYS+7){supplyHtml=`<div class="supply-alert supply-soon">⚡ <b>Поставка:</b> отгрузить ${orderDateStr} · Догрузить: ${fmtNum(totalQtyToOrder)} шт<div style="margin-top:5px;padding-left:4px;font-size:11px">${whHtml}</div></div>`;}
+      else if(totalQtyToOrder>0){supplyHtml=`<div class="supply-alert supply-ok">📋 Следующая поставка: ${orderDateStr} · ${fmtNum(totalQtyToOrder)} шт</div>`;}
+      stocksHtml+=`<div class="stock-item" style="flex-direction:column;align-items:stretch">
         <div style="display:flex;align-items:center;gap:10px">
           <div class="stock-indicator ${level}"></div>
           <div class="stock-info"><div class="stock-name">${s.name}</div><div class="stock-meta">Арт. ${s.sku} · ${s.daysCover} дн · ${label}</div></div>
@@ -975,87 +744,77 @@ function buildDashboard({ today, month, kpi, source, warehouses, stocks, atRiskP
         </div>${supplyHtml}</div>`;
     }
   }
-
-  let pieHtml = '';
-  if (warehouses && warehouses.length > 0) {
-    const total = warehouses.reduce((s, w) => s + w.qty, 0);
-    const top = warehouses.slice(0, 8);
-    const SIZE = 120, CX = 60, CY = 60, R = 50;
-    let svgPaths = ''; let startAngle = -Math.PI / 2;
-    for (let i = 0; i < top.length; i++) {
-      const slice = (top[i].qty / total) * 2 * Math.PI;
-      const endAngle = startAngle + slice;
-      const x1 = CX + R * Math.cos(startAngle); const y1 = CY + R * Math.sin(startAngle);
-      const x2 = CX + R * Math.cos(endAngle);   const y2 = CY + R * Math.sin(endAngle);
-      const large = slice > Math.PI ? 1 : 0;
-      const color = PIE_COLORS[i % PIE_COLORS.length];
-      svgPaths += `<path d="M${CX},${CY} L${x1.toFixed(1)},${y1.toFixed(1)} A${R},${R} 0 ${large},1 ${x2.toFixed(1)},${y2.toFixed(1)} Z" fill="${color}" stroke="#0a0f1e" stroke-width="2"/>`;
-      startAngle = endAngle;
+  let pieHtml='';
+  if(warehouses&&warehouses.length>0){
+    const total=warehouses.reduce((s,w)=>s+w.qty,0);
+    const top=warehouses.slice(0,8);
+    const SIZE=120,CX=60,CY=60,R=50;
+    let svgPaths='';let startAngle=-Math.PI/2;
+    for(let i=0;i<top.length;i++){
+      const slice=(top[i].qty/total)*2*Math.PI;const endAngle=startAngle+slice;
+      const x1=CX+R*Math.cos(startAngle);const y1=CY+R*Math.sin(startAngle);
+      const x2=CX+R*Math.cos(endAngle);const y2=CY+R*Math.sin(endAngle);
+      const large=slice>Math.PI?1:0;const color=PIE_COLORS[i%PIE_COLORS.length];
+      svgPaths+=`<path d="M${CX},${CY} L${x1.toFixed(1)},${y1.toFixed(1)} A${R},${R} 0 ${large},1 ${x2.toFixed(1)},${y2.toFixed(1)} Z" fill="${color}" stroke="#0a0f1e" stroke-width="2"/>`;
+      startAngle=endAngle;
     }
-    let legendHtml = '';
-    for (let i = 0; i < top.length; i++) {
-      const p = ((top[i].qty / total) * 100).toFixed(0);
-      legendHtml += `<div class="pie-legend-item"><div class="pie-legend-dot" style="background:${PIE_COLORS[i%PIE_COLORS.length]}"></div><div class="pie-legend-name">${top[i].name}</div><div class="pie-legend-pct">${p}%</div></div><div style="font-size:11px;color:var(--text-soft);margin:-4px 0 6px 18px">${fmtNum(top[i].qty)} шт</div>`;
+    let legendHtml='';
+    for(let i=0;i<top.length;i++){
+      const p=((top[i].qty/total)*100).toFixed(0);
+      legendHtml+=`<div class="pie-legend-item"><div class="pie-legend-dot" style="background:${PIE_COLORS[i%PIE_COLORS.length]}"></div><div class="pie-legend-name">${top[i].name}</div><div class="pie-legend-pct">${p}%</div></div><div style="font-size:11px;color:var(--text-soft);margin:-4px 0 6px 18px">${fmtNum(top[i].qty)} шт</div>`;
     }
-    pieHtml = `<div class="section-title">🗺️ Распределение по складам</div>
+    pieHtml=`<div class="section-title">🗺️ Распределение по складам</div>
       <div class="pie-wrap"><div class="pie-container">
         <div class="pie-svg-wrap"><svg width="${SIZE}" height="${SIZE}" viewBox="0 0 ${SIZE} ${SIZE}">${svgPaths}</svg></div>
         <div class="pie-legend">${legendHtml}</div>
-      </div>
-      <div style="font-size:11px;color:var(--text-soft);margin-top:10px;text-align:center">Всего на складах: <strong style="color:var(--text-main)">${fmtNum(total)} шт</strong></div></div>`;
+      </div><div style="font-size:11px;color:var(--text-soft);margin-top:10px;text-align:center">Всего на складах: <strong style="color:var(--text-main)">${fmtNum(total)} шт</strong></div></div>`;
   }
 
+  // ═══ ФИНАЛЬНЫЙ ПОРЯДОК БЛОКОВ ════════════════════════════════════
   return `
     <div class="platform-header">
       <div class="platform-dot ${platform}"></div>
-      <div class="platform-name">${isOzon ? 'Ozon' : 'Wildberries'}${sourceBadge}</div>
+      <div class="platform-name">${isOzon?'Ozon':'Wildberries'}${sourceBadge}</div>
       <div class="platform-updated">${now}</div>
       <button class="refresh-btn" onclick="refreshData('${platform}')">🔄</button>
     </div>
+
+    ${buildMonthPlanCard(m,k)}
+
     <div class="section-title">Сегодня</div>
     <div class="kpi-grid">
       <div class="kpi-card">
         <div class="kpi-label">💰 Выручка</div>
         <div class="kpi-value" style="color:var(--mint,#66cec3)">${fmtMoney(t.revenue)}</div>
-        ${deltaHtml(t.revenue, dayRevTarget)}
+        ${deltaHtml(t.revenue,dayRevTarget)}
       </div>
       <div class="kpi-card">
         <div class="kpi-label">📦 Заказы</div>
         <div class="kpi-value">${fmtNum(t.orders)}</div>
-        ${deltaHtml(t.orders, dayOrdTarget)}
+        ${deltaHtml(t.orders,dayOrdTarget)}
       </div>
       <div class="kpi-card">
         <div class="kpi-label">📢 Реклама</div>
-        <div class="kpi-value" style="color:${t.adSpend > adBudget*0.85 ? 'var(--orange,#ff8b57)' : 'var(--yellow,#f5c518)'}">
+        <div class="kpi-value" style="color:${t.adSpend>adBudget*0.85?'var(--orange,#ff8b57)':'var(--yellow,#f5c518)'}">
           ${fmtMoney(t.adSpend)}
         </div>
-        ${deltaHtml(t.adSpend, adBudget, false)}
+        ${deltaHtml(t.adSpend,adBudget,false)}
       </div>
       <div class="kpi-card">
         <div class="kpi-label">🔄 Конверсия</div>
         <div class="kpi-value">${(t.conversion||0).toFixed(1)}%</div>
-        ${deltaHtml(t.conversion, convTarget)}
+        ${deltaHtml(t.conversion,convTarget)}
       </div>
     </div>
-    ${buildDrrCard(t, stocks, m)}
-    ${buildCpoCard(t, stocks)}
-    ${buildRedemptionCard(redemption, platform)}
-    ${buildFinanceCard(finance)}
-    ${buildTurnoverCard(stocks, platform)}
-    <div class="section-title">За месяц</div>
-    <div class="bar-card">
-      <div class="bar-header"><span>Выручка</span><strong>${fmtMoney(m.revenue)} / ${fmtMoney(k.revenue)}</strong></div>
-      ${barHtml(m.revenue, k.revenue)}
-    </div>
-    <div class="bar-card">
-      <div class="bar-header"><span>Заказы</span><strong>${fmtNum(m.orders)} / ${fmtNum(k.daily_orders*30)}</strong></div>
-      ${barHtml(m.orders, k.daily_orders*30)}
-    </div>
-    <div class="bar-card">
-      <div class="bar-header"><span>Рекламный бюджет</span><strong>${fmtMoney(t.adSpend)} / ${fmtMoney(k.ad_budget)}</strong></div>
-      ${barHtml(t.adSpend, k.ad_budget, t.adSpend > k.ad_budget*0.7)}
-    </div>
-    ${buildCompareBlocks(m, _prevWeek, _prevMonth)}
+
+    ${buildPromoCard(promoProducts)}
+
+    ${buildDrrCard(t,stocks,m)}
+    ${buildCpoCard(t,stocks)}
+    ${buildRedemptionCard(redemption,platform)}
+    ${buildFinanceCard(finance, m.revenue)}
+    ${buildTurnoverCard(stocks,platform)}
+    ${buildCompareBlocks(m,_prevWeek,_prevMonth)}
     ${riskHtml}
     ${growthHtml}
     ${stocksHtml}
@@ -1063,284 +822,257 @@ function buildDashboard({ today, month, kpi, source, warehouses, stocks, atRiskP
   `;
 }
 
-async function saveCredentials(platform) {
-  const apiKey   = document.getElementById(`${platform}-api-key`).value.trim();
-  const clientId = platform === 'ozon' ? document.getElementById('ozon-client-id').value.trim() : '';
-  if (!apiKey) { alert('Введите API-ключ'); return; }
-  if (platform === 'ozon' && !clientId) { alert('Введите Client-ID для Ozon'); return; }
-  const btn = event.currentTarget;
-  btn.disabled = true; btn.textContent = 'Сохраняю...';
-  try {
-    const res  = await fetch('/api/credentials', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({platform, apiKey, clientId}) });
-    const data = await res.json();
-    if (data.ok) {
-      document.getElementById(`${platform}-api-key`).value = '';
-      if (platform === 'ozon') document.getElementById('ozon-client-id').value = '';
+function downloadCostTemplate(){
+  const csv='\uFEFFартикул_продавца;себестоимость\nWB-784;850\nWB-912;1200\nWB-445;450\n';
+  const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;a.download='себестоимость_шаблон.csv';a.click();
+  URL.revokeObjectURL(url);
+}
+
+async function saveCredentials(platform){
+  const apiKey=document.getElementById(`${platform}-api-key`).value.trim();
+  const clientId=platform==='ozon'?document.getElementById('ozon-client-id').value.trim():'';
+  if(!apiKey){alert('Введите API-ключ');return;}
+  if(platform==='ozon'&&!clientId){alert('Введите Client-ID для Ozon');return;}
+  const btn=event.currentTarget;btn.disabled=true;btn.textContent='Сохраняю...';
+  try{
+    const res=await fetch('/api/credentials',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({platform,apiKey,clientId})});
+    const data=await res.json();
+    if(data.ok){
+      document.getElementById(`${platform}-api-key`).value='';
+      if(platform==='ozon')document.getElementById('ozon-client-id').value='';
       delete dataCache[platform];
       loadStatusBadges();
-      alert(`✅ Ключи сохранены! Данные обновятся при следующем открытии вкладки.`);
-    } else { alert('❌ ' + (data.error || 'Ошибка')); }
-  } catch(e) { alert('❌ ' + e.message); }
-  finally {
-    btn.disabled = false;
-    btn.textContent = platform === 'ozon' ? 'Сохранить ключи Ozon' : 'Сохранить ключ WB';
-  }
+      initTabs();
+      alert('✅ Ключи сохранены! Данные загружаются.');
+    }else{alert('❌ '+(data.error||'Ошибка'));}
+  }catch(e){alert('❌ '+e.message);}
+  finally{btn.disabled=false;btn.textContent=platform==='ozon'?'Сохранить ключи Ozon':'Сохранить ключ WB';}
 }
 
-async function saveKpiForPlatform(platform) {
-  const revenue      = document.getElementById(`${platform}-kpi-revenue`).value.trim();
-  const daily_orders = document.getElementById(`${platform}-kpi-daily_orders`).value.trim();
-  const ad_budget    = document.getElementById(`${platform}-kpi-ad_budget`).value.trim();
-  const conversion   = document.getElementById(`${platform}-kpi-conversion`).value.trim();
-  const body = {};
-  if (revenue)      body.revenue      = parseFloat(revenue);
-  if (daily_orders) body.daily_orders = parseFloat(daily_orders);
-  if (ad_budget)    body.ad_budget    = parseFloat(ad_budget);
-  if (conversion)   body.conversion   = parseFloat(conversion);
-  if (Object.keys(body).length === 0) { alert('Заполни хотя бы одно поле'); return; }
-  const btn = event.currentTarget;
-  btn.disabled = true; btn.textContent = 'Сохраняю...';
-  try {
-    const res  = await fetch(`/api/kpi/${platform}`, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) });
-    const data = await res.json();
-    if (data.ok) { delete dataCache[platform]; alert(`✅ Планы ${platform === 'ozon' ? 'Ozon' : 'Wildberries'} сохранены!`); }
-    else { alert('❌ ' + (data.error || 'Ошибка')); }
-  } catch(e) { alert('❌ ' + e.message); }
-  finally { btn.disabled = false; btn.textContent = platform === 'ozon' ? 'Сохранить планы Ozon' : 'Сохранить планы WB'; }
+async function saveKpiForPlatform(platform){
+  const revenue=document.getElementById(`${platform}-kpi-revenue`).value.trim();
+  const daily_orders=document.getElementById(`${platform}-kpi-daily_orders`).value.trim();
+  const ad_budget=document.getElementById(`${platform}-kpi-ad_budget`).value.trim();
+  const conversion=document.getElementById(`${platform}-kpi-conversion`).value.trim();
+  const body={};
+  if(revenue)body.revenue=parseFloat(revenue);
+  if(daily_orders)body.daily_orders=parseFloat(daily_orders);
+  if(ad_budget)body.ad_budget=parseFloat(ad_budget);
+  if(conversion)body.conversion=parseFloat(conversion);
+  if(Object.keys(body).length===0){alert('Заполни хотя бы одно поле');return;}
+  const btn=event.currentTarget;btn.disabled=true;btn.textContent='Сохраняю...';
+  try{
+    const res=await fetch(`/api/kpi/${platform}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    const data=await res.json();
+    if(data.ok){delete dataCache[platform];alert(`✅ Планы ${platform==='ozon'?'Ozon':'Wildberries'} сохранены!`);}
+    else{alert('❌ '+(data.error||'Ошибка'));}
+  }catch(e){alert('❌ '+e.message);}
+  finally{btn.disabled=false;btn.textContent=platform==='ozon'?'Сохранить планы Ozon':'Сохранить планы WB';}
 }
 
-async function saveFinanceForPlatform(platform) {
-  const commission        = document.getElementById(`${platform}-fin-commission`).value.trim();
-  const min_profitability = document.getElementById(`${platform}-fin-min_profitability`).value.trim();
-  const body = {};
-  if (commission)        body.commission        = parseFloat(commission);
-  if (min_profitability) body.min_profitability = parseFloat(min_profitability);
-  if (Object.keys(body).length === 0) { alert('Заполни хотя бы одно поле'); return; }
-  const btn = event.currentTarget;
-  btn.disabled = true; btn.textContent = 'Сохраняю...';
-  try {
-    const res  = await fetch(`/api/finance/${platform}`, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) });
-    const data = await res.json();
-    if (data.ok) { delete dataCache[platform]; alert(`✅ Финансы ${platform === 'ozon' ? 'Ozon' : 'Wildberries'} сохранены!`); }
-    else { alert('❌ ' + (data.error || 'Ошибка')); }
-  } catch(e) { alert('❌ ' + e.message); }
-  finally { btn.disabled = false; btn.textContent = platform === 'ozon' ? 'Сохранить финансы Ozon' : 'Сохранить финансы WB'; }
+async function uploadCosts(){
+  const file=document.getElementById('costs-file').files[0];if(!file)return;
+  const statusEl=document.getElementById('costs-status');statusEl.textContent='⏳ Загружаю...';
+  const form=new FormData();form.append('file',file);
+  try{
+    const res=await fetch('/api/costs/upload',{method:'POST',body:form});
+    const data=await res.json();
+    if(data.ok){statusEl.textContent=`✅ Загружено: ${data.imported} позиций${data.errors&&data.errors.length?' · ⚠️ '+data.errors.length+' ошибок':''}`;loadCostsTable();}
+    else{statusEl.textContent='❌ '+(data.error||'Ошибка');}
+  }catch(e){statusEl.textContent='❌ '+e.message;}
+  document.getElementById('costs-file').value='';
 }
 
-async function saveCostPercent() {
-  const val = document.getElementById('cost-percent').value.trim();
-  if (!val || isNaN(val)) { alert('Введите значение'); return; }
-  const btn = event.currentTarget;
-  btn.disabled = true; btn.textContent = 'Сохраняю...';
-  try {
-    const res  = await fetch('/api/kpi', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ key: 'cost_percent', value: parseFloat(val) }) });
-    const data = await res.json();
-    if (data.ok) { delete dataCache['ozon']; delete dataCache['wb']; alert('✅ % себестоимости сохранён!'); }
-    else { alert('❌ ' + (data.error || 'Ошибка')); }
-  } catch(e) { alert('❌ ' + e.message); }
-  finally { btn.disabled = false; btn.textContent = 'Сохранить % себестоимости'; }
-}
-
-async function uploadCosts() {
-  const file = document.getElementById('costs-file').files[0];
-  if (!file) return;
-  const statusEl = document.getElementById('costs-status');
-  statusEl.textContent = '⏳ Загружаю...';
-  const form = new FormData();
-  form.append('file', file);
-  try {
-    const res  = await fetch('/api/costs/upload', { method: 'POST', body: form });
-    const data = await res.json();
-    if (data.ok) {
-      statusEl.textContent = `✅ Загружено: ${data.imported} позиций${data.errors && data.errors.length ? ' · ⚠️ ' + data.errors.length + ' ошибок' : ''}`;
-      loadCostsTable();
-    } else { statusEl.textContent = '❌ ' + (data.error || 'Ошибка'); }
-  } catch(e) { statusEl.textContent = '❌ ' + e.message; }
-  document.getElementById('costs-file').value = '';
-}
-
-async function loadCostsTable() {
-  const el = document.getElementById('costs-table');
-  if (!el) return;
-  try {
-    const res  = await fetch('/api/costs');
-    const rows = await res.json();
-    if (!rows.length) { el.innerHTML = '<div style="font-size:12px;color:var(--text-soft)">Файл не загружен — используется запасной %</div>'; return; }
-    el.innerHTML = `
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-        <span style="font-size:11px;color:var(--text-soft)">${rows.length} позиций</span>
-        <button onclick="deleteCosts()" style="font-size:11px;background:rgba(255,80,80,0.12);border:1px solid rgba(255,80,80,0.3);border-radius:8px;color:#ff6b6b;padding:2px 8px;cursor:pointer;font-family:inherit">🗑️ Очистить</button>
-      </div>
+async function loadCostsTable(){
+  const el=document.getElementById('costs-table');if(!el)return;
+  try{
+    const res=await fetch('/api/costs');const rows=await res.json();
+    if(!rows.length){el.innerHTML='<div style="font-size:12px;color:var(--text-soft)">⚠️ Себестоимость не загружена — прибыль рассчитывается приблизительно</div>';return;}
+    el.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+      <span style="font-size:11px;color:var(--text-soft)">${rows.length} позиций</span>
+      <button onclick="deleteCosts()" style="font-size:11px;background:rgba(255,80,80,0.12);border:1px solid rgba(255,80,80,0.3);border-radius:8px;color:#ff6b6b;padding:2px 8px;cursor:pointer;font-family:inherit">🗑️ Очистить</button></div>
       <div style="max-height:200px;overflow-y:auto;border:1px solid var(--line);border-radius:10px">
         <table style="width:100%;border-collapse:collapse;font-size:12px">
           <thead><tr style="background:rgba(255,255,255,0.05)">
             <th style="padding:6px 10px;text-align:left;color:var(--text-soft)">Артикул</th>
-            <th style="padding:6px 10px;text-align:left;color:var(--text-soft)">Наименование</th>
             <th style="padding:6px 10px;text-align:right;color:var(--text-soft)">Себестоимость</th>
           </tr></thead>
-          <tbody>${rows.slice(0,50).map(r => `<tr style="border-top:1px solid var(--line)">
+          <tbody>${rows.slice(0,50).map(r=>`<tr style="border-top:1px solid var(--line)">
             <td style="padding:6px 10px;color:var(--text-soft)">${r.sku}</td>
-            <td style="padding:6px 10px">${r.name}</td>
             <td style="padding:6px 10px;text-align:right;font-weight:700">${Number(r.cost).toLocaleString('ru')} ₽</td>
           </tr>`).join('')}</tbody>
-        </table>
-        ${rows.length > 50 ? `<div style="padding:6px 10px;font-size:11px;color:var(--text-soft)">...и ещё ${rows.length-50} позиций</div>` : ''}
-      </div>`;
-  } catch(e) { el.innerHTML = ''; }
+        </table>${rows.length>50?`<div style="padding:6px 10px;font-size:11px;color:var(--text-soft)">...и ещё ${rows.length-50} позиций</div>`:''}</div>`;
+  }catch(e){el.innerHTML='';}
 }
 
-async function deleteCosts() {
-  if (!confirm('Удалить все данные о себестоимости?')) return;
-  await fetch('/api/costs', { method: 'DELETE' });
-  document.getElementById('costs-table').innerHTML = '<div style="font-size:12px;color:var(--text-soft)">Файл не загружен — используется запасной %</div>';
-  document.getElementById('costs-status').textContent = '🗑️ Данные удалены';
+async function deleteCosts(){
+  if(!confirm('Удалить все данные о себестоимости?'))return;
+  await fetch('/api/costs',{method:'DELETE'});
+  document.getElementById('costs-table').innerHTML='<div style="font-size:12px;color:var(--text-soft)">⚠️ Себестоимость не загружена — прибыль рассчитывается приблизительно</div>';
+  document.getElementById('costs-status').textContent='🗑️ Данные удалены';
 }
 
-async function uploadWbCommissions() {
-  const file = document.getElementById('wb-comm-file').files[0];
-  if (!file) return;
-  const statusEl = document.getElementById('wb-comm-status');
-  statusEl.textContent = '⏳ Загружаю...';
-  const form = new FormData();
-  form.append('file', file);
-  try {
-    const res  = await fetch('/api/commissions/wb/upload', { method: 'POST', body: form });
-    const data = await res.json();
-    if (data.ok) {
-      statusEl.textContent = `✅ Загружено категорий: ${data.imported}`;
-      loadCommissionsTable('wb');
-    } else { statusEl.textContent = '❌ ' + (data.error || 'Ошибка'); }
-  } catch(e) { statusEl.textContent = '❌ ' + e.message; }
-  document.getElementById('wb-comm-file').value = '';
+async function uploadWbCommissions(){
+  const file=document.getElementById('wb-comm-file').files[0];if(!file)return;
+  const statusEl=document.getElementById('wb-comm-status');statusEl.textContent='⏳ Загружаю...';
+  const form=new FormData();form.append('file',file);
+  try{
+    const res=await fetch('/api/commissions/wb/upload',{method:'POST',body:form});
+    const data=await res.json();
+    if(data.ok){statusEl.textContent=`✅ Загружено категорий: ${data.imported}`;loadCommissionsTable('wb');}
+    else{statusEl.textContent='❌ '+(data.error||'Ошибка');}
+  }catch(e){statusEl.textContent='❌ '+e.message;}
+  document.getElementById('wb-comm-file').value='';
 }
 
-async function fetchOzonCommissions() {
-  const btn = event.currentTarget;
-  const statusEl = document.getElementById('ozon-comm-status');
-  btn.disabled = true; btn.textContent = '⏳ Загружаю...';
-  try {
-    const res  = await fetch('/api/commissions/ozon/fetch', { method: 'POST' });
-    const data = await res.json();
-    if (data.ok) {
-      statusEl.textContent = `✅ Загружено категорий: ${data.imported}`;
-      loadCommissionsTable('ozon');
-    } else { statusEl.textContent = '❌ ' + (data.error || 'Ошибка'); }
-  } catch(e) { statusEl.textContent = '❌ ' + e.message; }
-  finally { btn.disabled = false; btn.textContent = '🔄 Загрузить комиссии из Ozon API'; }
+async function fetchOzonCommissions(){
+  const btn=event.currentTarget;const statusEl=document.getElementById('ozon-comm-status');
+  btn.disabled=true;btn.textContent='⏳ Загружаю...';
+  try{
+    const res=await fetch('/api/commissions/ozon/fetch',{method:'POST'});
+    const data=await res.json();
+    if(data.ok){statusEl.textContent=`✅ Загружено категорий: ${data.imported}`;loadCommissionsTable('ozon');}
+    else{statusEl.textContent='❌ '+(data.error||'Ошибка');}
+  }catch(e){statusEl.textContent='❌ '+e.message;}
+  finally{btn.disabled=false;btn.textContent='🔄 Загрузить комиссии из Ozon API';}
 }
 
-async function loadCommissionsTable(platform) {
-  const el = document.getElementById(`${platform}-comm-table`);
-  if (!el) return;
-  try {
-    const res  = await fetch(`/api/commissions/${platform}`);
-    const rows = await res.json();
-    if (!rows.length) { el.innerHTML = '<div style="font-size:12px;color:var(--text-soft)">Нет данных — используется запасная комиссия</div>'; return; }
-    el.innerHTML = `
-      <div style="font-size:11px;color:var(--text-soft);margin-bottom:6px">${rows.length} категорий</div>
+async function loadCommissionsTable(platform){
+  const el=document.getElementById(`${platform}-comm-table`);if(!el)return;
+  try{
+    const res=await fetch(`/api/commissions/${platform}`);const rows=await res.json();
+    if(!rows.length){el.innerHTML='<div style="font-size:12px;color:var(--text-soft)">Нет данных по категориям</div>';return;}
+    el.innerHTML=`<div style="font-size:11px;color:var(--text-soft);margin-bottom:6px">${rows.length} категорий</div>
       <div style="max-height:160px;overflow-y:auto;border:1px solid var(--line);border-radius:10px">
         <table style="width:100%;border-collapse:collapse;font-size:12px">
           <thead><tr style="background:rgba(255,255,255,0.05)">
             <th style="padding:6px 10px;text-align:left;color:var(--text-soft)">Категория</th>
             <th style="padding:6px 10px;text-align:right;color:var(--text-soft)">Комиссия</th>
           </tr></thead>
-          <tbody>${rows.slice(0,30).map(r => `<tr style="border-top:1px solid var(--line)">
+          <tbody>${rows.slice(0,30).map(r=>`<tr style="border-top:1px solid var(--line)">
             <td style="padding:6px 10px">${r.category}</td>
             <td style="padding:6px 10px;text-align:right;font-weight:700;color:var(--cyan)">${Number(r.rate).toFixed(1)}%</td>
           </tr>`).join('')}</tbody>
-        </table>
-        ${rows.length > 30 ? `<div style="padding:6px 10px;font-size:11px;color:var(--text-soft)">...и ещё ${rows.length-30} категорий</div>` : ''}
-      </div>`;
-  } catch(e) { el.innerHTML = ''; }
+        </table>${rows.length>30?`<div style="padding:6px 10px;font-size:11px;color:var(--text-soft)">...и ещё ${rows.length-30} категорий</div>`:''}</div>`;
+  }catch(e){el.innerHTML='';}
 }
 
-async function saveSupplyDays() {
-  const val = document.getElementById('supply-days').value.trim();
-  if (!val || isNaN(val) || Number(val) < 1) { alert('Введите срок поставки в днях'); return; }
-  const btn = event.currentTarget;
-  btn.disabled = true; btn.textContent = 'Сохраняю...';
-  try {
-    await fetch('/api/kpi', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ key: 'supply_days', value: parseFloat(val) }) });
-    alert('✅ Срок поставки сохранён: ' + val + ' дней');
-  } catch(e) { alert('❌ ' + e.message); }
-  finally { btn.disabled = false; btn.textContent = 'Сохранить срок поставки'; }
+
+const TAX_PRESETS_WA={'usn6':6,'usn15':15,'osn':20,'patent':0,'custom':0};
+function updateTaxRateField(){
+  const sel=document.getElementById('tax-system');
+  const v=sel.value;
+  if(v!=='custom'&&v!=='osn'){
+    const el=document.getElementById('tax-rate');
+    if(el)el.value=TAX_PRESETS_WA[v]||0;
+  }
+}
+function saveTaxSettings(){
+  const sys  = document.getElementById('tax-system').value;
+  const rate = parseFloat(document.getElementById('tax-rate').value)||0;
+  const vat  = parseFloat(document.getElementById('vat-rate').value)||0;
+  localStorage.setItem('tax_system', sys);
+  localStorage.setItem('tax_rate',   rate);
+  localStorage.setItem('vat_rate',   vat);
+  delete dataCache['ozon']; delete dataCache['wb'];
+  const labels={'usn6':'УСН 6%','usn15':'УСН 15%','osn':'ОСН','patent':'Патент','custom':'Другое'};
+  alert(`✅ Налоги сохранены: ${labels[sys]||sys} ${rate}%${vat>0?', НДС '+vat+'%':''}\nДанные пересчитаны.`);
 }
 
-async function loadSettingsPage() {
-  loadStatusBadges();
-  loadCostsTable();
-  loadCommissionsTable('wb');
-  loadCommissionsTable('ozon');
-  try {
-    const res = await fetch('/api/kpi');
-    const kpi = await res.json();
-    ['revenue','daily_orders','ad_budget','conversion'].forEach(field => {
-      const val = kpi[`ozon_${field}`] !== undefined ? kpi[`ozon_${field}`] : kpi[field];
-      const el = document.getElementById(`ozon-kpi-${field}`);
-      if (el && val !== undefined) el.value = val;
+async function saveSupplyDays(){
+  const val=document.getElementById('supply-days').value.trim();
+  if(!val||isNaN(val)||Number(val)<1){alert('Введите срок поставки в днях');return;}
+  const btn=event.currentTarget;btn.disabled=true;btn.textContent='Сохраняю...';
+  try{
+    await fetch('/api/kpi',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({key:'supply_days',value:parseFloat(val)})});
+    alert('✅ Срок поставки сохранён: '+val+' дней');
+  }catch(e){alert('❌ '+e.message);}
+  finally{btn.disabled=false;btn.textContent='Сохранить срок поставки';}
+}
+
+async function loadSettingsPage(){
+  loadStatusBadges();loadCostsTable();loadCommissionsTable('wb');loadCommissionsTable('ozon');
+  try{
+    const res=await fetch('/api/kpi');const kpi=await res.json();
+    ['revenue','daily_orders','ad_budget','conversion'].forEach(field=>{
+      const val=kpi[`ozon_${field}`]!==undefined?kpi[`ozon_${field}`]:kpi[field];
+      const el=document.getElementById(`ozon-kpi-${field}`);if(el&&val!==undefined)el.value=val;
     });
-    ['revenue','daily_orders','ad_budget','conversion'].forEach(field => {
-      const val = kpi[`wb_${field}`] !== undefined ? kpi[`wb_${field}`] : kpi[field];
-      const el = document.getElementById(`wb-kpi-${field}`);
-      if (el && val !== undefined) el.value = val;
+    ['revenue','daily_orders','ad_budget','conversion'].forEach(field=>{
+      const val=kpi[`wb_${field}`]!==undefined?kpi[`wb_${field}`]:kpi[field];
+      const el=document.getElementById(`wb-kpi-${field}`);if(el&&val!==undefined)el.value=val;
     });
-    if (kpi.ozon_commission        != null) document.getElementById('ozon-fin-commission').value        = kpi.ozon_commission;
-    if (kpi.ozon_min_profitability != null) document.getElementById('ozon-fin-min_profitability').value = kpi.ozon_min_profitability;
-    if (kpi.wb_commission          != null) document.getElementById('wb-fin-commission').value          = kpi.wb_commission;
-    if (kpi.wb_min_profitability   != null) document.getElementById('wb-fin-min_profitability').value   = kpi.wb_min_profitability;
-    if (kpi.cost_percent           != null) document.getElementById('cost-percent').value               = kpi.cost_percent;
-    if (kpi.supply_days !== undefined) document.getElementById('supply-days').value = kpi.supply_days;
-  } catch(e) {}
+    if(kpi.supply_days!==undefined)document.getElementById('supply-days').value=kpi.supply_days;
+  }catch(e){}
+  // Загружаем налоговые настройки из localStorage
+  const taxSys  = localStorage.getItem('tax_system')||'usn6';
+  const taxRate = localStorage.getItem('tax_rate')||'6';
+  const vatRate = localStorage.getItem('vat_rate')||'0';
+  const selEl = document.getElementById('tax-system');
+  const rateEl = document.getElementById('tax-rate');
+  const vatEl  = document.getElementById('vat-rate');
+  if(selEl)  selEl.value  = taxSys;
+  if(rateEl) rateEl.value = taxRate;
+  if(vatEl)  vatEl.value  = vatRate;
 }
 
-async function loadStatusBadges() {
-  try {
-    const res  = await fetch('/api/credentials/status');
-    const data = await res.json();
-    const ozonEl = document.getElementById('ozon-status-badge');
-    const wbEl   = document.getElementById('wb-status-badge');
-    ozonEl.innerHTML = data.ozon
-      ? '<span class="badge-ok">&#10003; подключён</span> <button class="delete-btn" id="btn-del-ozon">&#10005; Удалить</button>'
-      : '<span class="badge-no">не настроен</span>';
-    wbEl.innerHTML = data.wb
-      ? '<span class="badge-ok">&#10003; подключён</span> <button class="delete-btn" id="btn-del-wb">&#10005; Удалить</button>'
-      : '<span class="badge-no">не настроен</span>';
-    const btnOzon = document.getElementById('btn-del-ozon');
-    const btnWb   = document.getElementById('btn-del-wb');
-    if (btnOzon) btnOzon.addEventListener('click', function() { deleteCredentials('ozon'); });
-    if (btnWb)   btnWb.addEventListener('click',   function() { deleteCredentials('wb'); });
-  } catch(e) {}
+async function loadStatusBadges(){
+  try{
+    const res=await fetch('/api/credentials/status');const data=await res.json();
+    const ozonEl=document.getElementById('ozon-status-badge');const wbEl=document.getElementById('wb-status-badge');
+    ozonEl.innerHTML=data.ozon?'<span class="badge-ok">&#10003; подключён</span> <button class="delete-btn" id="btn-del-ozon">&#10005; Удалить</button>':'<span class="badge-no">не настроен</span>';
+    wbEl.innerHTML=data.wb?'<span class="badge-ok">&#10003; подключён</span> <button class="delete-btn" id="btn-del-wb">&#10005; Удалить</button>':'<span class="badge-no">не настроен</span>';
+    const bO=document.getElementById('btn-del-ozon');const bW=document.getElementById('btn-del-wb');
+    if(bO)bO.addEventListener('click',function(){deleteCredentials('ozon');});
+    if(bW)bW.addEventListener('click',function(){deleteCredentials('wb');});
+  }catch(e){}
 }
 
-async function deleteCredentials(platform) {
-  const name = platform === 'ozon' ? 'Ozon' : 'Wildberries';
-  if (!confirm(`Удалить ключи ${name}? Данные переключатся на демо-режим.`)) return;
-  try {
-    const res  = await fetch('/api/credentials/' + platform, { method: 'DELETE' });
-    const data = await res.json();
-    if (data.ok) { loadStatusBadges(); alert('✅ Ключи ' + name + ' удалены'); }
-    else { alert('❌ ' + (data.error || 'Ошибка')); }
-  } catch(e) { alert('❌ ' + e.message); }
+async function deleteCredentials(platform){
+  const name=platform==='ozon'?'Ozon':'Wildberries';
+  if(!confirm(`Удалить ключи ${name}? Данные переключатся на демо-режим.`))return;
+  try{
+    const res=await fetch('/api/credentials/'+platform,{method:'DELETE'});const data=await res.json();
+    if(data.ok){
+      delete dataCache[platform];
+      alert('✅ Ключи '+name+' удалены');
+      loadStatusBadges();
+      initTabs();
+    }else{alert('❌ '+(data.error||'Ошибка'));}
+  }catch(e){alert('❌ '+e.message);}
 }
 
-async function initTabs() {
-  try {
-    const res  = await fetch('/api/credentials/status');
-    const data = await res.json();
-    const hasAnyKey = data.ozon || data.wb;
-    const ozonTab   = document.querySelectorAll('.tab-btn')[0];
-    const wbTab     = document.querySelectorAll('.tab-btn')[1];
-    const ozonPanel = document.getElementById('panel-ozon');
-    const wbPanel   = document.getElementById('panel-wb');
-    if (!hasAnyKey) {
-      loadPlatformData('ozon');
+async function initTabs(){
+  try{
+    const res=await fetch('/api/credentials/status');
+    const data=await res.json();
+    const ozonTab=document.querySelectorAll('.tab-btn')[0];
+    const wbTab=document.querySelectorAll('.tab-btn')[1];
+    const ozonPanel=document.getElementById('panel-ozon');
+    const wbPanel=document.getElementById('panel-wb');
+    const hasOzon=data.ozon;
+    const hasWb=data.wb;
+    const hasAny=hasOzon||hasWb;
+    if(!hasAny){
+      // Нет ключей — показываем обе вкладки в демо-режиме
+      ozonTab.style.display='';wbTab.style.display='';
+      switchTab('ozon');
     } else {
-      if (!data.ozon) { ozonTab.style.display = 'none'; ozonPanel.style.display = 'none'; }
-      if (!data.wb)   { wbTab.style.display   = 'none'; wbPanel.style.display   = 'none'; }
-      if (data.ozon)    switchTab('ozon');
-      else if (data.wb) switchTab('wb');
+      // Скрываем вкладки без ключей
+      if(!hasOzon){ozonTab.style.display='none';ozonPanel.style.display='none';}
+      else{ozonTab.style.display='';ozonPanel.style.display='';}
+      if(!hasWb){wbTab.style.display='none';wbPanel.style.display='none';}
+      else{wbTab.style.display='';wbPanel.style.display='';}
+      if(hasOzon)switchTab('ozon');
+      else if(hasWb)switchTab('wb');
     }
-  } catch(e) { loadPlatformData('ozon'); }
+  }catch(e){
+    // Сервер недоступен — показываем демо для обеих платформ
+    switchTab('ozon');
+  }
 }
 
 initTabs();
