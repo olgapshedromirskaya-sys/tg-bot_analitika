@@ -456,8 +456,15 @@ function buildCompareBlocks(month,prevWeek,prevMonth){
   const mOrdD=pm?pctDiff(month.orders,pm.orders):null;
   const mDrrNow=month.revenue?(month.adSpend/month.revenue*100):0;
   const mDrrPrev=pm&&pm.revenue?(pm.adSpend/pm.revenue*100):null;
-  const mDrrD=mDrrPrev!==null?(mDrrNow-mDrrPrev):null;
-  const drrSpan=d=>d!==null?`<span style="color:${d<=0?'var(--green,#4caf50)':'var(--orange,#ff8b57)'};font-weight:700">${d>=0?'+':''}${d.toFixed(1)} п.п.${d<=0?' 🟢':d<=2?' 🟡':' 🔴'}</span>`:'<span style="color:var(--text-soft)">—</span>';
+  // ДРР — показываем текущее значение % + стрелка изменения
+  const drrSpan=(now, prev)=>{
+    const nColor = now<=10?'var(--green,#4caf50)':now<=20?'var(--yellow,#f5c518)':'var(--orange,#ff8b57)';
+    const nowStr = `<span style="font-weight:700;color:${nColor}">${now.toFixed(1)}%</span>`;
+    if(prev===null) return nowStr;
+    const diff = now - prev;
+    const diffStr = `<span style="font-size:11px;color:${diff<=0?'var(--green,#4caf50)':'var(--orange,#ff8b57)'}"> ${diff<=0?'▼':'▲'}${Math.abs(diff).toFixed(1)}%</span>`;
+    return nowStr + diffStr;
+  };
   return `<div class="section-title">📈 Сравнение периодов</div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
       <div class="bar-card" style="background:var(--card2,rgba(255,255,255,0.04))">
@@ -465,7 +472,7 @@ function buildCompareBlocks(month,prevWeek,prevMonth){
         <div style="display:flex;flex-direction:column;gap:6px;font-size:13px">
           <div style="display:flex;justify-content:space-between"><span>💰 Выручка</span>${arrow(wRevD,false)}</div>
           <div style="display:flex;justify-content:space-between"><span>📦 Заказы</span>${arrow(wOrdD,false)}</div>
-          <div style="display:flex;justify-content:space-between"><span>📊 ДРР</span>${drrSpan(wDrrD)}</div>
+          <div style="display:flex;justify-content:space-between;align-items:center"><span>📊 ДРР</span><span style="text-align:right">${drrSpan(wDrrNow,wDrrPrev)}</span></div>
         </div>
       </div>
       <div class="bar-card" style="background:var(--card2,rgba(255,255,255,0.04))">
@@ -473,7 +480,7 @@ function buildCompareBlocks(month,prevWeek,prevMonth){
         <div style="display:flex;flex-direction:column;gap:6px;font-size:13px">
           <div style="display:flex;justify-content:space-between"><span>💰 Выручка</span>${arrow(mRevD,false)}</div>
           <div style="display:flex;justify-content:space-between"><span>📦 Заказы</span>${arrow(mOrdD,false)}</div>
-          <div style="display:flex;justify-content:space-between"><span>📊 ДРР</span>${drrSpan(mDrrD)}</div>
+          <div style="display:flex;justify-content:space-between;align-items:center"><span>📊 ДРР</span><span style="text-align:right">${drrSpan(mDrrNow,mDrrPrev)}</span></div>
         </div>
       </div>
     </div>`;
