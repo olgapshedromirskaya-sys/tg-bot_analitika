@@ -14,6 +14,92 @@ const {
 } = require("./dashboard");
 const { hasAccess, canManageUsers, canViewFinance, normalizeRole, roleLabel } = require("./roles");
 
+// ── Форматирование аномалий заказов ──────────────────────────────────
+function formatAnomaliesMessage(snapshot) {
+  const THRESHOLD = 2.0;
+  const channels = snapshot?.channels || [];
+  const lines = ["⚡ <b>Аномалии заказов</b>\n"];
+  let found = false;
+
+  for (const ch of channels) {
+    const platform = ch.platform === "ozon" ? "🔵 Ozon" : "🟣 WB";
+    const stocks = ch.stocks || [];
+    const todayOrders = ch.today?.orders || 0;
+
+    for (const s of stocks) {
+      const avgDaily = s.daysCover > 0 ? s.qty / s.daysCover : 0;
+      if (avgDaily <= 0) continue;
+      const sToday = s.todayOrders != null ? s.todayOrders :
+        Math.round(todayOrders / Math.max(stocks.length, 1));
+      if (sToday <= 0) continue;
+      const ratio = sToday / avgDaily;
+      if (ratio < THRESHOLD) continue;
+
+      found = true;
+      const lvl = ratio >= 3 ? "🔴 КРИТИЧНО" : "🟡 Подозрительно";
+      lines.push(`${platform} | ${lvl}`);
+      lines.push(`<b>${s.name}</b> <code>${s.sku}</code>`);
+      lines.push(`Обычно: ~${Math.round(avgDaily)} шт/день`);
+      lines.push(`Сегодня: <b>${sToday} шт</b> (×${ratio.toFixed(1)})`);
+      lines.push(`⚠️ Возможна атака конкурентов — закажут и вернут`);
+      lines.push(`💡 Временно скройте товар или поднимите цену на 20–30%\n`);
+    }
+  }
+
+  if (!found) {
+    lines.push("✅ Аномалий не обнаружено — заказы в пределах нормы");
+  }
+
+  return lines.join("\n");
+}
+
+// ── Автоматическая проверка аномалий (вызывается из scheduler) ───────
+async function checkAndNotifyAnomalies(bot, db, getAnalyticsSnapshot) {
+  const THRESHOLD = 2.0;
+  try {
+    const snapshot = await getAnalyticsSnapshot();
+    const channels = snapshot?.channels || [];
+    const users = db.listUsers();
+    const notifyUsers = users.filter(u =>
+      ["owner", "admin", "manager"].includes(u.role)
+    );
+
+    for (const ch of channels) {
+      const platform = ch.platform === "ozon" ? "🔵 Ozon" : "🟣 WB";
+      const stocks = ch.stocks || [];
+      const todayOrders = ch.today?.orders || 0;
+
+      for (const s of stocks) {
+        const avgDaily = s.daysCover > 0 ? s.qty / s.daysCover : 0;
+        if (avgDaily <= 0) continue;
+        const sToday = s.todayOrders != null ? s.todayOrders :
+          Math.round(todayOrders / Math.max(stocks.length, 1));
+        const ratio = sToday / avgDaily;
+        if (ratio < THRESHOLD) continue;
+
+        const msg = `🚨 <b>Аномалия заказов!</b>\n\n` +
+          `${platform} | <b>${s.name}</b> <code>${s.sku}</code>\n` +
+          `Обычно: ~${Math.round(avgDaily)} шт/день\n` +
+          `Сегодня: <b>${sToday} шт</b> (×${ratio.toFixed(1)})\n\n` +
+          `⚠️ Возможна атака конкурентов — закажут и вернут.\n` +
+          `💡 Временно скройте товар или поднимите цену на 20–30%`;
+
+        for (const u of notifyUsers) {
+          try {
+            await bot.telegram.sendMessage(u.telegram_id, msg, { parse_mode: "HTML" });
+          } catch (e) {
+            console.error(`Notify anomaly error for ${u.telegram_id}:`, e.message);
+          }
+        }
+      }
+    }
+  } catch (e) {
+    console.error("checkAndNotifyAnomalies error:", e);
+  }
+}
+
+module.exports.checkAndNotifyAnomalies = checkAndNotifyAnomalies;
+
 const KPI_KEYS = new Set(["revenue", "conversion", "ad_budget", "daily_orders"]);
 const KPI_LABELS = {
   revenue:      "Выручка (мес)",
@@ -133,6 +219,7 @@ const MENU_BUTTONS = new Set([
   "📦 Остатки на складах", "📈 Отчёт за неделю",
   "📊 ДРР", "🛍️ Выкуп товаров",
   "🔄 Оборачиваемость", "🚨 Товары в зоне риска",
+  "⚡ Аномалии заказов", "📈 Рост продаж",
   "⚙️ Настройки KPI", "✏️ Изменить KPI",
   "👤 Добавить сотрудника", "❌ Удалить сотрудника",
   "👥 Список сотрудников", "🚀 Открыть WebApp дашборд",
@@ -145,6 +232,7 @@ function createMainKeyboard(userRole) {
     ["📦 Остатки на складах",  "📈 Отчёт за неделю"],
     ["📊 ДРР",                 "🛍️ Выкуп товаров"],
     ["🔄 Оборачиваемость",     "🚨 Товары в зоне риска"],
+    ["⚡ Аномалии заказов",    "📈 Рост продаж"],
   ];
 
   // Финансы — admin, owner и tester (tester видит, но не может менять)
@@ -541,6 +629,13 @@ function registerCommands(bot, db) {
     await ctx.reply(formatRiskMessage(snapshot), { parse_mode: "HTML" });
   }
 
+  async function sendAnomalies(ctx, db) {
+    const user = await requireRole(ctx, db, "manager");
+    if (!user) return;
+    const snapshot = await getAnalyticsSnapshot();
+    await ctx.reply(formatAnomaliesMessage(snapshot), { parse_mode: "HTML" });
+  }
+
   // Скрыть финансовые данные (для менеджера)
   function hideFinance(snapshot) {
     if (!snapshot) return snapshot;
@@ -563,6 +658,7 @@ function registerCommands(bot, db) {
   bot.hears("🛍️ Выкуп товаров",       ctx => sendRedemption(ctx, db));
   bot.hears("🔄 Оборачиваемость",     ctx => sendTurnover(ctx, db));
   bot.hears("🚨 Товары в зоне риска", ctx => sendRisk(ctx, db));
+  bot.hears("⚡ Аномалии заказов",    ctx => sendAnomalies(ctx, db));
 
   bot.hears("🚀 Открыть WebApp дашборд", async (ctx) => {
     const user = await requireKnownUser(ctx, db);
