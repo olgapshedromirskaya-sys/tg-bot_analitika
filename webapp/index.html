@@ -250,6 +250,23 @@
   const tg=window.Telegram&&window.Telegram.WebApp;
   if(!tg)return;
   try{tg.ready();tg.expand();tg.setBackgroundColor("#05060e");tg.setHeaderColor("#05060e");}catch(e){}
+
+  // ── Передаём Telegram ID в каждый запрос к серверу ───────────────
+  // Сервер использует его для проверки роли в /api/me и /api/credentials
+  const userId = tg.initDataUnsafe?.user?.id;
+  const initData = tg.initData;
+  if(userId || initData){
+    const origFetch = window.fetch;
+    window.fetch = function(url, opts = {}){
+      // Только запросы к нашему серверу (относительные пути)
+      if(typeof url === 'string' && (url.startsWith('/api') || url.startsWith('/'))){
+        opts.headers = opts.headers || {};
+        if(userId) opts.headers['X-Telegram-User-Id'] = String(userId);
+        if(initData) opts.headers['X-Telegram-Init-Data'] = initData;
+      }
+      return origFetch.call(this, url, opts);
+    };
+  }
 })();
 
 const dataCache={};
