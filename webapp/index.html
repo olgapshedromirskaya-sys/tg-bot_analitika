@@ -269,8 +269,10 @@ function switchTab(name){
 const DEMO_DATA={
   ozon:{
     platform:'ozon',source:'demo',
-    today:{revenue:87400,orders:243,adSpend:14200,conversion:3.8},
-    month:{revenue:1240000,orders:3890,adSpend:38000},
+    today:{revenue:87400,orders:243,sold:198,adSpend:14200,conversion:3.8,commission:13100,logistics:4370,storage:437,cost:34960,returns:2600,returnsQty:9},
+    yesterday:{revenue:79800,orders:221,sold:181,adSpend:12900,conversion:3.6,commission:11970,logistics:3990,storage:400,cost:31920,returns:2100,returnsQty:7},
+    week:{revenue:541000,orders:1512,sold:1238,adSpend:88400,conversion:3.7,commission:81150,logistics:27050,storage:2705,cost:216400,returns:16000,returnsQty:54},
+    month:{revenue:1240000,orders:3890,sold:3188,adSpend:38000,commission:186000,logistics:62000,storage:6200,cost:496000,returns:37200,returnsQty:124},
     kpi:{revenue:3000000,daily_orders:350,ad_budget:50000,conversion:3.5},
     finance:{
       today:{netProfit:20200,margin:23.1,isHealthy:true},
@@ -297,8 +299,10 @@ const DEMO_DATA={
   },
   wb:{
     platform:'wb',source:'demo',
-    today:{revenue:118000,orders:156,adSpend:26000,conversion:3.0},
-    month:{revenue:508000,orders:716,adSpend:26000},
+    today:{revenue:118000,orders:156,sold:119,adSpend:26000,conversion:3.0,commission:17700,logistics:5900,storage:590,cost:47200,returns:3500,returnsQty:6},
+    yesterday:{revenue:109000,orders:144,sold:110,adSpend:23800,conversion:2.9,commission:16350,logistics:5450,storage:545,cost:43600,returns:3200,returnsQty:5},
+    week:{revenue:742000,orders:978,sold:745,adSpend:163400,conversion:3.1,commission:111300,logistics:37100,storage:3710,cost:296800,returns:22000,returnsQty:37},
+    month:{revenue:508000,orders:716,sold:544,adSpend:26000,commission:76200,logistics:25400,storage:2540,cost:203200,returns:15200,returnsQty:27,otherFees:106},
     kpi:{revenue:6000000,daily_orders:550,ad_budget:70000,conversion:3.5,supply_days:14},
     finance:{
       today:{netProfit:27360,margin:23.2,isHealthy:true},
@@ -309,9 +313,9 @@ const DEMO_DATA={
       {name:'Рюкзак городской 22л',sku:'WB-912',orders:35,sales:25,rate:71},
     ]},
     stocks:[
-      {name:'Лосины женские S',sku:'WB-784',qty:73,daysCover:10,monthAdSpend:12000,monthOrders:30,cpo:400},
-      {name:'Рюкзак городской 22л',sku:'WB-912',qty:76,daysCover:25,monthAdSpend:9000,monthOrders:33,cpo:273},
-      {name:'Термос 500мл',sku:'WB-445',qty:38,daysCover:39,monthAdSpend:5000,monthOrders:22,cpo:227},
+      {name:'Лосины женские S',sku:'WB-784',qty:73,daysCover:10,monthAdSpend:12000,monthOrders:30,cpo:400,todayOrders:58},
+      {name:'Рюкзак городской 22л',sku:'WB-912',qty:76,daysCover:25,monthAdSpend:9000,monthOrders:33,cpo:273,todayOrders:8},
+      {name:'Термос 500мл',sku:'WB-445',qty:38,daysCover:39,monthAdSpend:5000,monthOrders:22,cpo:227,todayOrders:3},
     ],
     warehouses:[
       {name:'Коледино',qty:192},{name:'Электросталь',qty:175},
@@ -389,7 +393,7 @@ function refreshData(platform){delete dataCache[platform];loadPlatformData(platf
 
 // ── ПЛАН/ФАКТ НА МЕСЯЦ (первый блок) ─────────────────────────────
 function buildMonthPlanCard(m,k){
-  function fmtM(n){n=n||0;if(n>=1000000)return(n/1000000).toFixed(1)+'М ₽';if(n>=1000)return Math.round(n/1000)+'К ₽';return n.toLocaleString('ru')+' ₽';}
+  function fmtM(n){return Math.round(n||0).toLocaleString('ru')+' ₽';}
   function fmtN(n){return(n||0).toLocaleString('ru');}
   function pct(v,max){return max?Math.min(v/max*100,100):0;}
   const revP=pct(m.revenue,k.revenue);
@@ -412,7 +416,7 @@ function buildMonthPlanCard(m,k){
 function buildPromoCard(promoProducts){
   if(!promoProducts||promoProducts.length===0)return '';
   const sorted=[...promoProducts].sort((a,b)=>(b.monthRevenue||0)-(a.monthRevenue||0));
-  function fmtM(n){if(!n)return '—';if(n>=1000)return Math.round(n/1000)+'К ₽';return Math.round(n)+' ₽';}
+  function fmtM(n){if(n===null||n===undefined)return '—';return Math.round(n).toLocaleString('ru')+' ₽';}
   const rows=sorted.map(p=>{
     const disc=p.priceOld&&p.priceNew?Math.round((1-p.priceNew/p.priceOld)*100):null;
     return `<div class="promo-item">
@@ -496,7 +500,7 @@ function buildDrrCard(t,stocks,month){
   const drrIcon=drr<=10?'🟢':drr<=20?'🟡':'🔴';
   const skuWithAd=(stocks||[]).filter(s=>s.monthAdSpend>0&&s.monthOrders>0);
   const avgPrice=(month&&month.orders>0&&month.revenue>0)?month.revenue/month.orders:0;
-  function fmtR(n){if(!n)return '—';return n>=1000?Math.round(n/1000)+'К ₽':Math.round(n)+' ₽';}
+  function fmtR(n){if(!n)return '—';return Math.round(n).toLocaleString('ru')+' ₽';}
   function dc(d){return d<=10?'var(--green,#4caf50)':d<=20?'var(--yellow,#f5c518)':'var(--orange,#ff8b57)';}
   function di(d){return d<=10?'🟢':d<=20?'🟡':'🔴';}
   const skuRows=skuWithAd.map(s=>{
@@ -528,7 +532,7 @@ function buildDrrCard(t,stocks,month){
 function buildCpoCard(t,stocks){
   const skuWithCpo=(stocks||[]).filter(s=>s.cpo!=null&&s.cpo>0);
   const genCpo=(t.orders&&t.adSpend)?t.adSpend/t.orders:null;
-  function fmtR(n){if(!n)return'—';if(n>=1000)return Math.round(n/1000)+'К ₽';return Math.round(n)+' ₽';}
+  function fmtR(n){if(!n)return '—';return Math.round(n).toLocaleString('ru')+' ₽';}
   function cc(c){return c<300?'var(--green,#4caf50)':c<800?'var(--yellow,#f5c518)':'var(--orange,#ff8b57)';}
   function ci(c){return c<300?'🟢':c<800?'🟡':'🔴';}
   if(skuWithCpo.length>0){
@@ -621,65 +625,113 @@ function buildTurnoverCard(stocks,platform){
       </div>${alertH}${rows}</div>`;
 }
 
-function buildFinanceCard(finance, revenue){
+function buildProfitSummaryCards(finance){
   if(!finance)return '';
   const fm=finance.month;const ft=finance.today;
   if(!fm&&!ft)return '';
-  function fmtM(n){n=n||0;if(n>=1000000)return(n/1000000).toFixed(1)+'М ₽';if(n>=1000)return Math.round(n/1000)+'К ₽';return n.toLocaleString('ru')+' ₽';}
-
-  // Читаем сохранённые налоговые настройки
+  function fmtM(n){return Math.round(n||0).toLocaleString('ru')+' ₽';}
   const taxRate = parseFloat(localStorage.getItem('tax_rate')||'0');
   const vatRate  = parseFloat(localStorage.getItem('vat_rate') ||'0');
   const taxSys   = localStorage.getItem('tax_system')||'usn6';
-  const taxLabel = {'usn6':'УСН 6%','usn15':'УСН 15%','osn':'ОСН','patent':'Патент','custom':'Налог'}[taxSys]||'Налог';
-
-  let taxAmountM=0, vatAmountM=0, taxAmountT=0, vatAmountT=0;
-  if(fm && taxRate > 0){
-    const base = taxSys==='usn6' ? (revenue||fm.netProfit*4) : Math.max(0,fm.netProfit);
-    taxAmountM = Math.round(base * taxRate/100);
-  }
-  if(fm && vatRate > 0){
-    vatAmountM = Math.round((revenue||0) * vatRate/100);
-  }
-  if(ft && taxRate > 0){
-    const baseT = taxSys==='usn6' ? (ft.netProfit*4) : Math.max(0,ft.netProfit);
-    taxAmountT = Math.round(baseT * taxRate/100);
-  }
-  if(ft && vatRate > 0 && revenue){
-    vatAmountT = Math.round(revenue/30 * vatRate/100);
-  }
-
-  const netM  = fm ? Math.max(0, fm.netProfit - taxAmountM - vatAmountM) : 0;
-  const netT  = ft ? Math.max(0, ft.netProfit - taxAmountT - vatAmountT) : 0;
-  const margM = (fm && revenue) ? (netM/revenue*100) : (fm ? fm.margin : 0);
-  const margT = ft ? (netT/(ft.netProfit/ft.margin*100||1)*100||ft.margin) : 0;
-
+  let taxAmountM=0,taxAmountT=0;
+  if(fm&&taxRate>0){const base=taxSys==='usn6'?(fm.netProfit*4):Math.max(0,fm.netProfit);taxAmountM=Math.round(base*taxRate/100);}
+  if(ft&&taxRate>0){const baseT=taxSys==='usn6'?(ft.netProfit*4):Math.max(0,ft.netProfit);taxAmountT=Math.round(baseT*taxRate/100);}
+  const netM=fm?Math.max(0,fm.netProfit-taxAmountM):0;
+  const netT=ft?Math.max(0,ft.netProfit-taxAmountT):0;
   const mc=netM>0?'var(--green,#4caf50)':'var(--orange,#ff8b57)';
   const tc=netT>0?'var(--green,#4caf50)':'var(--orange,#ff8b57)';
-  const hasTax = taxAmountM > 0 || vatAmountM > 0;
-
-  return `<div class="section-title">💰 Финансы — чистая прибыль</div>
-    <div class="kpi-grid" style="margin-bottom:8px">
-      <div class="kpi-card"><div class="kpi-label">Прибыль сегодня</div>
-        <div class="kpi-value" style="font-size:18px;color:${tc}">${ft?(netT>0?'🟢':'🔴')+' '+fmtM(netT):'—'}</div>
-        <div class="kpi-delta" style="color:var(--text-soft)">${ft?'маржа '+ft.margin.toFixed(1)+'%':''}</div></div>
-      <div class="kpi-card"><div class="kpi-label">Прибыль за месяц</div>
-        <div class="kpi-value" style="font-size:18px;color:${mc}">${fm?(netM>0?'🟢':'🔴')+' '+fmtM(netM):'—'}</div>
-        <div class="kpi-delta" style="color:var(--text-soft)">${fm?'маржа '+margM.toFixed(1)+'%':''}</div></div>
-    </div>
-    ${fm?`<div class="bar-card" style="font-size:12px;line-height:2.2">
-      <div style="display:flex;justify-content:space-between"><span style="color:var(--text-soft)">- Себестоимость:</span><span style="color:var(--orange,#ff8b57)">−${fmtM(fm.cost)}</span></div>
-      <div style="display:flex;justify-content:space-between"><span style="color:var(--text-soft)">- Комиссия МП:</span><span style="color:var(--orange,#ff8b57)">−${fmtM(fm.commission)}</span></div>
-      <div style="display:flex;justify-content:space-between"><span style="color:var(--text-soft)">- Реклама:</span><span style="color:var(--orange,#ff8b57)">−${fmtM(fm.adSpend||0)}</span></div>
-      ${taxAmountM>0?`<div style="display:flex;justify-content:space-between"><span style="color:var(--text-soft)">- Налог (${taxLabel}):</span><span style="color:var(--orange,#ff8b57)">−${fmtM(taxAmountM)}</span></div>`:''}
-      ${vatAmountM>0?`<div style="display:flex;justify-content:space-between"><span style="color:var(--text-soft)">- НДС (${vatRate}%):</span><span style="color:var(--orange,#ff8b57)">−${fmtM(vatAmountM)}</span></div>`:''}
-      ${!hasTax?`<div style="font-size:11px;color:var(--text-soft);margin:2px 0">⚪ Налог не задан — укажите в Настройках</div>`:''}
-      <div style="border-top:1px solid var(--line);margin:4px 0"></div>
-      <div style="display:flex;justify-content:space-between;font-weight:800"><span>= Чистая прибыль:</span><span style="color:${mc}">${fmtM(netM)}</span></div>
-    </div>`:''}`;
+  return `<div class="kpi-grid" style="margin-bottom:10px">
+    <div class="kpi-card"><div class="kpi-label">💰 Прибыль сегодня</div>
+      <div class="kpi-value" style="font-size:16px;color:${tc}">${ft?(netT>0?'🟢':'🔴')+' '+fmtM(netT):'—'}</div>
+      <div class="kpi-delta" style="color:var(--text-soft)">${ft?'маржа '+ft.margin.toFixed(1)+'%':''}</div></div>
+    <div class="kpi-card"><div class="kpi-label">💰 Прибыль за месяц</div>
+      <div class="kpi-value" style="font-size:16px;color:${mc}">${fm?(netM>0?'🟢':'🔴')+' '+fmtM(netM):'—'}</div>
+      <div class="kpi-delta" style="color:var(--text-soft)">${fm?'маржа '+fm.margin.toFixed(1)+'%':''}</div></div>
+  </div>`;
 }
 
-function buildDashboard({today,month,kpi,source,warehouses,stocks,atRiskProducts,finance,redemption,promoProducts,_prevWeek,_prevMonth},platform){
+function buildAnomalyCard(today, stocks, platform) {
+  if(!stocks||stocks.length===0) return '';
+
+  // ── Умный порог — зависит от среднего объёма ──────────────────────
+  // Если обычно продаётся 1-2 шт/день, рост до 3 — это норма (акция, случайность).
+  // Сигнал нужен только когда рост статистически значим.
+  function getThreshold(avgDaily) {
+    if(avgDaily < 3)  return 5.0; // 1-2 шт/день → сигнал только при ×5
+    if(avgDaily < 10) return 3.0; // 3-9 шт/день → сигнал при ×3
+    if(avgDaily < 30) return 2.5; // 10-29 шт/день → сигнал при ×2.5
+    return 2.0;                   // 30+ шт/день → сигнал при ×2
+  }
+
+  const anomalies = [];
+  for(const s of stocks){
+    const avgDaily = s.daysCover > 0 ? s.qty / s.daysCover : 0;
+    if(avgDaily <= 0) continue;
+    const todayOrders = s.todayOrders != null ? s.todayOrders :
+      (today.orders && stocks.length > 0 ? Math.round(today.orders / stocks.length) : 0);
+    if(todayOrders <= 0) continue;
+    const ratio = todayOrders / avgDaily;
+    const threshold = getThreshold(avgDaily);
+    if(ratio >= threshold) {
+      anomalies.push({ ...s, avgDaily: Math.round(avgDaily*10)/10, todayOrders, ratio, threshold });
+    }
+  }
+
+  if(anomalies.length === 0) return '';
+
+  const rows = anomalies.map(a => {
+    const hasAd = a.monthAdSpend > 0; // есть активная реклама на артикул
+    const riskAmt = Math.round(a.todayOrders * (platform==='wb' ? 120 : 80));
+
+    // Если реклама есть — снижаем уровень тревоги (может быть органический эффект)
+    const isCritical = a.ratio >= 3 && !hasAd;
+    const lvlText  = isCritical ? 'критично' : hasAd ? 'проверить' : 'подозрительно';
+    const lvlColor = isCritical ? '#ff4444' : hasAd ? '#f5c518' : '#ff8b57';
+    const borderColor = isCritical ? 'rgba(255,68,68,0.35)' : hasAd ? 'rgba(245,197,24,0.25)' : 'rgba(255,139,87,0.3)';
+    const bgColor = isCritical ? 'rgba(255,68,68,0.08)' : hasAd ? 'rgba(245,197,24,0.06)' : 'rgba(255,139,87,0.07)';
+
+    const adNote = hasAd
+      ? `<div style="font-size:11px;color:var(--yellow,#f5c518);margin-bottom:4px">📢 На артикул запущена реклама — возможен органический эффект кампании</div>`
+      : `<div style="font-size:11px;color:#ff6b6b;margin-bottom:4px">⚠️ Реклама не запущена — рост заказов без объяснимой причины</div>`;
+
+    const recommendation = hasAd
+      ? `🔍 Проверьте эффективность кампании — если CTR и конверсия в норме, это органический спрос`
+      : `💡 Рекомендация: временно скройте товар или поднимите цену на 20–30%`;
+
+    return `<div style="background:${bgColor};border:1px solid ${borderColor};border-radius:12px;padding:11px 13px;margin-bottom:7px">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">
+        <div>
+          <span style="font-size:13px;font-weight:700;color:#ff8b8b">${a.name}</span>
+          <span style="font-size:11px;color:var(--text-soft);margin-left:6px">${a.sku}</span>
+        </div>
+        <span style="font-size:12px;font-weight:800;color:${lvlColor};white-space:nowrap;margin-left:8px">×${a.ratio.toFixed(1)} — ${lvlText}</span>
+      </div>
+      <div style="display:flex;gap:14px;flex-wrap:wrap;font-size:12px;margin-bottom:6px">
+        <span style="color:var(--text-soft)">Обычно: <b style="color:var(--text-main)">${a.avgDaily} шт/день</b></span>
+        <span style="color:var(--text-soft)">Сегодня: <b style="color:#ff6b6b">${a.todayOrders} шт</b></span>
+        <span style="color:var(--text-soft)">На складе: <b style="color:var(--cyan,#599cff)">${(a.qty||0).toLocaleString('ru')} шт</b></span>
+      </div>
+      ${adNote}
+      <div style="font-size:11px;color:var(--text-soft);margin-bottom:5px">
+        Риск потерь на логистике при возврате: ~${riskAmt.toLocaleString('ru')} ₽
+      </div>
+      <div style="font-size:11px;background:rgba(245,197,24,0.1);border-radius:8px;padding:6px 8px;color:#f5c518;font-weight:600">
+        ${recommendation}
+      </div>
+    </div>`;
+  }).join('');
+
+  return `<div class="section-title">🚨 Аномалии заказов</div>
+    <div style="background:var(--bg-card-strong,#151929);border:1px solid rgba(255,68,68,0.3);border-radius:14px;overflow:hidden;margin-bottom:12px">
+      <div style="padding:10px 14px;border-bottom:1px solid rgba(255,68,68,0.2);display:flex;justify-content:space-between;align-items:center">
+        <span style="font-size:12px;color:#ff6b6b;font-weight:700">⚡ ${anomalies.length} ${anomalies.length===1?'артикул':'артикула'} с резким ростом заказов</span>
+        <span style="font-size:11px;color:var(--text-soft)">умный порог</span>
+      </div>
+      <div style="padding:10px">${rows}</div>
+    </div>`;
+}
+
+function buildDashboard({today,month,kpi,source,warehouses,stocks,atRiskProducts,finance,redemption,promoProducts,_prevWeek,_prevMonth,yesterday,week},platform){
   const t=today||{};const m=month||{};const k=kpi||{};
   const now=new Date().toLocaleTimeString('ru',{hour:'2-digit',minute:'2-digit'});
   const isOzon=platform==='ozon';
@@ -687,14 +739,146 @@ function buildDashboard({today,month,kpi,source,warehouses,stocks,atRiskProducts
   const dayOrdTarget=k.daily_orders||0;
   const adBudget=k.ad_budget||0;
   const convTarget=k.conversion||0;
-  function fmtMoney(n){n=n||0;if(n>=1000000)return(n/1000000).toFixed(1)+'М ₽';if(n>=1000)return Math.round(n/1000)+'К ₽';return n.toLocaleString('ru')+' ₽';}
-  function fmtNum(n){return(n||0).toLocaleString('ru');}
+  // Полные суммы — без сокращений
+  function fmtMoney(n){n=Math.round(n||0);return n.toLocaleString('ru')+' ₽';}
+  function fmtNum(n){return Math.round(n||0).toLocaleString('ru');}
   function deltaHtml(val,plan,higher=true){
     if(!plan||!val)return '<span style="color:var(--text-soft);font-size:11px">— нет плана</span>';
     const d=((val/plan-1)*100).toFixed(1);const ok=higher?val>=plan:val<=plan;
     return `<div class="kpi-delta ${ok?'delta-up':'delta-down'}">${ok?'▲':'▼'} ${Math.abs(d)}% к плану</div>`;
   }
   const sourceBadge=source==='api'?'<span class="source-badge source-api">● реальные данные</span>':'<span class="source-badge source-mock">● демо</span>';
+  // ── Функция полной аналитики по периоду ──────────────────────────
+  function buildFullAnalytics(data, periodLabel) {
+    if(!data) return '';
+    const rev     = data.revenue     || 0;
+    const sold    = data.sold        || data.orders || 0;
+    const orders  = data.orders      || 0;
+    const returns = data.returns     || 0;
+    const returnPct = rev > 0 ? (Math.abs(returns)/rev*100).toFixed(1) : '0.0';
+    const commission= data.commission|| 0;
+    const logistics = data.logistics || 0;
+    const storage   = data.storage   || 0;
+    const cost      = data.cost      || 0;
+    const adSpend   = data.adSpend   || 0;
+    const otherFees = data.otherFees || 0;
+    const grossProfit = rev - commission - logistics - storage - cost - otherFees;
+    const grossMargin = rev > 0 ? (grossProfit/rev*100).toFixed(1) : '0.0';
+    const drr  = rev > 0 ? (adSpend/rev*100).toFixed(1) : '0.0';
+    const tacos= rev > 0 ? (adSpend/rev*100).toFixed(1) : '0.0'; // упрощённо
+    const taxRate = parseFloat(localStorage.getItem('tax_rate')||'0');
+    const taxSys  = localStorage.getItem('tax_system')||'usn6';
+    const taxLabel= {'usn6':'УСН 6%','usn15':'УСН 15%','osn':'ОСН','patent':'Патент','custom':'Налог'}[taxSys]||'Налог';
+    const taxBase = taxSys==='usn6' ? rev : Math.max(0, grossProfit - adSpend);
+    const taxAmt  = Math.round(taxBase * taxRate / 100);
+    const netProfit = grossProfit - adSpend - taxAmt;
+    const netMargin = rev > 0 ? (netProfit/rev*100).toFixed(1) : '0.0';
+    const roi = cost > 0 ? ((netProfit/cost)*100).toFixed(1) : '—';
+
+    function row(label, value, color, sub) {
+      return `<div style="display:flex;justify-content:space-between;align-items:baseline;padding:6px 0;border-bottom:1px solid var(--line)">
+        <span style="color:var(--text-soft);font-size:12px">${label}${sub?`<span style="font-size:10px;opacity:.6"> ${sub}</span>`:''}</span>
+        <span style="font-weight:700;font-size:13px;color:${color||'var(--text-main)'}">${value}</span>
+      </div>`;
+    }
+    function bigRow(label, value, color) {
+      return `<div style="display:flex;justify-content:space-between;align-items:baseline;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.12)">
+        <span style="font-weight:700;font-size:13px">${label}</span>
+        <span style="font-weight:800;font-size:15px;color:${color||'var(--text-main)'}">${value}</span>
+      </div>`;
+    }
+
+    return `<div style="background:var(--bg-card-strong,#151929);border:1px solid var(--line);border-radius:14px;overflow:hidden;margin-bottom:12px">
+      <div style="padding:10px 14px;border-bottom:1px solid var(--line);font-size:11px;font-weight:700;color:var(--text-soft);text-transform:uppercase;letter-spacing:.08em">
+        📋 Полная аналитика — ${periodLabel}
+      </div>
+      <div style="padding:10px 14px">
+        ${bigRow('💰 Выручка', fmtMoney(rev), 'var(--mint,#66cec3)')}
+        ${row('Заказы', fmtNum(orders)+' шт')}
+        ${sold !== orders ? row('Продано (выкуплено)', fmtNum(sold)+' шт') : ''}
+        ${(data.returnsQty||returns) ? row('↩ Возвраты', (data.returnsQty?fmtNum(data.returnsQty)+' шт · ':'')+fmtMoney(Math.abs(returns)), 'var(--orange,#ff8b57)') : ''}
+        <div style="height:6px"></div>
+        ${row('− Комиссия МП', '−'+fmtMoney(commission), 'var(--orange,#ff8b57)')}
+        ${row('− Логистика', '−'+fmtMoney(logistics), 'var(--orange,#ff8b57)')}
+        ${row('− Хранение', '−'+fmtMoney(storage), 'var(--orange,#ff8b57)')}
+        ${row('− Себестоимость', '−'+fmtMoney(cost), 'var(--orange,#ff8b57)')}
+        ${otherFees ? row('− Иные начисления', '−'+fmtMoney(otherFees), 'var(--orange,#ff8b57)') : ''}
+        <div style="height:4px"></div>
+        ${bigRow('= Валовая прибыль', fmtMoney(grossProfit), grossProfit>=0?'var(--green,#4caf50)':'var(--red,#ff4444)')}
+        ${row('Маржинальность', grossMargin+'%', grossProfit>=0?'var(--green,#4caf50)':'var(--red,#ff4444)')}
+        <div style="height:6px"></div>
+        ${row('− Реклама', '−'+fmtMoney(adSpend), 'var(--orange,#ff8b57)')}
+        ${row('ДРР', drr+'%', parseFloat(drr)<=10?'var(--green,#4caf50)':parseFloat(drr)<=20?'var(--yellow,#f5c518)':'var(--orange,#ff8b57)')}
+        ${row('TACOS', tacos+'%', 'var(--text-soft)')}
+        ${taxRate>0 ? row(`− Налог (${taxLabel})`, '−'+fmtMoney(taxAmt), 'var(--orange,#ff8b57)') : `<div style="font-size:11px;color:var(--text-soft);padding:4px 0">⚪ Налог не задан</div>`}
+        <div style="height:4px"></div>
+        ${bigRow('= Чистая прибыль', fmtMoney(netProfit), netProfit>=0?'var(--green,#4caf50)':'var(--red,#ff4444)')}
+        <div style="display:flex;gap:16px;padding:6px 0">
+          <span style="font-size:12px;color:var(--text-soft)">Маржа: <b style="color:${netProfit>=0?'var(--green,#4caf50)':'var(--red,#ff4444)'}">${netMargin}%</b></span>
+          <span style="font-size:12px;color:var(--text-soft)">ROI: <b style="color:var(--cyan,#599cff)">${roi}${roi!=='—'?'%':''}</b></span>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  // ── Данные по периодам из демо ────────────────────────────────────
+  const periodData = {
+    today: {
+      revenue: t.revenue||0, orders: t.orders||0, sold: t.sold||Math.round((t.orders||0)*0.77),
+      returns: t.returns||0, returnsQty: t.returnsQty||Math.round((t.orders||0)*0.04),
+      commission: t.commission||(t.revenue*0.15||0),
+      logistics: t.logistics||(t.revenue*0.05||0), storage: t.storage||(t.revenue*0.005||0),
+      cost: t.cost||(t.revenue*0.4||0), adSpend: t.adSpend||0, otherFees: 0,
+    },
+    yesterday: yesterday ? {
+      revenue: yesterday.revenue||0, orders: yesterday.orders||0, sold: yesterday.sold||Math.round((yesterday.orders||0)*0.77),
+      returns: yesterday.returns||0, returnsQty: yesterday.returnsQty||Math.round((yesterday.orders||0)*0.04),
+      commission: yesterday.commission||(yesterday.revenue*0.15||0),
+      logistics: yesterday.logistics||(yesterday.revenue*0.05||0), storage: 0,
+      cost: yesterday.cost||(yesterday.revenue*0.4||0), adSpend: yesterday.adSpend||0, otherFees: 0,
+    } : null,
+    week: week ? {
+      revenue: week.revenue||0, orders: week.orders||0, sold: week.sold||Math.round((week.orders||0)*0.77),
+      returns: week.returns||0, returnsQty: week.returnsQty||Math.round((week.orders||0)*0.04),
+      commission: week.commission||(week.revenue*0.15||0),
+      logistics: week.logistics||(week.revenue*0.05||0), storage: week.storage||0,
+      cost: week.cost||(week.revenue*0.4||0), adSpend: week.adSpend||0, otherFees: 0,
+    } : null,
+    month: {
+      revenue: m.revenue||0, orders: m.orders||0, sold: m.sold||Math.round((m.orders||0)*0.77),
+      returns: m.returns||0, returnsQty: m.returnsQty||Math.round((m.orders||0)*0.04),
+      commission: m.commission||(finance&&finance.month?finance.month.commission:0)||(m.revenue*0.15||0),
+      logistics: m.logistics||(m.revenue*0.05||0), storage: m.storage||(m.revenue*0.005||0),
+      cost: m.cost||(finance&&finance.month?finance.month.cost:0)||(m.revenue*0.4||0),
+      adSpend: m.adSpend||0, otherFees: m.otherFees||0,
+    },
+  };
+
+  const periodLabels = {today:'Сегодня', yesterday:'Вчера', week:'7 дней', month:'30 дней'};
+  const pid = `period-${platform}`;
+
+  // ── Период-селектор + аналитика (рендерится динамически) ──────────
+  function buildPeriodBlock() {
+    return `
+    <div class="section-title">📋 Полная аналитика по периоду</div>
+    <div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap" id="${pid}-tabs">
+      ${['today','yesterday','week','month'].map(p=>`
+        <button onclick="selectPeriod('${platform}','${p}')"
+          id="${pid}-btn-${p}"
+          style="padding:6px 12px;border-radius:20px;font-size:12px;font-weight:700;font-family:inherit;cursor:pointer;transition:all .2s;
+          border:1px solid ${p==='today'?'var(--cyan,#599cff)':'var(--line)'};
+          background:${p==='today'?'rgba(89,156,255,0.15)':'transparent'};
+          color:${p==='today'?'var(--cyan,#599cff)':'var(--text-soft)'}">
+          ${periodLabels[p]}
+        </button>`).join('')}
+    </div>
+    <div id="${pid}-content">${buildFullAnalytics(periodData.today, 'Сегодня')}</div>`;
+  }
+
+  // Сохраняем данные и функцию рендера в глобальный кэш для selectPeriod
+  window._periodDataCache[platform] = periodData;
+  window._buildFullAnalytics[platform] = buildFullAnalytics;
+
   const riskItems=(atRiskProducts||[]).filter(p=>p.trend==='down'||!p.trend);
   const growthItemsFromRisk=(atRiskProducts||[]).filter(p=>p.trend==='up');
   let riskHtml='';
@@ -804,34 +988,36 @@ function buildDashboard({today,month,kpi,source,warehouses,stocks,atRiskProducts
     <div class="kpi-grid">
       <div class="kpi-card">
         <div class="kpi-label">💰 Выручка</div>
-        <div class="kpi-value" style="color:var(--mint,#66cec3)">${fmtMoney(t.revenue)}</div>
+        <div class="kpi-value" style="color:var(--mint,#66cec3);font-size:16px">${fmtMoney(t.revenue)}</div>
         ${deltaHtml(t.revenue,dayRevTarget)}
       </div>
       <div class="kpi-card">
-        <div class="kpi-label">📦 Заказы</div>
-        <div class="kpi-value">${fmtNum(t.orders)}</div>
+        <div class="kpi-label">📦 Заказы / Продажи</div>
+        <div class="kpi-value" style="font-size:16px">${fmtNum(t.orders)} / ${fmtNum(t.sold||t.orders)}</div>
         ${deltaHtml(t.orders,dayOrdTarget)}
       </div>
       <div class="kpi-card">
         <div class="kpi-label">📢 Реклама</div>
-        <div class="kpi-value" style="color:${t.adSpend>adBudget*0.85?'var(--orange,#ff8b57)':'var(--yellow,#f5c518)'}">
+        <div class="kpi-value" style="color:${t.adSpend>adBudget*0.85?'var(--orange,#ff8b57)':'var(--yellow,#f5c518)'};font-size:16px">
           ${fmtMoney(t.adSpend)}
         </div>
         ${deltaHtml(t.adSpend,adBudget,false)}
       </div>
       <div class="kpi-card">
         <div class="kpi-label">🔄 Конверсия</div>
-        <div class="kpi-value">${(t.conversion||0).toFixed(1)}%</div>
+        <div class="kpi-value" style="font-size:16px">${(t.conversion||0).toFixed(1)}%</div>
         ${deltaHtml(t.conversion,convTarget)}
       </div>
     </div>
 
-    ${buildPromoCard(promoProducts)}
+    ${buildProfitSummaryCards(finance)}
+    ${buildPeriodBlock()}
 
+    ${buildAnomalyCard(t, stocks, platform)}
+    ${buildPromoCard(promoProducts)}
     ${buildDrrCard(t,stocks,m)}
     ${buildCpoCard(t,stocks)}
     ${buildRedemptionCard(redemption,platform)}
-    ${buildFinanceCard(finance, m.revenue)}
     ${buildTurnoverCard(stocks,platform)}
     ${buildCompareBlocks(m,_prevWeek,_prevMonth)}
     ${riskHtml}
@@ -980,7 +1166,36 @@ async function loadCommissionsTable(platform){
 }
 
 
-const TAX_PRESETS_WA={'usn6':6,'usn15':15,'osn':20,'patent':0,'custom':0};
+// ── Переключение периода аналитики ───────────────────────────────
+function selectPeriod(platform, period) {
+  const pid = `period-${platform}`;
+  const labels = {today:'Сегодня', yesterday:'Вчера', week:'7 дней', month:'30 дней'};
+  // Обновляем стили кнопок
+  ['today','yesterday','week','month'].forEach(p => {
+    const btn = document.getElementById(`${pid}-btn-${p}`);
+    if(!btn) return;
+    const active = p === period;
+    btn.style.borderColor = active ? 'var(--cyan,#599cff)' : 'var(--line)';
+    btn.style.background  = active ? 'rgba(89,156,255,0.15)' : 'transparent';
+    btn.style.color       = active ? 'var(--cyan,#599cff)' : 'var(--text-soft)';
+  });
+  // Берём данные из кэша текущего дашборда
+  const cache = window._periodDataCache && window._periodDataCache[platform];
+  if(!cache) return;
+  const data = cache[period];
+  if(!data) {
+    document.getElementById(`${pid}-content`).innerHTML =
+      `<div style="padding:20px;text-align:center;color:var(--text-soft);font-size:13px">Данные за период недоступны</div>`;
+    return;
+  }
+  // Рендерим аналитику — используем buildFullAnalytics через IIFE
+  const el = document.getElementById(`${pid}-content`);
+  if(el) el.innerHTML = window._buildFullAnalytics[platform](data, labels[period]);
+}
+
+// Хранилище функций рендера и данных по платформам
+window._periodDataCache = {};
+window._buildFullAnalytics = {};
 function updateTaxRateField(){
   const sel=document.getElementById('tax-system');
   const v=sel.value;
