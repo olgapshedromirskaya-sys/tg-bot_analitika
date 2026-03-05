@@ -1,7 +1,7 @@
 const cron = require("node-cron");
 const dayjs = require("dayjs");
 const { getAnalyticsSnapshot } = require("../api/analytics");
-const { buildAlerts, buildUrgentAlerts } = require("./alerts");
+const { buildAlerts, buildUrgentAlerts, detectOrderAnomalies } = require("./alerts");
 const {
   formatStatsMessage,
   formatMonthMessage,
@@ -32,27 +32,74 @@ function getReceivers(db, minRole) {
     .map(user => user.telegram_id);
 }
 
-// Проверяем — есть ли хоть одна платформа с реальным API (не демо)
 function isDemo(snapshot) {
   const channels = snapshot.channels || [];
   return channels.every(c => c.source !== "api");
+}
+
+// ── Форматирование сообщения об аномалии ─────────────────────────────
+function formatAnomalyAlert(a) {
+  const lvl = a.ratio >= 3 && !a.hasAd ? "🔴 КРИТИЧНО" : a.hasAd ? "🟡 Проверить" : "🟠 Подозрительно";
+  const adNote = a.hasAd
+    ? `📢 На артикул запущена реклама — возможен органический эффект кампании`
+    : `⚠️ Реклама не запущена — рост без объяснимой причины`;
+  const recommendation = a.hasAd
+    ? `Проверьте CTR и конверсию — если в норме, это органика`
+    : `Временно скройте товар или поднимите цену на 20–30%`;
+
+  return (
+    `🚨 <b>Аномалия заказов — ${a.label}</b>\n\n` +
+    `${lvl}\n` +
+    `<b>${a.name}</b>${a.sku ? ` <code>${a.sku}</code>` : ""}\n\n` +
+    `Обычно: ~<b>${a.avgDaily} шт/день</b>\n` +
+    `Сегодня: <b>${a.todayOrders} шт</b> (×${a.ratio.toFixed(1)})\n` +
+    `На складе: <b>${a.qty.toLocaleString("ru")} шт</b>\n\n` +
+    `${adNote}\n\n` +
+    `💡 <b>Что делать:</b> ${recommendation}`
+  );
+}
+
+// Антиспам для аномалий — отдельный объект чтобы не мешать alertCooldowns
+const anomalySentAt = {};
+
+function canSendAnomaly(key) {
+  const COOLDOWN = 2 * 60 * 60 * 1000; // 2 часа
+  const last = anomalySentAt[key] || 0;
+  if (Date.now() - last > COOLDOWN) {
+    anomalySentAt[key] = Date.now();
+    return true;
+  }
+  return false;
 }
 
 function startScheduler({ bot, db }) {
   const timezone = process.env.TIMEZONE || "Europe/Moscow";
 
   // ────────────────────────────────────────────────────────────────
-  // ВНЕПЛАНОВЫЕ АЛЕРТЫ — каждые 30 минут проверяем срочные события
-  // В демо-режиме не отправляем
+  // ВНЕПЛАНОВЫЕ АЛЕРТЫ — каждые 30 минут
+  // Включает аномалии заказов (проверяются в первую очередь)
   // ────────────────────────────────────────────────────────────────
   cron.schedule("*/30 * * * *", async () => {
     try {
-      const receivers = getReceivers(db, "marketer");
+      const receivers = getReceivers(db, "manager");
       if (!receivers.length) return;
       const kpi      = db.getKpiSettings();
       const snapshot = await getAnalyticsSnapshot();
-      if (isDemo(snapshot)) return; // 🚫 демо — молчим
+      if (isDemo(snapshot)) return;
 
+      // ── 🚨 Аномалии заказов — проверяем отдельно с собственным кулдауном
+      const anomalies = detectOrderAnomalies(snapshot);
+      for (const a of anomalies) {
+        const key = `${a.label}_${a.sku || a.name}`;
+        if (!canSendAnomaly(key)) continue;
+        const msg = formatAnomalyAlert(a);
+        for (const r of receivers) {
+          await safeSend(bot, r, msg);
+        }
+        console.log(`[Scheduler] Аномалия заказов: ${a.label} ${a.sku} ×${a.ratio.toFixed(1)}`);
+      }
+
+      // ── Остальные срочные алерты
       const urgentAlerts = buildUrgentAlerts(snapshot, kpi);
       if (!urgentAlerts.length) return;
 
@@ -72,13 +119,13 @@ function startScheduler({ bot, db }) {
   // ────────────────────────────────────────────────────────────────
   cron.schedule("0 */2 * * *", async () => {
     try {
-      const receivers = getReceivers(db, "marketer");
+      const receivers = getReceivers(db, "manager");
       if (!receivers.length) return;
       const kpi      = db.getKpiSettings();
       const snapshot = await getAnalyticsSnapshot();
       if (isDemo(snapshot)) return;
 
-      const allAlerts    = buildAlerts(snapshot, kpi);
+      const allAlerts     = buildAlerts(snapshot, kpi);
       const plannedAlerts = allAlerts.filter(a => !a.urgent);
       if (!plannedAlerts.length) return;
 
@@ -164,9 +211,9 @@ function startScheduler({ bot, db }) {
       const snapshot = await getAnalyticsSnapshot();
       if (isDemo(snapshot)) return;
 
-      const prev = dayjs().subtract(7, "day");
+      const prev         = dayjs().subtract(7, "day");
       const snapshotPrev = await getAnalyticsSnapshot({ date: prev.toDate() });
-      const msg = formatWeeklyMessage(snapshot, snapshotPrev, kpi);
+      const msg          = formatWeeklyMessage(snapshot, snapshotPrev, kpi);
       for (const r of receivers) await safeSend(bot, r, msg);
     } catch (e) { console.error("[Scheduler 11:00 weekly]", e.message); }
   }, { timezone });
