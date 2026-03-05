@@ -30,10 +30,28 @@ const ROLE_ALIASES = {
   "руководитель": "owner",
   "администратор": "admin",
   "менеджер":      "manager",
+  "тестировщик":   "tester",
   "owner":         "owner",
   "admin":         "admin",
   "manager":       "manager",
+  "tester":        "tester",
 };
+
+// ─────────────────────────────────────────────────────────────────────
+// Роль tester:
+//   ✅ видит все аналитические блоки (дашборд, финансы, KPI)
+//   ✅ видит форму настроек, но поля API неактивны (disabled)
+//   ❌ не может добавлять/удалять сотрудников (кнопки скрыты)
+//   ❌ не может реально сохранить API-ключи (запрос отклоняется)
+// Проверки используются в:
+//   - createMainKeyboard (скрыть кнопки сотрудников)
+//   - API endpoint /api/credentials (отклонить сохранение)
+//   - webapp/index.html (disabled поля — см. флаг source:'demo' или заголовок X-Role)
+// ─────────────────────────────────────────────────────────────────────
+
+function isTester(userRole) {
+  return normalizeRole(userRole) === "tester";
+}
 
 function escapeHtml(value) {
   return String(value)
@@ -100,12 +118,25 @@ async function requireKnownUser(ctx, db) {
 async function requireRole(ctx, db, role) {
   const user = await requireKnownUser(ctx, db);
   if (!user) return null;
+  // tester имеет доступ ко всей аналитике (как admin), но не к управлению
+  if (isTester(user.role) && role !== "owner") return user;
   if (!hasAccess(user.role, role)) {
     await ctx.reply(`⛔ Недостаточно прав. Требуется роль: <b>${roleLabel(role)}</b>.`, { parse_mode: "HTML" });
     return null;
   }
   return user;
 }
+
+// ── Список кнопок-команд которые должны сбрасывать диалог ──────────
+const MENU_BUTTONS = new Set([
+  "📊 Дашборд за сегодня", "📅 Отчёт за месяц",
+  "📦 Остатки на складах", "📈 Отчёт за неделю",
+  "📊 ДРР", "🛍️ Выкуп товаров",
+  "🔄 Оборачиваемость", "🚨 Товары в зоне риска",
+  "⚙️ Настройки KPI", "✏️ Изменить KPI",
+  "👤 Добавить сотрудника", "❌ Удалить сотрудника",
+  "👥 Список сотрудников", "🚀 Открыть WebApp дашборд",
+]);
 
 // Клавиатура зависит от роли пользователя
 function createMainKeyboard(userRole) {
@@ -116,12 +147,12 @@ function createMainKeyboard(userRole) {
     ["🔄 Оборачиваемость",     "🚨 Товары в зоне риска"],
   ];
 
-  // Финансы — только admin и owner
-  if (canViewFinance(userRole)) {
+  // Финансы — admin, owner и tester (tester видит, но не может менять)
+  if (canViewFinance(userRole) || isTester(userRole)) {
     rows.push(["⚙️ Настройки KPI", "✏️ Изменить KPI"]);
   }
 
-  // Управление сотрудниками — только owner
+  // Управление сотрудниками — только owner (tester не видит)
   if (canManageUsers(userRole)) {
     rows.push(["👤 Добавить сотрудника", "❌ Удалить сотрудника"]);
     rows.push(["👥 Список сотрудников"]);
@@ -159,8 +190,11 @@ function formatHelp(userRole) {
     "🚨 Товары в зоне риска — проблемные артикулы",
   ];
 
-  if (canViewFinance(userRole)) {
+  if (canViewFinance(userRole) || isTester(userRole)) {
     lines.push("⚙️ Настройки KPI — плановые показатели");
+    if (!isTester(userRole)) {
+      lines.push("✏️ Изменить KPI — обновить плановые показатели");
+    }
   }
 
   if (canManageUsers(userRole)) {
@@ -173,11 +207,15 @@ function formatHelp(userRole) {
   lines.push("");
   lines.push("🚀 Открыть WebApp дашборд — визуальный интерфейс");
 
+  if (isTester(userRole)) {
+    lines.push("");
+    lines.push("ℹ️ <i>Тестовый режим: добавление API-ключей недоступно</i>");
+  }
+
   return lines.join("\n");
 }
 
 // ── Сценарий добавления сотрудника (мультишаг) ──────────────────────
-// Хранит промежуточное состояние в памяти (достаточно для небольших команд)
 const addUserState = {};
 
 function registerCommands(bot, db) {
@@ -195,6 +233,14 @@ function registerCommands(bot, db) {
 
     // Нет активного диалога — передаём дальше
     if (!addSt && !kpiSt) return next();
+
+    // ── FIX: если пользователь нажал кнопку меню — сбрасываем диалог
+    // и передаём управление обработчику кнопки как обычно
+    if (MENU_BUTTONS.has(text)) {
+      delete addUserState[userId];
+      delete kpiState[userId];
+      return next();
+    }
 
     // ── Отмена на любом шаге любого диалога ──────────────────────
     if (text === "❌ Отмена") {
@@ -234,7 +280,7 @@ function registerCommands(bot, db) {
       // Шаг 1: Telegram ID
       if (addSt.step === "awaiting_id") {
         if (!/^\d+$/.test(text)) {
-          await ctx.reply("⛔ ID должен состоять только из цифр. Попробуйте ещё раз:");
+          await ctx.reply("⛔ ID должен состоять только из цифр. Попробуйте ещё раз:\n\n<i>Или нажмите любую кнопку меню чтобы отменить.</i>", { parse_mode: "HTML" });
           return;
         }
         addUserState[userId] = { step: "awaiting_role", telegramId: text };
@@ -244,7 +290,7 @@ function registerCommands(bot, db) {
             parse_mode: "HTML",
             ...Markup.keyboard([
               ["руководитель", "администратор"],
-              ["менеджер"],
+              ["менеджер", "тестировщик"],
               ["❌ Отмена"],
             ]).resize().oneTime(),
           }
@@ -259,7 +305,7 @@ function registerCommands(bot, db) {
           await ctx.reply("⛔ Выберите роль из кнопок ниже:", {
             ...Markup.keyboard([
               ["руководитель", "администратор"],
-              ["менеджер"],
+              ["менеджер", "тестировщик"],
               ["❌ Отмена"],
             ]).resize().oneTime(),
           });
@@ -392,6 +438,11 @@ function registerCommands(bot, db) {
 
   // ── /start ───────────────────────────────────────────────────────
   bot.start(async (ctx) => {
+    // Сбрасываем любой активный диалог при /start
+    const userId = String(ctx.from?.id);
+    delete addUserState[userId];
+    delete kpiState[userId];
+
     const user = await requireKnownUser(ctx, db);
     if (!user) return;
     await ctx.reply(formatHeroMessage(), {
@@ -404,6 +455,9 @@ function registerCommands(bot, db) {
 
   // ── /help ────────────────────────────────────────────────────────
   bot.command("help", async (ctx) => {
+    const userId = String(ctx.from?.id);
+    delete addUserState[userId];
+    delete kpiState[userId];
     const user = await requireKnownUser(ctx, db);
     if (!user) return;
     await ctx.reply(formatHelp(user.role), { parse_mode: "HTML" });
@@ -411,6 +465,9 @@ function registerCommands(bot, db) {
 
   // ── /app ─────────────────────────────────────────────────────────
   bot.command("app", async (ctx) => {
+    const userId = String(ctx.from?.id);
+    delete addUserState[userId];
+    delete kpiState[userId];
     const user = await requireKnownUser(ctx, db);
     if (!user) return;
     await ctx.reply("Откройте визуальный дашборд WebApp:", createWebAppKeyboard());
@@ -431,8 +488,7 @@ function registerCommands(bot, db) {
     const user = await requireRole(ctx, db, "manager");
     if (!user) return;
     const [snapshot, kpi] = [await getAnalyticsSnapshot(), db.getKpiSettings()];
-    // Финансовый блок в отчёте за месяц — только для admin/owner
-    const snap = canViewFinance(user.role) ? snapshot : hideFinance(snapshot);
+    const snap = canViewFinance(user.role) || isTester(user.role) ? snapshot : hideFinance(snapshot);
     await ctx.reply(formatMonthMessage(snap, kpi), { parse_mode: "HTML" });
   }
 
@@ -452,8 +508,8 @@ function registerCommands(bot, db) {
       getAnalyticsSnapshot(),
       getAnalyticsSnapshot({ date: prev.toDate() }),
     ]);
-    const now  = canViewFinance(user.role) ? snapshotNow  : hideFinance(snapshotNow);
-    const prev2= canViewFinance(user.role) ? snapshotPrev : hideFinance(snapshotPrev);
+    const now   = canViewFinance(user.role) || isTester(user.role) ? snapshotNow  : hideFinance(snapshotNow);
+    const prev2 = canViewFinance(user.role) || isTester(user.role) ? snapshotPrev : hideFinance(snapshotPrev);
     await ctx.reply(formatWeeklyMessage(now, prev2, kpi), { parse_mode: "HTML" });
   }
 
@@ -514,17 +570,25 @@ function registerCommands(bot, db) {
     await ctx.reply("Откройте визуальный дашборд WebApp:", createWebAppKeyboard());
   });
 
-  // ── Настройки KPI (admin + owner) ────────────────────────────────
+  // ── Настройки KPI (admin + owner + tester — но tester только смотрит) ──
   bot.hears("⚙️ Настройки KPI", async (ctx) => {
     const user = await requireRole(ctx, db, "admin");
     if (!user) return;
     await ctx.reply(formatSettingsMessage(db.getKpiSettings()), { parse_mode: "HTML" });
   });
 
-  // ── Изменить KPI — пошаговый диалог по площадкам ─────────────────
+  // ── Изменить KPI — только admin и owner (не tester) ──────────────
   bot.hears("✏️ Изменить KPI", async (ctx) => {
-    const user = await requireRole(ctx, db, "admin");
+    const user = await requireKnownUser(ctx, db);
     if (!user) return;
+    if (isTester(user.role)) {
+      await ctx.reply("ℹ️ В тестовом режиме изменение KPI недоступно.", { parse_mode: "HTML" });
+      return;
+    }
+    if (!hasAccess(user.role, "admin")) {
+      await ctx.reply(`⛔ Недостаточно прав. Требуется роль: <b>${roleLabel("admin")}</b>.`, { parse_mode: "HTML" });
+      return;
+    }
     kpiState[String(ctx.from.id)] = { step: "kpi_awaiting_platform" };
     await ctx.reply(
       "✏️ <b>Изменение KPI</b>\n\nВыберите площадку:",
@@ -542,6 +606,10 @@ function registerCommands(bot, db) {
   bot.command("setkpi", async (ctx) => {
     const user = await requireRole(ctx, db, "admin");
     if (!user) return;
+    if (isTester(user.role)) {
+      await ctx.reply("ℹ️ В тестовом режиме изменение KPI недоступно.");
+      return;
+    }
     const [keyRaw, valueRaw] = parseArgs(ctx);
     const key   = (keyRaw || "").trim().toLowerCase();
     const value = Number(valueRaw);
@@ -557,10 +625,9 @@ function registerCommands(bot, db) {
   });
 
   // ════════════════════════════════════════════════════════════════
-  // УПРАВЛЕНИЕ СОТРУДНИКАМИ — только owner
+  // УПРАВЛЕНИЕ СОТРУДНИКАМИ — только owner (tester заблокирован)
   // ════════════════════════════════════════════════════════════════
 
-  // ── 👤 Добавить сотрудника — пошаговый диалог ────────────────────
   bot.hears("👤 Добавить сотрудника", async (ctx) => {
     const user = await requireRole(ctx, db, "owner");
     if (!user) return;
@@ -569,12 +636,12 @@ function registerCommands(bot, db) {
     await ctx.reply(
       "👤 <b>Добавление сотрудника</b>\n\n" +
       "Шаг 1 из 3: Отправьте <b>Telegram ID</b> сотрудника.\n\n" +
-      "<i>Чтобы узнать свой ID, сотрудник может написать боту @userinfobot</i>",
+      "<i>Чтобы узнать свой ID, сотрудник может написать боту @userinfobot</i>\n\n" +
+      "Нажмите любую кнопку меню чтобы отменить.",
       { parse_mode: "HTML" }
     );
   });
 
-  // ── ❌ Удалить сотрудника ─────────────────────────────────────────
   bot.hears("❌ Удалить сотрудника", async (ctx) => {
     const user = await requireRole(ctx, db, "owner");
     if (!user) return;
@@ -588,13 +655,12 @@ function registerCommands(bot, db) {
     ).join("\n");
 
     await ctx.reply(
-      `❌ <b>Удаление сотрудника</b>\n\nОтправьте <b>Telegram ID</b> сотрудника которого хотите удалить:\n\n${list}`,
+      `❌ <b>Удаление сотрудника</b>\n\nОтправьте <b>Telegram ID</b> сотрудника которого хотите удалить:\n\n${list}\n\nНажмите любую кнопку меню чтобы отменить.`,
       { parse_mode: "HTML" }
     );
     addUserState[String(ctx.from.id)] = { step: "awaiting_remove_id" };
   });
 
-  // ── 👥 Список сотрудников ─────────────────────────────────────────
   bot.hears("👥 Список сотрудников", async (ctx) => {
     const user = await requireRole(ctx, db, "owner");
     if (!user) return;
@@ -625,9 +691,13 @@ function registerCommands(bot, db) {
   bot.command("risk",       ctx => sendRisk(ctx, db));
 
   bot.catch(async (error, ctx) => {
+    // При любой ошибке сбрасываем диалог чтобы не застревать
+    const userId = String(ctx.from?.id);
+    delete addUserState[userId];
+    delete kpiState[userId];
     await ctx.reply("⚠️ Ошибка обработки команды. Попробуйте ещё раз.");
     console.error("Bot handler error:", error);
   });
 }
 
-module.exports = { registerCommands };
+module.exports = { registerCommands, isTester };
