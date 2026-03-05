@@ -17,6 +17,54 @@ function calcDrr(adSpend, revenue) {
   return (adSpend / revenue) * 100;
 }
 
+// ── Аномалии заказов ─────────────────────────────────────────────────
+// Умный порог зависит от среднего объёма — не спамит на малых объёмах
+function getAnomalyThreshold(avgDaily) {
+  if(avgDaily < 3)  return 5.0; // 1-2 шт/день → сигнал только при ×5
+  if(avgDaily < 10) return 3.0; // 3-9 шт/день → сигнал при ×3
+  if(avgDaily < 30) return 2.5; // 10-29 шт/день → сигнал при ×2.5
+  return 2.0;                   // 30+ шт/день → сигнал при ×2
+}
+
+function detectOrderAnomalies(snapshot) {
+  const anomalies = [];
+  const channels = snapshot.channels || [];
+
+  for (const channel of channels) {
+    const label = channel.platform === "ozon" ? "Ozon" : "Wildberries";
+    const stocks = channel.stocks || [];
+    const todayOrders = channel.today?.orders || 0;
+
+    for (const s of stocks) {
+      const avgDaily = s.daysCover > 0 ? s.qty / s.daysCover : 0;
+      if (avgDaily <= 0) continue;
+
+      const sToday = s.todayOrders != null
+        ? s.todayOrders
+        : Math.round(todayOrders / Math.max(stocks.length, 1));
+      if (sToday <= 0) continue;
+
+      const ratio = sToday / avgDaily;
+      const threshold = getAnomalyThreshold(avgDaily);
+      if (ratio < threshold) continue;
+
+      const hasAd = (s.monthAdSpend || 0) > 0;
+      anomalies.push({
+        label,
+        name: s.name,
+        sku: s.sku,
+        avgDaily: Math.round(avgDaily * 10) / 10,
+        todayOrders: sToday,
+        qty: s.qty || 0,
+        ratio,
+        hasAd, // есть ли активная реклама
+      });
+    }
+  }
+
+  return anomalies;
+}
+
 function buildAlerts(snapshot, kpi) {
   const alerts = [];
   const now = dayjs();
@@ -31,14 +79,42 @@ function buildAlerts(snapshot, kpi) {
 
   const channels = snapshot.channels || [];
 
+  // ── 🚨 Аномалии заказов (кулдаун 2ч на артикул) ─────────────────
+  const anomalies = detectOrderAnomalies(snapshot, 2.0);
+  for (const a of anomalies) {
+    const code = `order_anomaly_${a.label.toLowerCase()}_${(a.sku || a.name).replace(/\s+/g, "_")}`;
+    if (!canSend(code, 2 * 60 * 60 * 1000)) continue;
+
+    const lvl = a.ratio >= 3 && !a.hasAd ? "🔴 КРИТИЧНО" : a.hasAd ? "🟡 Проверить" : "🟠 Подозрительно";
+    const adNote = a.hasAd
+      ? `📢 На артикул запущена реклама — возможен органический эффект`
+      : `⚠️ Реклама не запущена — рост без объяснимой причины`;
+    const recommendation = a.hasAd
+      ? `Проверьте CTR и конверсию кампании — если в норме, это органика`
+      : `Временно скройте товар или поднимите цену на 20–30%`;
+
+    alerts.push({
+      code,
+      urgent: !a.hasAd, // если реклама есть — не срочный, просто проверить
+      message:
+        `🚨 <b>Аномалия заказов — ${a.label}</b>\n\n` +
+        `${lvl}\n` +
+        `<b>${a.name}</b>${a.sku ? ` <code>${a.sku}</code>` : ""}\n\n` +
+        `Обычно: ~<b>${a.avgDaily} шт/день</b>\n` +
+        `Сегодня: <b>${a.todayOrders} шт</b> (×${a.ratio.toFixed(1)})\n` +
+        `На складе: <b>${a.qty.toLocaleString("ru")} шт</b>\n\n` +
+        `${adNote}\n\n` +
+        `💡 <b>Что делать:</b> ${recommendation}`,
+    });
+  }
+
   // ── ДРР — резкий перерасход (внеплановое, кулдаун 4ч) ───────────
   for (const channel of channels) {
     const t = channel.today || {};
     if (!t.revenue || !t.adSpend) continue;
     const drr   = calcDrr(t.adSpend, t.revenue);
-    const label = channels.indexOf(channel) === 0 ? "Ozon" : "Wildberries";
+    const label = channel.platform === "ozon" ? "Ozon" : "Wildberries";
 
-    // Внеплановое — только при превышении более чем на 30% от порога
     const spikeCode = `drr_spike_${label.toLowerCase()}`;
     if (drr > drrThreshold * 1.3 && canSend(spikeCode, 4 * 60 * 60 * 1000)) {
       alerts.push({
@@ -52,7 +128,6 @@ function buildAlerts(snapshot, kpi) {
       });
     }
 
-    // Плановый ДРР-алерт (обычное превышение)
     if (drr > drrThreshold && !alerts.find(a => a.code === spikeCode)) {
       alerts.push({
         code: `drr_high_${label.toLowerCase()}`,
@@ -67,7 +142,7 @@ function buildAlerts(snapshot, kpi) {
 
   // ── Выкуп% критично низкий (кулдаун 12ч) ─────────────────────────
   for (const channel of channels) {
-    const label      = channels.indexOf(channel) === 0 ? "Ozon" : "Wildberries";
+    const label      = channel.platform === "ozon" ? "Ozon" : "Wildberries";
     const threshold  = label === "Ozon" ? 90 : 80;
     const redemption = channel.redemption;
     if (!redemption || redemption.avg === null || redemption.avg === undefined) continue;
@@ -86,9 +161,9 @@ function buildAlerts(snapshot, kpi) {
     }
   }
 
-  // ── Платное хранение (оборачиваемость, кулдаун 24ч) ─────────────
+  // ── Платное хранение (кулдаун 24ч) ──────────────────────────────
   for (const channel of channels) {
-    const label     = channels.indexOf(channel) === 0 ? "Ozon" : "Wildberries";
+    const label     = channel.platform === "ozon" ? "Ozon" : "Wildberries";
     const PAID_DAYS = label === "Ozon" ? 61 : 60;
     const atRisk    = (channel.stocks || []).filter(s => s.daysCover > PAID_DAYS);
     const code      = `paid_storage_${label.toLowerCase()}`;
@@ -106,7 +181,7 @@ function buildAlerts(snapshot, kpi) {
     }
   }
 
-  // ── Критичный остаток (внеплановое, кулдаун 6ч) ─────────────────
+  // ── Критичный остаток (кулдаун 6ч) ──────────────────────────────
   const urgentStocks = snapshot.stocks.filter(s => s.daysCover < SUPPLY_DAYS);
   if (urgentStocks.length > 0 && canSend("supply_urgent", 6 * 60 * 60 * 1000)) {
     const names = urgentStocks.slice(0, 3).map(s => s.name).join(", ");
@@ -121,7 +196,7 @@ function buildAlerts(snapshot, kpi) {
     });
   }
 
-  // ── Товар в зоне риска (внеплановое, кулдаун 6ч, не более 2 раз/день) ──
+  // ── Товар в зоне риска (кулдаун 6ч, не более 2 раз/день) ────────
   const riskProducts = (snapshot.atRiskProducts || []).filter(p => p.trend === "down");
   if (riskProducts.length > 0) {
     const todayKey   = `product_at_risk_count_${dayjs().format("YYYY-MM-DD")}`;
@@ -224,9 +299,8 @@ function buildAlerts(snapshot, kpi) {
   return alerts;
 }
 
-// Только срочные алерты для внеплановых уведомлений
 function buildUrgentAlerts(snapshot, kpi) {
   return buildAlerts(snapshot, kpi).filter(a => a.urgent);
 }
 
-module.exports = { buildAlerts, buildUrgentAlerts };
+module.exports = { buildAlerts, buildUrgentAlerts, detectOrderAnomalies };
