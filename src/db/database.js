@@ -39,37 +39,37 @@ function initDatabase() {
   const db = new Database(dbPath);
   db.pragma("journal_mode = WAL");
 
+  // Список всех допустимых ролей — обновляем здесь при добавлении новых
+  const VALID_ROLES = ["owner", "admin", "manager", "tester"];
+  const ROLES_CHECK = VALID_ROLES.map(r => `'${r}'`).join(", ");
+
   db.exec(`
     CREATE TABLE IF NOT EXISTS users (
       telegram_id TEXT PRIMARY KEY,
-      role TEXT NOT NULL CHECK(role IN ('owner', 'admin', 'manager')),
+      role TEXT NOT NULL CHECK(role IN (${ROLES_CHECK})),
       name TEXT,
       added_by TEXT,
       created_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
   `);
 
-  // ── Миграция: обновляем CHECK constraint если БД уже существует ──
-  // SQLite не поддерживает ALTER TABLE ... MODIFY, поэтому пересоздаём
+  // ── Миграция: пересоздаём таблицу если CHECK не содержит нужных ролей ──
+  // Срабатывает при первом запуске после добавления новой роли
   try {
     const tableInfo = db.prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='users'").get();
-    const needsMigration = tableInfo && !tableInfo.sql.includes("'admin'");
+    const needsMigration = tableInfo && !tableInfo.sql.includes("'tester'");
     if (needsMigration) {
       db.exec(`
         BEGIN;
-        -- Сохраняем данные
         CREATE TABLE IF NOT EXISTS users_backup AS SELECT * FROM users;
-        -- Удаляем старую таблицу
         DROP TABLE users;
-        -- Создаём новую с правильным CHECK
         CREATE TABLE users (
           telegram_id TEXT PRIMARY KEY,
-          role TEXT NOT NULL CHECK(role IN ('owner', 'admin', 'manager')),
+          role TEXT NOT NULL CHECK(role IN (${ROLES_CHECK})),
           name TEXT,
           added_by TEXT,
           created_at TEXT NOT NULL DEFAULT (datetime('now'))
         );
-        -- Возвращаем данные, конвертируя старые роли
         INSERT INTO users (telegram_id, role, name, added_by, created_at)
         SELECT
           telegram_id,
@@ -77,6 +77,7 @@ function initDatabase() {
             WHEN 'owner'    THEN 'owner'
             WHEN 'admin'    THEN 'admin'
             WHEN 'manager'  THEN 'manager'
+            WHEN 'tester'   THEN 'tester'
             WHEN 'marketer' THEN 'manager'
             WHEN 'viewer'   THEN 'manager'
             ELSE 'manager'
@@ -88,6 +89,7 @@ function initDatabase() {
         DROP TABLE users_backup;
         COMMIT;
       `);
+      console.log("[DB] Migration: added 'tester' role to users table");
     }
   } catch (migrationErr) {
     console.error("[DB] Migration error:", migrationErr.message);
@@ -120,7 +122,6 @@ function initDatabase() {
     );
   `);
 
-  // Себестоимость по артикулам — ОБЩАЯ для обеих площадок
   db.exec(`
     CREATE TABLE IF NOT EXISTS product_costs (
       sku        TEXT PRIMARY KEY,
@@ -130,7 +131,6 @@ function initDatabase() {
     );
   `);
 
-  // Комиссии по категориям — РАЗДЕЛЬНЫЕ (platform = 'ozon' | 'wb')
   db.exec(`
     CREATE TABLE IF NOT EXISTS marketplace_commissions (
       id         INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -177,8 +177,9 @@ function initDatabase() {
     FROM users
     ORDER BY
       CASE role
-        WHEN 'owner'   THEN 3
-        WHEN 'admin'   THEN 2
+        WHEN 'owner'   THEN 4
+        WHEN 'admin'   THEN 3
+        WHEN 'tester'  THEN 2
         WHEN 'manager' THEN 1
         ELSE 0
       END DESC,
@@ -271,7 +272,6 @@ function initDatabase() {
       return result;
     },
 
-    // KPI платформы — финансы раздельные, себестоимость общая
     getKpiByPlatform(platform) {
       const all = this.getKpiSettings();
       return {
@@ -280,10 +280,8 @@ function initDatabase() {
         ad_budget:         all[`${platform}_ad_budget`]         ?? all.ad_budget,
         daily_orders:      all[`${platform}_daily_orders`]      ?? all.daily_orders,
         supply_days:       all.supply_days                      ?? 14,
-        // Своя для каждой платформы
         commission:        all[`${platform}_commission`]        ?? 15,
         min_profitability: all[`${platform}_min_profitability`] ?? 10,
-        // Общая
         cost_percent:      all.cost_percent                     ?? 40,
       };
     },
@@ -301,8 +299,6 @@ function initDatabase() {
       }
     },
 
-    // commission и min_profitability — с префиксом платформы (раздельные)
-    // cost_percent — без префикса (общая)
     setFinanceForPlatform(platform, { commission, min_profitability, cost_percent }) {
       if (commission        != null && commission        !== "") {
         setKpiStmt.run({ key: `${platform}_commission`,        value: Number(commission) });
@@ -340,7 +336,6 @@ function initDatabase() {
       db.prepare('DELETE FROM api_credentials WHERE platform = ?').run(platform);
     },
 
-    // ── Себестоимость (общая таблица) ────────────────────────────────
     upsertProductCost({ sku, name, cost }) {
       db.prepare(`
         INSERT INTO product_costs (sku, name, cost, updated_at)
@@ -365,7 +360,6 @@ function initDatabase() {
       db.prepare('DELETE FROM product_costs').run();
     },
 
-    // ── Комиссии (раздельные по платформам) ─────────────────────────
     upsertCommission({ platform, category, rate }) {
       db.prepare(`
         INSERT INTO marketplace_commissions (platform, category, rate, updated_at)
