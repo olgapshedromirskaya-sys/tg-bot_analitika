@@ -23,20 +23,67 @@ function calcFinance(revenue, adSpend, kpi) {
   return { cost, commission: comm, adSpend: ad, netProfit, margin, isHealthy: margin >= minProfit };
 }
 
+// ── Извлекаем telegram_id из Telegram WebApp initData ───────────────
+// initData передаётся в заголовке X-Telegram-Init-Data (устанавливается в webapp JS)
+function extractTelegramId(req) {
+  // 1. Из заголовка напрямую (если webapp передаёт)
+  const directId = req.headers["x-telegram-user-id"];
+  if (directId) return String(directId);
+
+  // 2. Из initData (URL-encoded строка от Telegram.WebApp.initData)
+  const initData = req.headers["x-telegram-init-data"];
+  if (initData) {
+    try {
+      const params = new URLSearchParams(initData);
+      const userStr = params.get("user");
+      if (userStr) {
+        const user = JSON.parse(decodeURIComponent(userStr));
+        if (user?.id) return String(user.id);
+      }
+    } catch (e) {}
+  }
+
+  return null;
+}
+
 function startWebAppServer({ db }) {
   const app = express();
 
   app.use(express.json());
   app.use("/assets", express.static(path.join(__dirname, "../../webapp/assets")));
 
+  // ── GET /api/me — роль текущего пользователя ─────────────────────
+  app.get("/api/me", (req, res) => {
+    try {
+      const telegramId = extractTelegramId(req);
+      if (!telegramId) return res.json({ role: "guest", telegramId: null });
+      const user = db.getUserByTelegramId(telegramId);
+      if (!user) return res.json({ role: "guest", telegramId });
+      res.json({ role: user.role, telegramId, name: user.name || null });
+    } catch (e) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
   app.get("/api/credentials/status", (req, res) => {
     res.json({ ozon: db.hasCredentials("ozon"), wb: db.hasCredentials("wb") });
   });
 
+  // ── POST /api/credentials — тестировщик заблокирован ─────────────
   app.post("/api/credentials", (req, res) => {
     try {
       const { platform, apiKey, clientId } = req.body;
       if (!platform || !apiKey) return res.status(400).json({ error: "Не указана платформа или ключ" });
+
+      // Проверка роли — тестировщик не может сохранять API-ключи
+      const telegramId = extractTelegramId(req);
+      if (telegramId) {
+        const user = db.getUserByTelegramId(telegramId);
+        if (user?.role === "tester") {
+          return res.status(403).json({ error: "Тестовый режим — сохранение API-ключей недоступно" });
+        }
+      }
+
       db.saveApiCredentials({ platform, apiKey, clientId: clientId || "" });
       if (platform === "ozon") {
         process.env.OZON_API_KEY   = apiKey;
@@ -218,7 +265,7 @@ function startWebAppServer({ db }) {
         stocks:         metrics.stocks         || [],
         warehouses:     metrics.warehouses     || [],
         atRiskProducts: metrics.atRiskProducts || [],
-        redemption:     metrics.redemption     || null,  // ← выкуп%
+        redemption:     metrics.redemption     || null,
         kpi,
         finance: {
           today: calcFinance(metrics.today?.revenue || 0, metrics.today?.adSpend || 0, finKpi),
@@ -263,7 +310,7 @@ function startWebAppServer({ db }) {
         stocks:         metrics.stocks         || [],
         warehouses:     metrics.warehouses     || [],
         atRiskProducts: metrics.atRiskProducts || [],
-        redemption:     metrics.redemption     || null,  // ← выкуп%
+        redemption:     metrics.redemption     || null,
         kpi,
         finance: {
           today: calcFinance(metrics.today?.revenue || 0, metrics.today?.adSpend || 0, finKpi),
@@ -305,7 +352,9 @@ function startWebAppServer({ db }) {
     console.log(`🌐 WebApp запущен на порту ${port}`);
   });
 
-  return server;
+  return {
+    stop() { server.close(); }
+  };
 }
 
 module.exports = { startWebAppServer };
