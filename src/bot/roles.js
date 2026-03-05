@@ -2,23 +2,29 @@ const ROLE_LEVELS = {
   manager: 1,
   admin:   2,
   owner:   3,
+  tester:  1, // тот же уровень доступа к аналитике что и manager,
+               // но с особой логикой в commands.js
 };
 
 const ROLE_LABELS = {
   owner:   "руководитель",
   admin:   "администратор",
   manager: "менеджер",
+  tester:  "тестировщик",
 };
 
 // Что каждая роль НЕ может делать:
-// manager — не видит финансы, не управляет пользователями
-// admin   — не управляет пользователями
-// owner   — всё
+// manager   — не видит финансы, не управляет пользователями
+// admin     — не управляет пользователями
+// owner     — всё
+// tester    — видит всё включая финансы, но:
+//             ❌ не может добавлять/удалять сотрудников (скрыто)
+//             ❌ не может сохранять API-ключи (заблокировано)
+//             ❌ не может менять KPI (заблокировано)
 
 function normalizeRole(value) {
   if (!value) return null;
   const normalized = String(value).trim().toLowerCase();
-  // Обратная совместимость: старые роли → новые
   const aliases = { viewer: "manager", marketer: "manager" };
   const mapped = aliases[normalized] || normalized;
   return Object.prototype.hasOwnProperty.call(ROLE_LEVELS, mapped) ? mapped : null;
@@ -36,8 +42,14 @@ function canManageUsers(userRole) {
   return normalizeRole(userRole) === "owner";
 }
 
-// Может ли роль видеть финансы (admin и owner)
+// Может ли роль видеть финансы (admin, owner и tester)
 function canViewFinance(userRole) {
+  const r = normalizeRole(userRole);
+  return r === "admin" || r === "owner" || r === "tester";
+}
+
+// Может ли роль сохранять API-ключи (только admin и owner, не tester)
+function canSaveApiKeys(userRole) {
   const r = normalizeRole(userRole);
   return r === "admin" || r === "owner";
 }
@@ -53,5 +65,6 @@ module.exports = {
   hasAccess,
   canManageUsers,
   canViewFinance,
+  canSaveApiKeys,
   roleLabel,
 };
