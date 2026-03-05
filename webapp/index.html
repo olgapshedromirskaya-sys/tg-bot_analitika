@@ -127,7 +127,7 @@
 
 <div id="panel-settings" class="tab-panel">
 
-  <div class="section-card">
+  <div class="section-card" id="ozon-settings-panel">
     <div class="section-heading">🔵 Ozon <span id="ozon-status-badge"></span></div>
     <div class="hint-box">seller.ozon.ru → Настройки ⚙️ → API ключи → Создать ключ → тип <strong>Admin</strong><br>Нужны: <strong>Client-ID</strong> и <strong>API-ключ</strong></div>
     <label class="form-label">Client-ID</label>
@@ -162,7 +162,7 @@
     </div>
   </div>
 
-  <div class="section-card">
+  <div class="section-card" id="wb-settings-panel">
     <div class="section-heading">🟣 Wildberries <span id="wb-status-badge"></span></div>
     <div class="hint-box">seller.wildberries.ru → Профиль → Настройки → Доступ к API → Создать токен<br>Галочки: ✅ Статистика &nbsp;✅ Реклама &nbsp;✅ Аналитика</div>
     <label class="form-label">API-токен</label>
@@ -1037,6 +1037,11 @@ function downloadCostTemplate(){
 }
 
 async function saveCredentials(platform){
+  // Тестировщик не может сохранять API-ключи
+  try{
+    const meRes=await fetch('/api/me');
+    if(meRes.ok){const me=await meRes.json();if(me.role==='tester'){alert('🔒 Тестовый режим — сохранение API-ключей недоступно');return;}}
+  }catch(e){}
   const apiKey=document.getElementById(`${platform}-api-key`).value.trim();
   const clientId=platform==='ozon'?document.getElementById('ozon-client-id').value.trim():'';
   if(!apiKey){alert('Введите API-ключ');return;}
@@ -1251,6 +1256,52 @@ async function loadSettingsPage(){
   if(selEl)  selEl.value  = taxSys;
   if(rateEl) rateEl.value = taxRate;
   if(vatEl)  vatEl.value  = vatRate;
+
+  // ── Проверяем роль — тестировщик не может сохранять API-ключи ────
+  try{
+    const meRes = await fetch('/api/me');
+    if(meRes.ok){
+      const me = await meRes.json();
+      if(me.role === 'tester'){
+        applyTesterRestrictions();
+      }
+    }
+  }catch(e){}
+}
+
+// Блокирует API-поля для тестировщика
+function applyTesterRestrictions(){
+  const apiFields = [
+    'ozon-client-id','ozon-api-key',
+    'wb-api-key',
+  ];
+  apiFields.forEach(id=>{
+    const el=document.getElementById(id);
+    if(!el)return;
+    el.disabled=true;
+    el.style.opacity='0.4';
+    el.style.cursor='not-allowed';
+    el.placeholder='Тестовый режим — недоступно';
+  });
+  // Блокируем кнопки сохранения ключей
+  document.querySelectorAll('.save-btn').forEach(btn=>{
+    if(btn.textContent.includes('ключ')||btn.textContent.includes('Ключ')||btn.textContent.includes('токен')||btn.textContent.includes('Токен')){
+      btn.disabled=true;
+      btn.style.opacity='0.4';
+      btn.style.cursor='not-allowed';
+      btn.title='Тестовый режим — сохранение API-ключей недоступно';
+    }
+  });
+  // Показываем баннер
+  const panels=['ozon-settings-panel','wb-settings-panel'];
+  panels.forEach(pid=>{
+    const panel=document.getElementById(pid);
+    if(!panel)return;
+    const banner=document.createElement('div');
+    banner.style.cssText='background:rgba(245,197,24,0.1);border:1px solid rgba(245,197,24,0.3);border-radius:10px;padding:9px 13px;margin-bottom:10px;font-size:12px;color:#f5c518;font-weight:600';
+    banner.innerHTML='🔒 Тестовый режим — просмотр без права изменения API-ключей';
+    panel.prepend(banner);
+  });
 }
 
 async function loadStatusBadges(){
