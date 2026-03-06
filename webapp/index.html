@@ -1005,7 +1005,8 @@ function buildDashboard({today,month,kpi,source,warehouses,stocks,atRiskProducts
     <div class="kpi-grid">
       <div class="kpi-card">
         <div class="kpi-label">💰 Выручка</div>
-        <div class="kpi-value" style="color:var(--mint,#66cec3);font-size:16px">${fmtMoney(t.revenue)}</div>
+        <div class="kpi-value" style="color:var(--mint,#66cec3);font-size:16px">${fmtMoney(t.revenue)} / ${fmtMoney(Math.round((t.revenue||0)*((t.sold||t.orders)/Math.max(t.orders,1))))}</div>
+        <div style="font-size:10px;color:var(--text-soft);margin-top:1px">заказы / продажи</div>
         ${deltaHtml(t.revenue,dayRevTarget)}
       </div>
       <div class="kpi-card">
@@ -1026,7 +1027,6 @@ function buildDashboard({today,month,kpi,source,warehouses,stocks,atRiskProducts
         ${deltaHtml(t.conversion,convTarget)}
       </div>
     </div>
-
     ${buildProfitSummaryCards(finance)}
     ${buildPeriodBlock()}
 
